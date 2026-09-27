@@ -1140,7 +1140,7 @@
     var nativePromise = getNativeNotificationState();
     return nativePromise.then(function(nativeState){
       if ((nativePluginIsAvailable() || (getCapacitor() && typeof getCapacitor().nativePromise === 'function')) && nativeState === 'granted') {
-        return callIslandNative('showWebNotification', {/
+        return callIslandNative('showWebNotification', {
           title: title,
           body: body,
           tag: 'island-chat-' + title,
