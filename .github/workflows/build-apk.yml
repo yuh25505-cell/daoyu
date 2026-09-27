@@ -53,6 +53,17 @@ jobs:
             ./ www/
           test -f www/index.html
 
+      - name: Stamp service worker cache version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUILD_ID="${VERSION}-${GITHUB_RUN_NUMBER}"
+          sed -i "s/__CACHE_VERSION__/${BUILD_ID}/" www/sw.js
+          if grep -q '__CACHE_VERSION__' www/sw.js; then
+            echo "ERROR: sw.js cache version placeholder was not replaced" >&2
+            exit 1
+          fi
+          echo "Stamped service worker cache version: ${BUILD_ID}"
+
       - name: Create Capacitor config
         run: |
           cat > capacitor.config.json <<'EOF'
@@ -76,6 +87,9 @@ jobs:
 
       - name: Generate Android app icon
         run: npx @capacitor/assets generate --android
+
+      - name: Apply Android native integrations
+        run: node patch_android.mjs
 
       - name: Sync web app to Android
         run: npx cap sync android
