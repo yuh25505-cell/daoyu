@@ -1010,77 +1010,37 @@
   }
   var islandNativePlugin = null;
   var nativeNotificationStateCache = null;
-
-  function getCapacitor(){ return window.Capacitor || null; }
-
-  function nativePluginIsAvailable(){
-    var cap = getCapacitor();
-    if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) return false;
-    try {
-      return typeof cap.isPluginAvailable === 'function' && cap.isPluginAvailable('IslandNative');
-    } catch(e) {
-      return false;
+  try {
+    if (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function' &&
+        typeof window.Capacitor.isNativePlatform === 'function' &&
+        window.Capacitor.isNativePlatform()) {
+      islandNativePlugin = window.Capacitor.registerPlugin('IslandNative');
     }
-  }
-
-  function initIslandNativePlugin(){
-    var cap = getCapacitor();
-    if (!cap) return null;
-    try {
-      if (nativePluginIsAvailable() && typeof cap.registerPlugin === 'function') {
-        return cap.registerPlugin('IslandNative');
-      }
-      if (cap.Plugins && cap.Plugins.IslandNative) return cap.Plugins.IslandNative;
-    } catch(e) {}
-    return null;
-  }
-
-  function callIslandNative(method, options){
-    var cap = getCapacitor();
-    var args = options || {};
-
-    try {
-      if (islandNativePlugin && nativePluginIsAvailable() && typeof islandNativePlugin[method] === 'function') {
-        return islandNativePlugin[method](args);
-      }
-      /*
-       * 兼容已经打包了原生插件、但 capacitor.plugins.json 尚未包含本地插件的旧 APK。
-       * Capacitor 运行时仍提供 nativePromise，可直接按插件名把调用送入 Android Bridge。
-       */
-      if (cap && typeof cap.nativePromise === 'function' &&
-          typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) {
-        return cap.nativePromise('IslandNative', method, args);
-      }
-    } catch(e) {
-      return Promise.reject(e);
-    }
-    return Promise.reject(new Error('IslandNative plugin unavailable'));
-  }
-
-  try { islandNativePlugin = initIslandNativePlugin(); } catch(e) { islandNativePlugin = null; }
+  } catch(e) {}
 
   function getNativeNotificationState(){
-    if (!nativePluginIsAvailable() && !(getCapacitor() && typeof getCapacitor().nativePromise === 'function')) {
-      return Promise.resolve(null);
-    }
+    var b = islandNativePlugin;
+    if (!b) return Promise.resolve(null);
     try {
-      return callIslandNative('getNotificationPermissionState', {}).then(function(result){
-        var state = result && result.state;
-        if (state === 'granted' || state === 'denied' || state === 'default') {
-          nativeNotificationStateCache = state;
-          return state;
-        }
-        return null;
-      }).catch(function(){
-        return callIslandNative('areNotificationsEnabled', {}).then(function(result){
+      if (typeof b.getNotificationPermissionState === 'function') {
+        return b.getNotificationPermissionState({}).then(function(result){
+          var state = result && result.state;
+          if (state === 'granted' || state === 'denied' || state === 'default') {
+            nativeNotificationStateCache = state;
+            return state;
+          }
+          return null;
+        }).catch(function(){ return null; });
+      }
+      if (typeof b.areNotificationsEnabled === 'function') {
+        return b.areNotificationsEnabled({}).then(function(result){
           var state = result && result.enabled ? 'granted' : 'denied';
           nativeNotificationStateCache = state;
           return state;
         }).catch(function(){ return null; });
-      });
-    } catch(e) {
-      return Promise.resolve(null);
-    }
+      }
+    } catch(e) {}
+    return Promise.resolve(null);
   }
 
   function refreshNativeNotificationState(){
@@ -1091,6 +1051,11 @@
     });
   }
 
+  function notificationPermission(){
+    if (nativeNotificationStateCache) return nativeNotificationStateCache;
+    if (typeof Notification === 'undefined') return 'unsupported';
+    return Notification.permission || 'default';
+  }
   function renderNotificationSettings(){
     var n = getNotificationConfig();
     var toggle = $('notificationEnabledToggle');
@@ -1106,13 +1071,15 @@
     if (ps) ps.textContent = perm === 'granted' ? '已允许' : perm === 'denied' ? '已拒绝' : perm === 'unsupported' ? '当前环境不支持' : '未授权';
   }
   function requestNotificationPermission(){
-    if (nativePluginIsAvailable() || (getCapacitor() && typeof getCapacitor().nativePromise === 'function' && getCapacitor().isNativePlatform && getCapacitor().isNativePlatform())) {
+    var b = islandNativePlugin;
+    if (b && typeof b.getNotificationPermissionState === 'function') {
       return getNativeNotificationState().then(function(state){
         if (state === 'granted') {
           renderNotificationSettings();
           return true;
         }
-        return callIslandNative('requestNotificationPermission', {}).then(function(result){
+        if (typeof b.requestNotificationPermission !== 'function') return false;
+        return b.requestNotificationPermission({}).then(function(result){
           var next = result && result.state;
           nativeNotificationStateCache = next || null;
           renderNotificationSettings();
@@ -1139,8 +1106,9 @@
     var data = { island:'chat', name:title, url:notificationUrl(title) };
     var nativePromise = getNativeNotificationState();
     return nativePromise.then(function(nativeState){
-      if ((nativePluginIsAvailable() || (getCapacitor() && typeof getCapacitor().nativePromise === 'function')) && nativeState === 'granted') {
-        return callIslandNative('showWebNotification', {
+      var b = islandNativePlugin;
+      if (b && typeof b.showWebNotification === 'function' && nativeState === 'granted') {
+        return b.showWebNotification({
           title: title,
           body: body,
           tag: 'island-chat-' + title,
