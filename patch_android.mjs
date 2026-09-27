@@ -251,12 +251,6 @@ public class MainActivity extends BridgeActivity {
     public static final String EXTRA_DEEP_LINK = "island_deep_link";
 
     @Override
-    public void load() {
-        registerPlugin(IslandNativePlugin.class);
-        super.load();
-    }
-
-    @Override
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         openDeepLink(intent);
@@ -285,6 +279,7 @@ public class MainActivity extends BridgeActivity {
     }
 }
 `;
+
 
 fs.writeFileSync(path.join(mainPackageDir, 'IslandNativePlugin.java'), pluginJava, 'utf8');
 fs.writeFileSync(path.join(mainPackageDir, 'MainActivity.java'), mainActivityJava, 'utf8');
