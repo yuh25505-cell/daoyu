@@ -94,6 +94,28 @@ jobs:
       - name: Sync web app to Android
         run: npx cap sync android
 
+      - name: Register local Android notification plugin
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'android/app/src/main/assets/capacitor.plugins.json';
+          const plugin = {
+            pkg: 'island-native',
+            classpath: 'com.daoyu.islandworldbook.IslandNativePlugin'
+          };
+          if (!fs.existsSync(path)) throw new Error('Missing ' + path);
+          const plugins = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (!Array.isArray(plugins)) throw new Error('Invalid Capacitor plugin manifest');
+          if (!plugins.some((item) => item && item.classpath === plugin.classpath)) {
+            plugins.push(plugin);
+            fs.writeFileSync(path, JSON.stringify(plugins, null, '\t') + '\n', 'utf8');
+          }
+          if (!JSON.parse(fs.readFileSync(path, 'utf8')).some((item) => item && item.classpath === plugin.classpath)) {
+            throw new Error('IslandNativePlugin was not registered');
+          }
+          console.log('Registered IslandNativePlugin in capacitor.plugins.json');
+          NODE
+
       - name: Decode Android keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
