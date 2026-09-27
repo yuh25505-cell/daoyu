@@ -1,0 +1,12 @@
+{
+  "name": "island-worldbook",
+  "version": "1.50.0",
+  "private": true,
+  "description": "岛屿 AI-Native 小手机 PWA",
+  "type": "module",
+  "scripts": {
+    "dev": "node -e \"console.log('Static PWA project. Open index.html or use the WebToApp Frontend builder.')\"",
+    "build": "node build.mjs",
+    "preview": "node -e \"console.log('Preview the generated dist/ directory with any static file server.')\""
+  }
+}
