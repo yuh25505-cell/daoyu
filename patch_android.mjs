@@ -333,15 +333,24 @@ if (!gradle.includes(`versionName "${version}"`)) {
 }
 fs.writeFileSync(gradlePath, gradle, 'utf8');
 
-// TEMPORARY diagnostic: inline native-diag.js into the packaged index.html so the app
-// shows Capacitor / IslandNative plugin status on screen a moment after launch.
+// Inject small inline scripts into the packaged index.html (before </body>, so they run
+// before the deferred app.js): the Capacitor registerPlugin shim first, then a TEMPORARY
+// on-screen diagnostic that reports whether the IslandNative plugin is reachable.
 const wwwIndexPath = path.join(root, 'www', 'index.html');
-const diagSourcePath = path.join(root, 'native-diag.js');
-if (fs.existsSync(wwwIndexPath) && fs.existsSync(diagSourcePath)) {
+if (fs.existsSync(wwwIndexPath)) {
   let html = fs.readFileSync(wwwIndexPath, 'utf8');
-  if (!html.includes('island-cap-diag')) {
-    const diagScript = '<script id="island-cap-diag">\n' + fs.readFileSync(diagSourcePath, 'utf8') + '\n</script>';
-    html = html.replace('</body>', diagScript + '\n</body>');
+  const injections = [
+    { id: 'island-cap-shim', file: 'native-shim.js' },
+    { id: 'island-cap-diag', file: 'native-diag.js' },
+  ];
+  let injected = '';
+  for (const item of injections) {
+    const filePath = path.join(root, item.file);
+    if (!fs.existsSync(filePath) || html.includes(`id="${item.id}"`)) continue;
+    injected += `<script id="${item.id}">\n${fs.readFileSync(filePath, 'utf8')}\n</script>\n`;
+  }
+  if (injected) {
+    html = html.replace('</body>', injected + '</body>');
     fs.writeFileSync(wwwIndexPath, html, 'utf8');
   }
 }
