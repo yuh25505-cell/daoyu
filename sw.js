@@ -12,12 +12,30 @@ const APP_SHELL = [
   './icon-512.png'
 ];
 
+// Inside the Android APK (Capacitor serves the bundle from https://localhost) the
+// files are already bundled in the app, so a service worker is unnecessary and can
+// serve pages without Capacitor's injected native bridge. In that environment this
+// worker removes its caches and unregisters itself instead of intercepting requests.
+const IS_CAPACITOR_APP = self.location.hostname === 'localhost';
+
 self.addEventListener('install', event => {
+  if (IS_CAPACITOR_APP) {
+    self.skipWaiting();
+    return;
+  }
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
+  if (IS_CAPACITOR_APP) {
+    event.waitUntil(
+      caches.keys()
+        .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => self.registration.unregister())
+    );
+    return;
+  }
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
@@ -25,12 +43,11 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Network-first: always try to read the app shell fresh (this is what makes an
-// overwrite-installed APK show its new content immediately, since Capacitor
-// serves the bundle that was just packaged into the new APK). Cache Storage is
-// only used as an offline fallback, and is stamped with CACHE_VERSION above so
-// each new build gets its own bucket and old ones are swept in activate().
+// Network-first: always try to read the app shell fresh. Cache Storage is only used
+// as an offline fallback, and is stamped with CACHE_VERSION above so each new build
+// gets its own bucket and old ones are swept in activate().
 self.addEventListener('fetch', event => {
+  if (IS_CAPACITOR_APP) return;
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
