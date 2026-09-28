@@ -31,11 +31,17 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Base64;
 
 import androidx.core.app.ActivityCompat;
 
@@ -47,6 +53,13 @@ import com.getcapacitor.PermissionState;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 @CapacitorPlugin(
     name = "IslandNative",
@@ -60,6 +73,16 @@ public class IslandNativePlugin extends Plugin {
     static final String CHANNEL_ID = "island_messages";
     static final String CHANNEL_NAME = "${appName}消息";
     static final int CHANNEL_IMPORTANCE = NotificationManager.IMPORTANCE_HIGH;
+    static final String SAVE_FOLDER = "${appName}";
+
+    private static class SaveSession {
+        OutputStream out;
+        Uri uri;
+        File file;
+        String path;
+    }
+
+    private final Map<String, SaveSession> saveSessions = new HashMap<>();
 
     @Override
     public void load() {
@@ -166,6 +189,152 @@ public class IslandNativePlugin extends Plugin {
         int id = (int) (System.currentTimeMillis() & 0x7fffffff);
         manager.notify(tag, id, builder.build());
         call.resolve(result(true, getNotificationState()));
+    }
+
+    // ---- Save exported files (backups) into the phone's Download/${appName} folder ----
+
+    @PluginMethod
+    public void beginSaveFile(PluginCall call) {
+        String name = safeFileName(call.getString("filename", "island-file"));
+        String mime = call.getString("mimeType", "application/octet-stream");
+        try {
+            SaveSession session = new SaveSession();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentResolver resolver = getContext().getContentResolver();
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + SAVE_FOLDER);
+                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (uri == null) {
+                    call.reject("无法在下载目录创建文件");
+                    return;
+                }
+                session.uri = uri;
+                session.out = resolver.openOutputStream(uri);
+            } else {
+                File dir = new File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    SAVE_FOLDER
+                );
+                if (!dir.exists() && !dir.mkdirs()) {
+                    call.reject("无法创建下载目录（可能缺少存储权限）");
+                    return;
+                }
+                File file = new File(dir, name);
+                int dot = name.lastIndexOf('.');
+                String base = dot > 0 ? name.substring(0, dot) : name;
+                String ext = dot > 0 ? name.substring(dot) : "";
+                int n = 1;
+                while (file.exists()) {
+                    file = new File(dir, base + "(" + n + ")" + ext);
+                    n++;
+                }
+                session.file = file;
+                session.out = new FileOutputStream(file);
+            }
+            if (session.out == null) {
+                call.reject("无法写入文件");
+                return;
+            }
+            session.path = "下载/" + SAVE_FOLDER + "/" + name;
+            String id = UUID.randomUUID().toString();
+            saveSessions.put(id, session);
+            JSObject result = new JSObject();
+            result.put("id", id);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("创建文件失败：" + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void writeSaveFileChunk(PluginCall call) {
+        String id = call.getString("id", "");
+        SaveSession session = saveSessions.get(id);
+        if (session == null) {
+            call.reject("保存会话不存在");
+            return;
+        }
+        try {
+            byte[] bytes = Base64.decode(call.getString("data", ""), Base64.DEFAULT);
+            session.out.write(bytes);
+            call.resolve();
+        } catch (Exception e) {
+            discardSession(id);
+            call.reject("写入文件失败：" + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void finishSaveFile(PluginCall call) {
+        String id = call.getString("id", "");
+        SaveSession session = saveSessions.remove(id);
+        if (session == null) {
+            call.reject("保存会话不存在");
+            return;
+        }
+        try {
+            session.out.flush();
+            session.out.close();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                getContext().getContentResolver().update(session.uri, values, null, null);
+            } else if (session.file != null) {
+                MediaScannerConnection.scanFile(
+                    getContext(),
+                    new String[] { session.file.getAbsolutePath() },
+                    null,
+                    null
+                );
+            }
+            JSObject result = new JSObject();
+            result.put("path", session.path);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("保存文件失败：" + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void abortSaveFile(PluginCall call) {
+        discardSession(call.getString("id", ""));
+        call.resolve();
+    }
+
+    private void discardSession(String id) {
+        SaveSession session = saveSessions.remove(id);
+        if (session == null) return;
+        try {
+            if (session.out != null) session.out.close();
+        } catch (Exception ignored) {
+        }
+        try {
+            if (session.uri != null) {
+                getContext().getContentResolver().delete(session.uri, null, null);
+            } else if (session.file != null) {
+                session.file.delete();
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String safeFileName(String raw) {
+        String name = raw == null ? "" : raw.trim();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c == '/' || c == 0x5C || c == ':' || c == '*' || c == '?' || c == 0x22 ||
+                c == '<' || c == '>' || c == '|' || c < 32) {
+                sb.append('_');
+            } else {
+                sb.append(c);
+            }
+        }
+        String out = sb.toString();
+        return out.isEmpty() ? "island-file" : out;
     }
 
     private JSObject result(boolean shown, String state) {
@@ -294,6 +463,8 @@ const requiredPermissions = [
   'android.permission.POST_NOTIFICATIONS',
   'android.permission.ACCESS_COARSE_LOCATION',
   'android.permission.ACCESS_FINE_LOCATION',
+  'android.permission.RECORD_AUDIO',
+  'android.permission.MODIFY_AUDIO_SETTINGS',
 ];
 for (const permission of requiredPermissions) {
   if (!manifest.includes(`android:name="${permission}"`)) {
@@ -302,6 +473,20 @@ for (const permission of requiredPermissions) {
       `$1\n    <uses-permission android:name="${permission}" />`
     );
   }
+}
+// Saving files to Download/ needs no permission on Android 10+; only Android 9 and below do.
+if (!manifest.includes('android.permission.WRITE_EXTERNAL_STORAGE')) {
+  manifest = manifest.replace(
+    /(<manifest\b[^>]*>)/,
+    `$1\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />`
+  );
+}
+// Microphone is optional hardware so the APK still installs on devices without one.
+if (!manifest.includes('android.hardware.microphone')) {
+  manifest = manifest.replace(
+    /(<manifest\b[^>]*>)/,
+    `$1\n    <uses-feature android:name="android.hardware.microphone" android:required="false" />`
+  );
 }
 manifest = manifest.replace(
   /(<activity\b[^>]*android:name="\.MainActivity"[^>]*)(>)/,
@@ -333,24 +518,16 @@ if (!gradle.includes(`versionName "${version}"`)) {
 }
 fs.writeFileSync(gradlePath, gradle, 'utf8');
 
-// Inject small inline scripts into the packaged index.html (before </body>, so they run
-// before the deferred app.js): the Capacitor registerPlugin shim first, then a TEMPORARY
-// on-screen diagnostic that reports whether the IslandNative plugin is reachable.
+// Inject native-shim.js into the packaged index.html (before </body>, so it runs before
+// the deferred app.js): provides Capacitor.registerPlugin for this bundler-less app and
+// routes backup downloads to the phone's Download folder.
 const wwwIndexPath = path.join(root, 'www', 'index.html');
-if (fs.existsSync(wwwIndexPath)) {
+const shimSourcePath = path.join(root, 'native-shim.js');
+if (fs.existsSync(wwwIndexPath) && fs.existsSync(shimSourcePath)) {
   let html = fs.readFileSync(wwwIndexPath, 'utf8');
-  const injections = [
-    { id: 'island-cap-shim', file: 'native-shim.js' },
-    { id: 'island-cap-diag', file: 'native-diag.js' },
-  ];
-  let injected = '';
-  for (const item of injections) {
-    const filePath = path.join(root, item.file);
-    if (!fs.existsSync(filePath) || html.includes(`id="${item.id}"`)) continue;
-    injected += `<script id="${item.id}">\n${fs.readFileSync(filePath, 'utf8')}\n</script>\n`;
-  }
-  if (injected) {
-    html = html.replace('</body>', injected + '</body>');
+  if (!html.includes('id="island-cap-shim"')) {
+    const shimScript = '<script id="island-cap-shim">\n' + fs.readFileSync(shimSourcePath, 'utf8') + '\n</script>\n';
+    html = html.replace('</body>', shimScript + '</body>');
     fs.writeFileSync(wwwIndexPath, html, 'utf8');
   }
 }
