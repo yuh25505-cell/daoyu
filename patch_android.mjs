@@ -518,18 +518,32 @@ if (!gradle.includes(`versionName "${version}"`)) {
 }
 fs.writeFileSync(gradlePath, gradle, 'utf8');
 
-// Inject native-shim.js into the packaged index.html (before </body>, so it runs before
-// the deferred app.js): provides Capacitor.registerPlugin for this bundler-less app and
-// routes backup downloads to the phone's Download folder.
+// Adjust the packaged index.html (www/) for the APK:
+//  1. remove the leftover "CapDiag" startup toast script,
+//  2. load api-backup.js (export / import of API settings) after app.js,
+//  3. inline native-shim.js before </body> so it runs before the deferred app.js
+//     (Capacitor.registerPlugin shim + saving backups into Download/岛屿).
 const wwwIndexPath = path.join(root, 'www', 'index.html');
 const shimSourcePath = path.join(root, 'native-shim.js');
-if (fs.existsSync(wwwIndexPath) && fs.existsSync(shimSourcePath)) {
+if (fs.existsSync(wwwIndexPath)) {
   let html = fs.readFileSync(wwwIndexPath, 'utf8');
-  if (!html.includes('id="island-cap-shim"')) {
+
+  html = html.replace(/<script>\s*\(function\(\)\{\s*function showDiag\(\)[\s\S]*?<\/script>\s*/, '');
+
+  if (!html.includes('api-backup.js') && fs.existsSync(path.join(root, 'api-backup.js'))) {
+    const appTag = '<script defer="" src="./app.js"></script>';
+    const apiBackupTag = '<script defer="" src="./api-backup.js"></script>';
+    html = html.includes(appTag)
+      ? html.replace(appTag, appTag + '\n' + apiBackupTag)
+      : html.replace('</body>', apiBackupTag + '\n</body>');
+  }
+
+  if (!html.includes('id="island-cap-shim"') && fs.existsSync(shimSourcePath)) {
     const shimScript = '<script id="island-cap-shim">\n' + fs.readFileSync(shimSourcePath, 'utf8') + '\n</script>\n';
     html = html.replace('</body>', shimScript + '</body>');
-    fs.writeFileSync(wwwIndexPath, html, 'utf8');
   }
+
+  fs.writeFileSync(wwwIndexPath, html, 'utf8');
 }
 
 console.log(`Applied Android native integrations for ${appId} (${version}, versionCode ${versionCode}).`);
