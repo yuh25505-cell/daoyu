@@ -333,4 +333,35 @@ if (!gradle.includes(`versionName "${version}"`)) {
 }
 fs.writeFileSync(gradlePath, gradle, 'utf8');
 
+// TEMPORARY diagnostic: show Capacitor bridge status as an on-screen toast a few seconds
+// after launch, so we can see why the native notification plugin is (not) detected.
+const wwwIndexPath = path.join(root, 'www', 'index.html');
+if (fs.existsSync(wwwIndexPath)) {
+  let html = fs.readFileSync(wwwIndexPath, 'utf8');
+  if (!html.includes('island-cap-diag')) {
+    const diagScript = [
+      '<script id="island-cap-diag">',
+      '(function(){',
+      '  function run(){',
+      '    try {',
+      '      var C = window.Capacitor;',
+      '      var msg = "CapDiag host=" + location.hostname + " Cap=" + !!C',
+      '        + " isNative=" + (C && C.isNativePlatform ? C.isNativePlatform() : "n/a")',
+      '        + " platform=" + (C && C.getPlatform ? C.getPlatform() : "n/a")',
+      '        + " sw=" + !!(navigator.serviceWorker && navigator.serviceWorker.controller)',
+      '        + " Notif=" + (typeof Notification);',
+      '      var t = document.getElementById("toast");',
+      '      if (t) { t.textContent = msg; t.classList.add("is-show"); setTimeout(function(){ t.classList.remove("is-show"); }, 12000); }',
+      '    } catch (e) {}',
+      '  }',
+      '  if (document.readyState === "complete") setTimeout(run, 1500);',
+      '  else window.addEventListener("load", function(){ setTimeout(run, 1500); });',
+      '})();',
+      '</script>'
+    ].join('\n');
+    html = html.replace('</body>', diagScript + '\n</body>');
+    fs.writeFileSync(wwwIndexPath, html, 'utf8');
+  }
+}
+
 console.log(`Applied Android native integrations for ${appId} (${version}, versionCode ${versionCode}).`);
