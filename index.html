@@ -1831,32 +1831,6 @@
 <script defer="" src="./jszip.min.js"></script>
 <script defer="" src="./han-pinyin-initials.js"></script>
 <script defer="" src="./app.js"></script>
-<script>
-(function(){
-  function showDiag(){
-    try {
-      var hasCap = !!window.Capacitor;
-      var hasReg = hasCap && typeof window.Capacitor.registerPlugin === 'function';
-      var hasIsNativeFn = hasCap && typeof window.Capacitor.isNativePlatform === 'function';
-      var isNative = hasIsNativeFn ? !!window.Capacitor.isNativePlatform() : false;
-      var platform = hasCap && typeof window.Capacitor.getPlatform === 'function' ? window.Capacitor.getPlatform() : '?';
-      var msg = 'CapDiag Cap=' + hasCap + ' reg=' + hasReg + ' isNativeFn=' + hasIsNativeFn + ' isNative=' + isNative + ' platform=' + platform;
-      var t = document.getElementById('toast');
-      if (t) {
-        t.textContent = msg;
-        t.classList.add('is-show');
-        setTimeout(function(){ t.classList.remove('is-show'); }, 15000);
-      }
-    } catch(e) {
-      try {
-        var t2 = document.getElementById('toast');
-        if (t2) { t2.textContent = 'CapDiag error: ' + (e && e.message); t2.classList.add('is-show'); setTimeout(function(){ t2.classList.remove('is-show'); }, 15000); }
-      } catch(e2) {}
-    }
-  }
-  if (document.readyState === 'complete') setTimeout(showDiag, 1500);
-  else window.addEventListener('load', function(){ setTimeout(showDiag, 1500); });
-})();
-</script>
+<script defer="" src="./api-backup.js"></script>
 </body>
 </html>
