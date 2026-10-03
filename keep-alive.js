@@ -21,7 +21,7 @@
   var holdCount = 0;            // temporary holds (AI generation in flight)
   var releaseTimer = null;
   var runtimeOn = false;        // audio / service actually running
-  var guardText = '检测中';
+  var guardText = '已启用';
   var audioEl = null;
   var audioUrl = null;
   var bound = false;
@@ -315,7 +315,7 @@
       '<span class="appearance-copy"><strong>静音音频保活</strong><em id="keepAliveHint">关闭</em></span>' +
       '<span aria-hidden="true" class="appearance-switch"></span>' +
       '</button>' +
-      '<div class="notification-status-row"><span>消息通知监听</span><strong id="bgGuardState">' + guardText + '</strong></div>' +
+      '<div class="notification-status-row"><span>AI 生成保护</span><strong id="bgGuardState">' + guardText + '</strong></div>' +
       (isNative
         ? '<div class="notification-status-row"><span>电池优化</span><strong id="keepAliveBatteryState">未检查</strong></div>' +
           '<div class="notification-actions"><button class="appearance-upload-btn" id="keepAliveBatteryBtn" type="button">忽略电池优化</button></div>'
