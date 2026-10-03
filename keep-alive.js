@@ -5,8 +5,8 @@
   //  - Web / PWA : loops a 30 s inaudible audio clip (+ Media Session) so the browser keeps the page alive.
   //  - Android APK: additionally starts a native foreground service (silent AudioTrack + wake lock)
   //                 via the IslandNative plugin, and can request the battery-optimization exemption.
-  //  - window.IslandKeepAlive.hold()/release(): lets other scripts (bg-reply.js) temporarily keep the
-  //    app alive while an AI reply is being generated, even if the switch itself is off.
+  //  - window.IslandKeepAlive.hold()/release(): bg-guard.js uses these to protect AI generation
+  //    even when the switch is off (temporary keep-alive while a request is in flight).
   if (window.__islandKeepAliveLoaded) return;
   window.__islandKeepAliveLoaded = true;
 
@@ -16,19 +16,18 @@
   var LEGACY_STORE = 'kv';
   var LEGACY_KEY = 'island.keepAlive';
 
-  var enabled = false;
-  var holds = {};
+  var enabled = false;          // the user's switch
+  var holds = Object.create(null);
+  var holdCount = 0;            // temporary holds (AI generation in flight)
+  var releaseTimer = null;
+  var runtimeOn = false;        // audio / service actually running
+  var guardText = '检测中';
   var audioEl = null;
   var audioUrl = null;
   var bound = false;
   var nativeStartedAt = 0;
 
-  function holdCount() {
-    var n = 0;
-    for (var k in holds) { if (Object.prototype.hasOwnProperty.call(holds, k)) n += holds[k]; }
-    return n;
-  }
-  function isActive() { return enabled || holdCount() > 0; }
+  function desired() { return enabled || holdCount > 0; }
 
   function toast(msg) {
     try {
@@ -56,8 +55,7 @@
     if (!N || typeof N.startKeepAlive !== 'function') return;
     nativeStartedAt = Date.now();
     N.startKeepAlive().catch(function () {
-      // Android does not allow starting a foreground service while the app is in the background.
-      if (!document.hidden) toast('原生保活服务启动失败');
+      toast('原生保活服务启动失败');
     });
   }
 
@@ -70,12 +68,18 @@
   // The notification's "关闭保活" button stops the service without telling the page.
   function syncNative() {
     var N = nativePlugin();
-    if (!N || !isActive()) return;
+    if (!N || !desired()) return;
     if (Date.now() - nativeStartedAt < 3000) return;
     N.isKeepAliveRunning().then(function (r) {
       if (!r || r.running) return;
-      if (r.userStopped) { setEnabled(false); toast('已通过通知关闭后台保活'); }
-      else nativeStart(); // killed by the system: bring it back while we are in the foreground
+      if (r.userStopped) {
+        holds = Object.create(null);
+        holdCount = 0;
+        setEnabled(false);
+        toast('已通过通知关闭后台保活');
+      } else {
+        nativeStart(); // killed by the system: bring it back while we are in the foreground
+      }
     }).catch(function () {});
   }
 
@@ -152,10 +156,10 @@
       audioEl.setAttribute('playsinline', '');
       audioEl.setAttribute('preload', 'auto');
       // Publish the media notification only once playback has really started.
-      audioEl.addEventListener('playing', function () { if (isActive()) setMediaSession(true); });
-      // The system or another app can pause us (calls, audio focus); come back if still active.
+      audioEl.addEventListener('playing', function () { if (desired()) setMediaSession(true); });
+      // The system or another app can pause us (calls, audio focus); come back if still wanted.
       audioEl.addEventListener('pause', function () {
-        if (isActive()) setTimeout(function () { if (isActive()) startAudio(); }, 600);
+        if (desired()) setTimeout(function () { if (desired()) startAudio(); }, 600);
       });
     } catch (e) { audioEl = null; }
     return audioEl;
@@ -205,7 +209,8 @@
   }
 
   function resume() {
-    if (isActive() && (!audioEl || audioEl.paused)) startAudio();
+    if (desired() && audioEl && audioEl.paused) startAudio();
+    else if (desired() && !audioEl) startAudio();
   }
 
   function bindResume() {
@@ -230,11 +235,17 @@
       toggle.classList.toggle('is-on', enabled);
       toggle.setAttribute('aria-checked', enabled ? 'true' : 'false');
     }
-    if (hint) hint.textContent = enabled ? '已开启' : '关闭';
+    if (hint) {
+      hint.textContent = enabled ? '已开启' : (holdCount > 0 ? '关闭（AI 生成中，临时保活）' : '关闭');
+    }
   }
 
-  function apply() {
-    if (isActive()) {
+  // Start / stop the audio + native service according to switch OR temporary holds.
+  function applyRuntime(force) {
+    var on = desired();
+    if (!force && on === runtimeOn) return;
+    runtimeOn = on;
+    if (on) {
       startAudio();
       setMediaSession(true);
       nativeStart();
@@ -243,34 +254,48 @@
       setMediaSession(false);
       nativeStop();
     }
+  }
+
+  function apply(force) {
+    applyRuntime(force);
     render();
   }
 
   function setEnabled(next) {
     enabled = !!next;
-    apply();
+    apply(false);
     save(enabled);
   }
 
-  // Temporary keep-alive requests from other scripts (e.g. while an AI reply is generating).
-  function hold(reason) {
-    var was = isActive();
-    holds[reason] = (holds[reason] || 0) + 1;
-    if (!was) apply();
-  }
-
-  function release(reason, graceMs) {
-    setTimeout(function () {
-      holds[reason] = Math.max(0, (holds[reason] || 0) - 1);
-      if (!isActive()) apply();
-    }, graceMs || 0);
-  }
-
   window.IslandKeepAlive = {
-    hold: hold,
-    release: release,
     isEnabled: function () { return enabled; },
-    isActive: isActive
+    isActive: function () { return runtimeOn; },
+    hold: function (key) {
+      key = key || 'default';
+      holds[key] = (holds[key] || 0) + 1;
+      holdCount++;
+      if (releaseTimer) { clearTimeout(releaseTimer); releaseTimer = null; }
+      apply(false);
+    },
+    release: function (key, graceMs) {
+      key = key || 'default';
+      if (!holds[key]) return;
+      holds[key]--;
+      holdCount = Math.max(0, holdCount - 1);
+      if (holdCount === 0) {
+        if (releaseTimer) clearTimeout(releaseTimer);
+        releaseTimer = setTimeout(function () {
+          releaseTimer = null;
+          apply(false);
+        }, typeof graceMs === 'number' ? graceMs : 30000);
+      }
+      render();
+    },
+    setGuardState: function (text) {
+      guardText = String(text || '');
+      var el = document.getElementById('bgGuardState');
+      if (el) el.textContent = guardText;
+    }
   };
 
   function mount() {
@@ -280,8 +305,8 @@
 
     var isNative = !!nativePlugin();
     var note = isNative
-      ? '开启后会启动一个前台服务（通知栏会显示“岛屿正在后台运行”）并循环播放几乎无声的音频、保持 CPU 唤醒，尽量避免角色主动消息的后台定时器被系统暂停或回收。会增加耗电；部分国产系统还需在系统设置中允许“自启动”和“后台运行”，并建议下方“忽略电池优化”。即使不开启，AI 正在回复时也会临时保活，回复结束后自动关闭。'
-      : '开启后循环播放一段几乎无声的音频，通知中心会出现“岛屿 · 后台保活中”的媒体卡片，帮助减少角色主动消息的后台定时器被浏览器暂停的概率。浏览器要求先有一次点按才能播放；不保证在所有设备和省电策略下都生效，会消耗少量电量。即使不开启，AI 正在回复时也会临时保活，回复结束后自动关闭。';
+      ? '开启后会启动一个前台服务（通知栏会显示“岛屿正在后台运行”）并循环播放几乎无声的音频、保持 CPU 唤醒，尽量避免角色主动消息的后台定时器被系统暂停或回收。AI 生成回复期间即使开关关闭也会自动临时保活。会增加耗电；部分国产系统还需要在系统设置中允许“自启动”和“后台运行”，并建议下方“忽略电池优化”。'
+      : '开启后循环播放一段几乎无声的音频，通知中心会出现“岛屿 · 后台保活中”的媒体卡片，帮助减少角色主动消息的后台定时器被浏览器暂停的概率。AI 生成回复期间即使开关关闭也会自动临时保活。浏览器要求先有一次点按才能播放；不保证在所有设备和省电策略下都生效，会消耗少量电量。';
 
     var html =
       '<div class="settings-section-title">后台保活</div>' +
@@ -290,6 +315,7 @@
       '<span class="appearance-copy"><strong>静音音频保活</strong><em id="keepAliveHint">关闭</em></span>' +
       '<span aria-hidden="true" class="appearance-switch"></span>' +
       '</button>' +
+      '<div class="notification-status-row"><span>消息通知监听</span><strong id="bgGuardState">' + guardText + '</strong></div>' +
       (isNative
         ? '<div class="notification-status-row"><span>电池优化</span><strong id="keepAliveBatteryState">未检查</strong></div>' +
           '<div class="notification-actions"><button class="appearance-upload-btn" id="keepAliveBatteryBtn" type="button">忽略电池优化</button></div>'
@@ -324,7 +350,7 @@
     mount();
     load().then(function (v) {
       enabled = !!v;
-      apply();
+      apply(true);
     });
   }
 
@@ -338,15 +364,4 @@
     if (document.getElementById('keepAliveToggle') || tries > 40) { clearInterval(timer); return; }
     mount();
   }, 500);
-
-  // Load the AI-reply guard + per-message notifications.
-  try {
-    if (!document.querySelector('script[data-island-bgreply]')) {
-      var s = document.createElement('script');
-      s.src = './bg-reply.js';
-      s.async = true;
-      s.setAttribute('data-island-bgreply', '1');
-      (document.body || document.documentElement).appendChild(s);
-    }
-  } catch (e) {}
 })();

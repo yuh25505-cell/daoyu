@@ -176,16 +176,19 @@
   else mount();
 })();
 
-// Load the background keep-alive switch (silent audio + Android foreground service).
-// index.html only references api-backup.js, so keep-alive.js is pulled in from here;
-// this makes the switch appear in both the web build and the APK.
+// Load the extra modules (index.html only references api-backup.js, so they are pulled in from
+// here; this makes them available in both the web build and the APK):
+//  - keep-alive.js : silent-audio keep-alive switch (+ Android foreground service)
+//  - bg-guard.js   : AI-generation protection + per-message system notifications
 (function () {
   try {
-    if (window.__islandKeepAliveLoaded || document.querySelector('script[data-island-keepalive]')) return;
-    var s = document.createElement('script');
-    s.src = './keep-alive.js';
-    s.async = true;
-    s.setAttribute('data-island-keepalive', '1');
-    (document.body || document.documentElement).appendChild(s);
+    ['keep-alive.js', 'bg-guard.js'].forEach(function (file) {
+      if (document.querySelector('script[data-island-extra="' + file + '"]')) return;
+      var s = document.createElement('script');
+      s.src = './' + file;
+      s.async = false; // keep the order: keep-alive.js first
+      s.setAttribute('data-island-extra', file);
+      (document.body || document.documentElement).appendChild(s);
+    });
   } catch (e) {}
 })();
