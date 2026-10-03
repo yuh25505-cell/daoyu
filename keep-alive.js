@@ -2,7 +2,7 @@
   'use strict';
 
   // Background keep-alive switch (设置 → 通知 → 后台保活).
-  //  - Web / PWA : loops an inaudible audio clip (+ Media Session) so the browser keeps the page alive.
+  //  - Web / PWA : loops a 30 s inaudible audio clip (+ Media Session) so the browser keeps the page alive.
   //  - Android APK: additionally starts a native foreground service (silent AudioTrack + wake lock)
   //                 via the IslandNative plugin, and can request the battery-optimization exemption.
   if (window.__islandKeepAliveLoaded) return;
@@ -109,12 +109,15 @@
     catch (e) { toast('保活设置保存失败'); }
   }
 
-  // ---------- silent audio ----------
-  // 10 s of mono 16-bit 8 kHz PCM at +/-4 LSB (about -78 dBFS): inaudible, but not digital silence,
-  // which some platforms would optimise away. It must be longer than ~5 s: browsers such as Chrome
-  // do not show a media notification (notification-shade card) for very short clips.
+  // ---------- keep-alive audio ----------
+  // 30 s of mono 16-bit 8 kHz PCM: a 20 Hz sine at amplitude 40/32768 (about -58 dBFS).
+  // Phones cannot reproduce 20 Hz at that level, so it is inaudible, yet browsers still treat it as
+  // real playback. Browsers ignore all-zero audio and clips shorter than ~5 s (no media
+  // notification, no background priority), which is why the old 1 s +/-1 LSB clip did nothing.
+  // 20 Hz x 30 s is a whole number of cycles, so the loop is seamless.
+  // The Android foreground service (patch_keepalive.mjs) plays the same signal.
   function buildSilentWav() {
-    var rate = 8000, n = rate * 10;
+    var rate = 8000, seconds = 30, n = rate * seconds;
     var buf = new ArrayBuffer(44 + n * 2);
     var v = new DataView(buf);
     function str(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
@@ -122,7 +125,9 @@
     str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
     v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
     str(36, 'data'); v.setUint32(40, n * 2, true);
-    for (var i = 0; i < n; i++) v.setInt16(44 + i * 2, (i & 1) ? 4 : -4, true);
+    for (var i = 0; i < n; i++) {
+      v.setInt16(44 + i * 2, Math.round(40 * Math.sin(2 * Math.PI * 20 * i / rate)), true);
+    }
     return new Blob([buf], { type: 'audio/wav' });
   }
 
@@ -130,17 +135,12 @@
     if (audioEl) return audioEl;
     try {
       audioUrl = URL.createObjectURL(buildSilentWav());
-      audioEl = new Audio();
-      audioEl.src = audioUrl;
+      audioEl = new Audio(audioUrl);
       audioEl.loop = true;
-      audioEl.muted = false;
       audioEl.volume = 1;
       audioEl.setAttribute('playsinline', '');
       audioEl.setAttribute('preload', 'auto');
-      audioEl.style.display = 'none';
-      // Keep the element in the DOM; some browsers only surface media controls for attached elements.
-      try { (document.body || document.documentElement).appendChild(audioEl); } catch (e) {}
-      // Re-assert the media-session card once audio is really playing.
+      // Publish the media notification only once playback has really started.
       audioEl.addEventListener('playing', function () { if (enabled) setMediaSession(true); });
       // The system or another app can pause us (calls, audio focus); come back if still enabled.
       audioEl.addEventListener('pause', function () {
@@ -156,10 +156,7 @@
     bindResume();
     try {
       var p = el.play();
-      if (p && typeof p.then === 'function') {
-        p.then(function () { if (enabled) setMediaSession(true); })
-         .catch(function () { /* needs a user gesture; retried on next touch */ });
-      }
+      if (p && typeof p.catch === 'function') p.catch(function () { /* needs a user gesture; retried on next touch */ });
     } catch (e) {}
   }
 

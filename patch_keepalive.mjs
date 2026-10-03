@@ -147,16 +147,17 @@ public class KeepAliveService extends Service {
         wakeLock = null;
     }
 
-    // 1 second of mono 16-bit 8 kHz PCM at +/-1 LSB (about -90 dBFS), looped forever.
-    // No audio focus is requested, so it never interrupts the user's own music.
+    // 30 seconds of mono 16-bit 8 kHz PCM: a 20 Hz sine at amplitude 40 (about -58 dBFS), looped
+    // forever. Same signal as the web keep-alive.js. Inaudible on phone speakers, but not digital
+    // silence. No audio focus is requested, so it never interrupts the user's own music.
     private void startSilentAudio() {
         if (track != null) return;
         try {
             final int rate = 8000;
-            final int frames = rate;
+            final int frames = rate * 30;
             short[] pcm = new short[frames];
             for (int i = 0; i < frames; i++) {
-                pcm[i] = (short) ((i & 1) == 0 ? 1 : -1);
+                pcm[i] = (short) Math.round(40 * Math.sin(2 * Math.PI * 20 * i / rate));
             }
             AudioTrack t = new AudioTrack.Builder()
                 .setAudioAttributes(new AudioAttributes.Builder()
