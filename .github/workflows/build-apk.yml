@@ -90,6 +90,8 @@ jobs:
 
       - name: Apply Android native integrations
         run: node patch_android.mjs
+      - name: Apply Android keep-alive service
+        run: node patch_keepalive.mjs
 
       - name: Sync web app to Android
         run: npx cap sync android
