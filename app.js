@@ -1100,10 +1100,12 @@
   function notificationUrl(name){
     return location.href.split('#')[0].split('?')[0] + '?island=chat&name=' + encodeURIComponent(name || '');
   }
-  function showCharacterNotification(name, text, avatar){
+  function showCharacterNotification(name, text, avatar, opts){
     var title = String(name || '岛屿');
     var body = String(text || '').trim();
     var data = { island:'chat', name:title, url:notificationUrl(title) };
+    /* opts.unique：每条消息使用独立 tag，系统通知逐条堆叠（像微信），而不是互相覆盖 */
+    var tagValue = 'island-chat-' + title + (opts && opts.unique ? '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : '');
     var nativePromise = getNativeNotificationState();
     return nativePromise.then(function(nativeState){
       var b = islandNativePlugin;
@@ -1111,7 +1113,7 @@
         return b.showWebNotification({
           title: title,
           body: body,
-          tag: 'island-chat-' + title,
+          tag: tagValue,
           url: data.url
         }).then(function(result){
           return !!(result && result.shown !== false);
@@ -1122,7 +1124,7 @@
       if (nativeShown) return true;
       try {
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-          var n = new Notification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:'island-chat-' + title, data:data });
+          var n = new Notification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data });
           n.onclick = function(){ try { window.focus(); } catch(e){}; try { openPM(title); } catch(e){}; n.close(); };
           return true;
         }
@@ -1130,7 +1132,7 @@
       if (navigator.serviceWorker && navigator.serviceWorker.ready) {
         return navigator.serviceWorker.ready.then(function(reg){
           if (!reg.showNotification) return false;
-          return reg.showNotification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:'island-chat-' + title, data:data }).then(function(){ return true; }).catch(function(){ return false; });
+          return reg.showNotification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data }).then(function(){ return true; }).catch(function(){ return false; });
         }).catch(function(){ return false; });
       }
       return false;
@@ -1201,7 +1203,7 @@
         c.preview=segments[segments.length-1]; c.time='刚刚'; c.unread=(Number(c.unread)||0)+1;
         return saveChats().then(function(){
           if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name);
-          return Promise.resolve(showCharacterNotification(name, segments.join('\n'), c.avatar)).then(function(){ return true; });
+          return Promise.resolve(notifySegments(name, segments, c.avatar)).then(function(){ return true; });
         });
       });
     }).catch(function(err){ console.warn('[岛屿] 后台主动消息失败',err); return false; }).then(function(result){
@@ -5978,6 +5980,7 @@
   var pmForwardRecordView = $('pmForwardRecordView'), pmForwardRecordBack = $('pmForwardRecordBack'), pmForwardRecordTitle = $('pmForwardRecordTitle'), pmForwardRecordList = $('pmForwardRecordList');
 
   var currentName = null, currentAvatar = null, panelMode = null, replyTimer = null;
+  var replyInFlight = {};
   var messageQuoteDraft = null;
   var forwardMessageIndex = -1;
   var forwardSelectedMessageIndices = null;
@@ -7503,6 +7506,39 @@ function hideTypingStatus(){
   if (!pmTitle) return;
   pmTitle.textContent = currentName || '角色';
 }
+/* replyInFlight：正在生成回复的聊天（离开聊天页后回复仍在后台继续，回来时可恢复「对方正在输入...」），声明在 currentName 旁边 */
+function finishTyping(name){
+  delete replyInFlight[name];
+  if (currentName === name) hideTypingStatus();
+}
+/* 角色的一条新消息已写入：不在该聊天页（或应用在后台）时，更新聊天列表未读并逐条弹系统通知。 */
+function announceIncomingMessage(name, msg){
+  if (!name || !msg) return;
+  var text = String(msg.text || '').trim();
+  if (!text) return;
+  var viewing = currentName === name && !document.hidden;
+  if (currentName !== name) {
+    for (var i = 0; i < CHATS.length; i++) {
+      if (CHATS[i].name === name) {
+        CHATS[i].preview = text; CHATS[i].time = '刚刚'; CHATS[i].unread = (Number(CHATS[i].unread) || 0) + 1;
+        break;
+      }
+    }
+    renderChats(); saveChats();
+  }
+  if (viewing) return;
+  var avatar; try { avatar = getAvatar(name); } catch(e) { avatar = undefined; }
+  try { Promise.resolve(showCharacterNotification(name, text, avatar, { unique:true })).catch(function(){}); } catch(e){}
+}
+/* 主动消息：每一段单独一条通知，间隔 150ms，保证顺序 */
+function notifySegments(name, segs, avatar){
+  var p = Promise.resolve();
+  segs.forEach(function(seg){
+    p = p.then(function(){ return showCharacterNotification(name, seg, avatar, { unique:true }); })
+         .then(function(){ return new Promise(function(r){ setTimeout(r, 150); }); });
+  });
+  return p;
+}
 
   function syncPMChrome(){
     var head = document.querySelector('.pm-head');
@@ -7545,6 +7581,7 @@ function hideTypingStatus(){
     currentName = name; currentAvatar = getAvatar(name);
     if (pmTitle) pmTitle.textContent = name;
     hideTypingStatus();
+    if (replyInFlight[name]) showTypingStatus();
     if (!Array.isArray(MESSAGES[name])) { MESSAGES[name] = []; saveMessages(name); }
     clearVoiceTranscriptStates();
     renderMessages(); closePanel(); setVoiceMode(false);
@@ -7599,7 +7636,7 @@ function hideTypingStatus(){
     closeTransferModal();
     hideTypingStatus();
     currentName = null;
-    if (replyTimer) { clearTimeout(replyTimer); replyTimer = null; }
+    /* 离开聊天页不再取消正在进行的回复：回复会在后台继续生成、写入并弹系统通知。 */
   }
   function sendMessage(text){
     text = String(text || '').trim();
@@ -7633,31 +7670,31 @@ function hideTypingStatus(){
   function scheduleReply(delay){
     if (replyTimer) { toast('AI 正在回复中'); return; }
     if (!isApiReady()) { toast('请先在设置中配置 AI 接口'); return; }
+    var nameAtSchedule = currentName;
 
     replyTimer = setTimeout(function(){
       replyTimer = null;
-      if (!currentName) return;
-      var nameAtRequest = currentName;
+      if (!nameAtSchedule) return;
+      var nameAtRequest = nameAtSchedule;
+      replyInFlight[nameAtRequest] = true;
 
       /* 显示顶栏备注「对方正在输入...」 */
-      showTypingStatus();
+      if (currentName === nameAtRequest) showTypingStatus();
 
       var finished = false;
       var timeoutTimer = null;
 
       function startAiReply(){
         if (finished) return;
-        if (!currentName || currentName !== nameAtRequest) return;
         prepareMemoryForContext(nameAtRequest).then(function(){
         if (finished) return;
-        if (!currentName || currentName !== nameAtRequest) return;
         var messages = buildMessages(nameAtRequest, {
           excludeMessageId: getLatestUserMessageId(nameAtRequest)
         });
         timeoutTimer = setTimeout(function(){
           if (finished) return;
           finished = true;
-          hideTypingStatus();
+          finishTyping(nameAtRequest);
           toast('AI 接口超时，请稍后重试');
         }, 60000);
 
@@ -7665,8 +7702,7 @@ function hideTypingStatus(){
         if (finished) return;
         finished = true;
         clearTimeout(timeoutTimer);
-        hideTypingStatus();
-        if (!currentName || currentName !== nameAtRequest) return;
+        finishTyping(nameAtRequest);
         var personaAtRequest = findPersona(nameAtRequest);
         var autoExpandTranslation = getCharAutoExpandTranslation(personaAtRequest);
         var transferResult;
@@ -7685,7 +7721,7 @@ function hideTypingStatus(){
         }
         if (!segmentItems.length) {
           if (transferResult.changed) {
-            saveMessages(nameAtRequest); renderMessages(true); scrollBottom(true); renderChats(); saveChats(); maybeSummarizeShortTermMemory(nameAtRequest);
+            saveMessages(nameAtRequest); if (currentName === nameAtRequest) { renderMessages(true); scrollBottom(true); } renderChats(); saveChats(); maybeSummarizeShortTermMemory(nameAtRequest);
             if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name);
             return;
           }
@@ -7695,7 +7731,6 @@ function hideTypingStatus(){
         var index = 0;
         var lastSeg = segmentItems[segmentItems.length - 1].text;
         function appendNextSegment(){
-          if (!currentName || currentName !== nameAtRequest) return;
           if (index >= segmentItems.length) {
             saveMessages(nameAtRequest);
             for (var i = 0; i < CHATS.length; i++) {
@@ -7715,8 +7750,8 @@ function hideTypingStatus(){
           if (index === 1 && transferResult.replyTo) aiMessage.replyTo = Object.assign({}, transferResult.replyTo);
           MESSAGES[nameAtRequest].push(aiMessage);
           saveMessages(nameAtRequest);
-          renderMessages(true);
-          scrollBottom(true);
+          if (currentName === nameAtRequest) { renderMessages(true); scrollBottom(true); }
+          announceIncomingMessage(nameAtRequest, aiMessage);
           if (index < segmentItems.length) {
             replyTimer = setTimeout(function(){ replyTimer = null; appendNextSegment(); }, 420 + Math.min(480, segment.text.length * 12));
           } else {
@@ -7733,16 +7768,15 @@ function hideTypingStatus(){
           if (finished) return;
           finished = true;
           if (timeoutTimer) clearTimeout(timeoutTimer);
-          hideTypingStatus();
-          if (!currentName || currentName !== nameAtRequest) return;
+          finishTyping(nameAtRequest);
           console.warn('[岛屿] AI 调用失败：', err);
           var msg = (err && err.message) ? err.message : '未知错误';
-          toast('AI 调用失败：' + msg.slice(0, 50));
+          toast((currentName === nameAtRequest ? '' : nameAtRequest + ' · ') + 'AI 调用失败：' + msg.slice(0, 50));
         });
         }).catch(function(err){
           if (finished) return;
           finished = true;
-          hideTypingStatus();
+          finishTyping(nameAtRequest);
           console.warn('[岛屿] 记忆准备失败：', err);
           startAiReply();
         });
