@@ -7,6 +7,7 @@ const APP_SHELL = [
   './app.css',
   './jszip.min.js',
   './app.js',
+  './keep-alive.js',
   './icon-180.png',
   './icon-192.png',
   './icon-512.png'

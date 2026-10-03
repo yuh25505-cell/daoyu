@@ -175,3 +175,17 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
 })();
+
+// Load the background keep-alive switch (silent audio + Android foreground service).
+// index.html only references api-backup.js, so keep-alive.js is pulled in from here;
+// this makes the switch appear in both the web build and the APK.
+(function () {
+  try {
+    if (window.__islandKeepAliveLoaded || document.querySelector('script[data-island-keepalive]')) return;
+    var s = document.createElement('script');
+    s.src = './keep-alive.js';
+    s.async = true;
+    s.setAttribute('data-island-keepalive', '1');
+    (document.body || document.documentElement).appendChild(s);
+  } catch (e) {}
+})();
