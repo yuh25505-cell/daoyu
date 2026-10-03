@@ -3,6 +3,7 @@
 //  - KeepAliveService : foreground service (mediaPlayback) + silent looping AudioTrack + partial wake lock
 //  - IslandNativePlugin: startKeepAlive / stopKeepAlive / isKeepAliveRunning /
 //                        isIgnoringBatteryOptimizations / requestIgnoreBatteryOptimizations
+//  - MainActivity     : keeps the WebView (JS timers, in-flight AI requests) running in the background
 //  - AndroidManifest  : permissions + <service>
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,6 +20,7 @@ const appName = String(capacitorConfig.appName || '岛屿');
 const pkgDir = path.join(srcDir, ...appId.split('.'));
 const pluginPath = path.join(pkgDir, 'IslandNativePlugin.java');
 const servicePath = path.join(pkgDir, 'KeepAliveService.java');
+const mainActivityPath = path.join(pkgDir, 'MainActivity.java');
 
 if (!fs.existsSync(pluginPath) || !fs.existsSync(manifestPath)) {
   throw new Error('Run patch_android.mjs first: IslandNativePlugin.java / AndroidManifest.xml not found');
@@ -286,6 +288,33 @@ const pluginMethods = `    // ---- Silent-audio foreground service (background k
 
 `;
 
+const mainActivityMethods = `    // While the keep-alive service runs, do not let the WebView freeze in the background:
+    // in-flight AI requests and proactive-message timers must keep running.
+    @Override
+    public void onPause() {
+        super.onPause();
+        keepWebViewAlive();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        keepWebViewAlive();
+    }
+
+    private void keepWebViewAlive() {
+        try {
+            if (!KeepAliveService.running || getBridge() == null) return;
+            WebView wv = getBridge().getWebView();
+            if (wv == null) return;
+            wv.onResume();
+            wv.resumeTimers();
+        } catch (Exception ignored) {
+        }
+    }
+
+`;
+
 // 1) Service class
 fs.writeFileSync(servicePath, serviceJava, 'utf8');
 
@@ -306,7 +335,19 @@ if (!plugin.includes('public void startKeepAlive(')) {
   fs.writeFileSync(pluginPath, plugin, 'utf8');
 }
 
-// 3) Manifest: permissions + service (idempotent)
+// 3) MainActivity: keep the WebView alive in the background (idempotent)
+if (fs.existsSync(mainActivityPath)) {
+  let main = fs.readFileSync(mainActivityPath, 'utf8');
+  if (!main.includes('keepWebViewAlive')) {
+    const anchor = '    @Override\n    public void onNewIntent(Intent intent) {';
+    const at = main.indexOf(anchor);
+    if (at < 0) throw new Error('Anchor not found in MainActivity.java: onNewIntent');
+    main = main.slice(0, at) + mainActivityMethods + main.slice(at);
+    fs.writeFileSync(mainActivityPath, main, 'utf8');
+  }
+}
+
+// 4) Manifest: permissions + service (idempotent)
 let manifest = fs.readFileSync(manifestPath, 'utf8');
 const permissions = [
   'android.permission.FOREGROUND_SERVICE',

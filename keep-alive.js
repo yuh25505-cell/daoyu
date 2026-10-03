@@ -5,6 +5,8 @@
   //  - Web / PWA : loops a 30 s inaudible audio clip (+ Media Session) so the browser keeps the page alive.
   //  - Android APK: additionally starts a native foreground service (silent AudioTrack + wake lock)
   //                 via the IslandNative plugin, and can request the battery-optimization exemption.
+  //  - window.IslandKeepAlive.hold()/release(): lets other scripts (bg-reply.js) temporarily keep the
+  //    app alive while an AI reply is being generated, even if the switch itself is off.
   if (window.__islandKeepAliveLoaded) return;
   window.__islandKeepAliveLoaded = true;
 
@@ -15,10 +17,18 @@
   var LEGACY_KEY = 'island.keepAlive';
 
   var enabled = false;
+  var holds = {};
   var audioEl = null;
   var audioUrl = null;
   var bound = false;
   var nativeStartedAt = 0;
+
+  function holdCount() {
+    var n = 0;
+    for (var k in holds) { if (Object.prototype.hasOwnProperty.call(holds, k)) n += holds[k]; }
+    return n;
+  }
+  function isActive() { return enabled || holdCount() > 0; }
 
   function toast(msg) {
     try {
@@ -46,7 +56,8 @@
     if (!N || typeof N.startKeepAlive !== 'function') return;
     nativeStartedAt = Date.now();
     N.startKeepAlive().catch(function () {
-      toast('原生保活服务启动失败');
+      // Android does not allow starting a foreground service while the app is in the background.
+      if (!document.hidden) toast('原生保活服务启动失败');
     });
   }
 
@@ -59,7 +70,7 @@
   // The notification's "关闭保活" button stops the service without telling the page.
   function syncNative() {
     var N = nativePlugin();
-    if (!N || !enabled) return;
+    if (!N || !isActive()) return;
     if (Date.now() - nativeStartedAt < 3000) return;
     N.isKeepAliveRunning().then(function (r) {
       if (!r || r.running) return;
@@ -113,7 +124,7 @@
   // 30 s of mono 16-bit 8 kHz PCM: a 20 Hz sine at amplitude 40/32768 (about -58 dBFS).
   // Phones cannot reproduce 20 Hz at that level, so it is inaudible, yet browsers still treat it as
   // real playback. Browsers ignore all-zero audio and clips shorter than ~5 s (no media
-  // notification, no background priority), which is why the old 1 s +/-1 LSB clip did nothing.
+  // notification, no background priority).
   // 20 Hz x 30 s is a whole number of cycles, so the loop is seamless.
   // The Android foreground service (patch_keepalive.mjs) plays the same signal.
   function buildSilentWav() {
@@ -141,10 +152,10 @@
       audioEl.setAttribute('playsinline', '');
       audioEl.setAttribute('preload', 'auto');
       // Publish the media notification only once playback has really started.
-      audioEl.addEventListener('playing', function () { if (enabled) setMediaSession(true); });
-      // The system or another app can pause us (calls, audio focus); come back if still enabled.
+      audioEl.addEventListener('playing', function () { if (isActive()) setMediaSession(true); });
+      // The system or another app can pause us (calls, audio focus); come back if still active.
       audioEl.addEventListener('pause', function () {
-        if (enabled) setTimeout(function () { if (enabled) startAudio(); }, 600);
+        if (isActive()) setTimeout(function () { if (isActive()) startAudio(); }, 600);
       });
     } catch (e) { audioEl = null; }
     return audioEl;
@@ -194,8 +205,7 @@
   }
 
   function resume() {
-    if (enabled && audioEl && audioEl.paused) startAudio();
-    else if (enabled && !audioEl) startAudio();
+    if (isActive() && (!audioEl || audioEl.paused)) startAudio();
   }
 
   function bindResume() {
@@ -224,7 +234,7 @@
   }
 
   function apply() {
-    if (enabled) {
+    if (isActive()) {
       startAudio();
       setMediaSession(true);
       nativeStart();
@@ -242,6 +252,27 @@
     save(enabled);
   }
 
+  // Temporary keep-alive requests from other scripts (e.g. while an AI reply is generating).
+  function hold(reason) {
+    var was = isActive();
+    holds[reason] = (holds[reason] || 0) + 1;
+    if (!was) apply();
+  }
+
+  function release(reason, graceMs) {
+    setTimeout(function () {
+      holds[reason] = Math.max(0, (holds[reason] || 0) - 1);
+      if (!isActive()) apply();
+    }, graceMs || 0);
+  }
+
+  window.IslandKeepAlive = {
+    hold: hold,
+    release: release,
+    isEnabled: function () { return enabled; },
+    isActive: isActive
+  };
+
   function mount() {
     if (document.getElementById('keepAliveToggle')) return;
     var panel = document.querySelector('.settings-panel[data-panel="notifications"] .panel-scroll');
@@ -249,8 +280,8 @@
 
     var isNative = !!nativePlugin();
     var note = isNative
-      ? '开启后会启动一个前台服务（通知栏会显示“岛屿正在后台运行”）并循环播放几乎无声的音频、保持 CPU 唤醒，尽量避免角色主动消息的后台定时器被系统暂停或回收。会增加耗电；部分国产系统还需在系统设置中允许“自启动”和“后台运行”，并建议下方“忽略电池优化”。'
-      : '开启后循环播放一段几乎无声的音频，通知中心会出现“岛屿 · 后台保活中”的媒体卡片，帮助减少角色主动消息的后台定时器被浏览器暂停的概率。浏览器要求先有一次点按才能播放；不保证在所有设备和省电策略下都生效，会消耗少量电量。';
+      ? '开启后会启动一个前台服务（通知栏会显示“岛屿正在后台运行”）并循环播放几乎无声的音频、保持 CPU 唤醒，尽量避免角色主动消息的后台定时器被系统暂停或回收。会增加耗电；部分国产系统还需在系统设置中允许“自启动”和“后台运行”，并建议下方“忽略电池优化”。即使不开启，AI 正在回复时也会临时保活，回复结束后自动关闭。'
+      : '开启后循环播放一段几乎无声的音频，通知中心会出现“岛屿 · 后台保活中”的媒体卡片，帮助减少角色主动消息的后台定时器被浏览器暂停的概率。浏览器要求先有一次点按才能播放；不保证在所有设备和省电策略下都生效，会消耗少量电量。即使不开启，AI 正在回复时也会临时保活，回复结束后自动关闭。';
 
     var html =
       '<div class="settings-section-title">后台保活</div>' +
@@ -307,4 +338,15 @@
     if (document.getElementById('keepAliveToggle') || tries > 40) { clearInterval(timer); return; }
     mount();
   }, 500);
+
+  // Load the AI-reply guard + per-message notifications.
+  try {
+    if (!document.querySelector('script[data-island-bgreply]')) {
+      var s = document.createElement('script');
+      s.src = './bg-reply.js';
+      s.async = true;
+      s.setAttribute('data-island-bgreply', '1');
+      (document.body || document.documentElement).appendChild(s);
+    }
+  } catch (e) {}
 })();
