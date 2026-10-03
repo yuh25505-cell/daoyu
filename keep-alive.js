@@ -110,10 +110,11 @@
   }
 
   // ---------- silent audio ----------
-  // 1 s of mono 16-bit 8 kHz PCM at +/-1 LSB (about -90 dBFS): inaudible, but not digital silence,
-  // which some platforms would optimise away.
+  // 10 s of mono 16-bit 8 kHz PCM at +/-4 LSB (about -78 dBFS): inaudible, but not digital silence,
+  // which some platforms would optimise away. It must be longer than ~5 s: browsers such as Chrome
+  // do not show a media notification (notification-shade card) for very short clips.
   function buildSilentWav() {
-    var rate = 8000, n = rate;
+    var rate = 8000, n = rate * 10;
     var buf = new ArrayBuffer(44 + n * 2);
     var v = new DataView(buf);
     function str(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
@@ -121,7 +122,7 @@
     str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
     v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
     str(36, 'data'); v.setUint32(40, n * 2, true);
-    for (var i = 0; i < n; i++) v.setInt16(44 + i * 2, (i & 1) ? 1 : -1, true);
+    for (var i = 0; i < n; i++) v.setInt16(44 + i * 2, (i & 1) ? 4 : -4, true);
     return new Blob([buf], { type: 'audio/wav' });
   }
 
@@ -129,10 +130,18 @@
     if (audioEl) return audioEl;
     try {
       audioUrl = URL.createObjectURL(buildSilentWav());
-      audioEl = new Audio(audioUrl);
+      audioEl = new Audio();
+      audioEl.src = audioUrl;
       audioEl.loop = true;
+      audioEl.muted = false;
+      audioEl.volume = 1;
       audioEl.setAttribute('playsinline', '');
       audioEl.setAttribute('preload', 'auto');
+      audioEl.style.display = 'none';
+      // Keep the element in the DOM; some browsers only surface media controls for attached elements.
+      try { (document.body || document.documentElement).appendChild(audioEl); } catch (e) {}
+      // Re-assert the media-session card once audio is really playing.
+      audioEl.addEventListener('playing', function () { if (enabled) setMediaSession(true); });
       // The system or another app can pause us (calls, audio focus); come back if still enabled.
       audioEl.addEventListener('pause', function () {
         if (enabled) setTimeout(function () { if (enabled) startAudio(); }, 600);
@@ -147,7 +156,10 @@
     bindResume();
     try {
       var p = el.play();
-      if (p && typeof p.catch === 'function') p.catch(function () { /* needs a user gesture; retried on next touch */ });
+      if (p && typeof p.then === 'function') {
+        p.then(function () { if (enabled) setMediaSession(true); })
+         .catch(function () { /* needs a user gesture; retried on next touch */ });
+      }
     } catch (e) {}
   }
 
@@ -241,7 +253,7 @@
     var isNative = !!nativePlugin();
     var note = isNative
       ? '开启后会启动一个前台服务（通知栏会显示“岛屿正在后台运行”）并循环播放几乎无声的音频、保持 CPU 唤醒，尽量避免角色主动消息的后台定时器被系统暂停或回收。会增加耗电；部分国产系统还需在系统设置中允许“自启动”和“后台运行”，并建议下方“忽略电池优化”。'
-      : '开启后循环播放一段几乎无声的音频，帮助减少角色主动消息的后台定时器被浏览器暂停的概率。浏览器要求先有一次点按才能播放；不保证在所有设备和省电策略下都生效，会消耗少量电量。';
+      : '开启后循环播放一段几乎无声的音频，通知中心会出现“岛屿 · 后台保活中”的媒体卡片，帮助减少角色主动消息的后台定时器被浏览器暂停的概率。浏览器要求先有一次点按才能播放；不保证在所有设备和省电策略下都生效，会消耗少量电量。';
 
     var html =
       '<div class="settings-section-title">后台保活</div>' +
