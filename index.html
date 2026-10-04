@@ -13,7 +13,22 @@
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="岛屿" name="application-name"/>
 <meta content="岛屿" name="apple-mobile-web-app-title"/>
-<link href="./app.css" rel="stylesheet"/>
+<!-- 样式按 App 拆分：加载顺序即层叠顺序，请勿随意调换（core → home → music → chat → phone → worldbook → settings → 占位 App） -->
+<link href="./css-core-base.css" rel="stylesheet"/>
+<link href="./css-core-shared.css" rel="stylesheet"/>
+<link href="./css-apps-home.css" rel="stylesheet"/>
+<link href="./css-apps-music.css" rel="stylesheet"/>
+<link href="./css-apps-chat.css" rel="stylesheet"/>
+<link href="./css-apps-phone.css" rel="stylesheet"/>
+<link href="./css-apps-worldbook.css" rel="stylesheet"/>
+<link href="./css-apps-settings.css" rel="stylesheet"/>
+<link href="./css-apps-browser.css" rel="stylesheet"/>
+<link href="./css-apps-calendar.css" rel="stylesheet"/>
+<link href="./css-apps-clock.css" rel="stylesheet"/>
+<link href="./css-apps-contacts.css" rel="stylesheet"/>
+<link href="./css-apps-gallery.css" rel="stylesheet"/>
+<link href="./css-apps-notes.css" rel="stylesheet"/>
+<link href="./css-apps-weather.css" rel="stylesheet"/>
 </head>
 <body>
 <div aria-hidden="true" class="wallpaper"></div>

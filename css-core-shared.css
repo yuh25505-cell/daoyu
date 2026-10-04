@@ -1,0 +1,128 @@
+/* 岛屿 · 跨 App 共用组件 · 顶栏按钮 / 头像 / 角标 / 通知等被多个 App 同时使用的样式
+ * 由原 app.css 按 App 拆分而来；规则相对顺序保持不变。
+ * 加载顺序见 index.html：core-base → core-shared → home → music → chat → phone → worldbook → settings → 其余占位 App。 */
+
+.wallpaper{
+  position:fixed; inset:0; z-index:0; background:#050505; overflow:hidden;
+}
+
+.wallpaper::before,
+.wallpaper::after{
+  content:''; position:absolute; border-radius:50%; pointer-events:none;
+  filter:blur(18px);
+}
+
+.wallpaper::before{
+  width:80vw; height:80vw; left:50%; top:-38vw; transform:translateX(-50%);
+  background:radial-gradient(circle, rgba(255,255,255,.11), rgba(255,255,255,0) 68%);
+}
+
+.wallpaper::after{
+  width:72vw; height:72vw; left:-28vw; bottom:-36vw;
+  background:radial-gradient(circle, rgba(255,255,255,.045), rgba(255,255,255,0) 68%);
+}
+
+.wallpaper{ color:#fff; }
+
+html.status-bar-enabled .home,
+html.status-bar-enabled .chat-shell,
+html.status-bar-enabled .pm-shell,
+html.status-bar-enabled .up-shell,
+html.status-bar-enabled .settings-shell,
+html.status-bar-enabled .chat-appearance-shell,
+html.status-bar-enabled .worldbook-shell{
+  padding-top:calc(env(safe-area-inset-top, 0px) + 28px);
+}
+
+.panel-head{ position:relative; flex:none; display:flex; align-items:center; gap:2px; height:52px; padding:0 8px; }
+
+.ph-btn{ flex:none; width:38px; height:38px; display:grid; place-items:center; border-radius:50%; color:var(--fg); }
+
+.ph-btn:active{ background: var(--bubble-bg); }
+
+.ph-btn svg{ width:21px; height:21px; display:block; }
+
+.ph-title{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:max-content; max-width:calc(100% - 140px); margin:0; text-align:center; font-size:calc(17px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
+
+.ph-actions{ flex:none; display:flex; align-items:center; margin-left:auto; }
+
+.panel-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:12px; }
+
+.panel-scroll::-webkit-scrollbar{ display:none; }
+
+.avatar{
+  flex:none; width:44px; height:44px; border-radius:50%;
+  display:grid; place-items:center; font-size:calc(16px * var(--island-font-size-scale)); font-weight:var(--island-fw-500);
+  color: var(--icon-fg);
+  background: linear-gradient(var(--deg, 150deg), var(--icon-bg-a), var(--icon-bg-b));
+  border:1px solid var(--icon-bd); box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  user-select:none; overflow:hidden;
+}
+
+.avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.badge{ flex:none; min-width:18px; height:18px; padding:0 5px; border-radius:999px; display:grid; place-items:center; font-size:calc(10.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); background:var(--fg); color:var(--bg); }
+
+.group-letter{ padding:14px 18px 6px; font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); letter-spacing:.06em; color: var(--fg-faint); }
+
+/* 通用弹层 */
+.sheet-mask{ position:fixed; inset:0; z-index:70; background: rgba(0,0,0,.4); display:none; }
+
+.sheet-mask.is-open{ display:block; }
+
+.sheet-mask.high{ z-index:80; }
+
+.sheet{
+  position:fixed; left:50%; bottom:0; z-index:71;
+  width:100%; max-width:520px; max-height:88vh; overflow-y:auto; scrollbar-width:none;
+  transform: translateX(-50%);
+  padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 22px);
+  border-radius: 28px 28px 0 0;
+  background: var(--bg); border-top:1px solid var(--card-bd);
+  box-shadow: 0 -12px 40px rgba(0,0,0,.18);
+  display:none;
+}
+
+.sheet.is-open{ display:block; }
+
+.sheet::-webkit-scrollbar{ display:none; }
+
+.sheet h2{ font-size:calc(19px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); margin-bottom:18px; }
+
+.toast{
+  position:fixed; left:50%; bottom: calc(16% + env(safe-area-inset-bottom, 0px));
+  z-index:200; padding:10px 20px; border-radius:999px;
+  background: var(--fg); color: var(--bg);
+  font-size:calc(13px * var(--island-font-size-scale)); font-weight:var(--island-fw-500); letter-spacing:.02em;
+  white-space:nowrap; opacity:0; transform: translate(-50%, 16px);
+  pointer-events:none;
+  transition: opacity .25s ease, transform .25s cubic-bezier(.22,1,.36,1);
+}
+
+.toast.is-show{ opacity:1; transform: translate(-50%, 0); }
+
+.wallpaper{ background:var(--wallpaper-bg); }
+
+.wallpaper::before{ background:radial-gradient(circle, var(--wp-a), rgba(255,255,255,0) 68%); }
+
+.wallpaper::after{ background:radial-gradient(circle, var(--wp-b), rgba(255,255,255,0) 68%); }
+
+html[data-theme="dark"] .wallpaper{ filter:brightness(var(--dark-wallpaper-brightness, .58)); }
+
+html[data-theme="dark"] .wallpaper[data-dim-dark="off"]{ filter:none; }
+
+.chat-theme-option .theme-preview-light{ background:linear-gradient(145deg,#fff,#ececec); }
+
+.chat-theme-option .theme-preview-system{ background:linear-gradient(145deg,#f5f5f5 0 50%,#d9d9d9 50% 100%); }
+
+.wallpaper.is-custom{background-position:center;background-size:cover;background-repeat:no-repeat}
+
+.chat-appearance-view .theme-preview,.chat-appearance-view .theme-check,.settings-panel[data-panel="appearance"] .theme-preview,.settings-panel[data-panel="appearance"] .theme-check{display:none}
+
+.chat-appearance-view .theme-option,.settings-panel[data-panel="appearance"] .theme-option{gap:0}
+
+.chat-appearance-view .theme-option + .theme-option::before,.settings-panel[data-panel="appearance"] .theme-option + .theme-option::before{left:16px}
+
+.chat-appearance-view .theme-option .theme-option-main,.settings-panel[data-panel="appearance"] .theme-option .theme-option-main{flex:1 1 auto}
+
+.vector-memory-setting-grid .api-input{width:100%;padding:10px 11px;border-radius:11px;}

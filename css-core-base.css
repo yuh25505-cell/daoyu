@@ -1,0 +1,264 @@
+/* 岛屿 · 核心基础 · 主题变量 / 重置 / 壁纸 / 启动层 / 状态栏 / Toast
+ * 由原 app.css 按 App 拆分而来；规则相对顺序保持不变。
+ * 加载顺序见 index.html：core-base → core-shared → home → music → chat → phone → worldbook → settings → 其余占位 App。 */
+
+:root{
+  --island-font-size-scale:1;
+  --island-fw-300:300; --island-fw-400:400; --island-fw-500:500; --island-fw-520:520; --island-fw-550:550;
+  --island-fw-600:600; --island-fw-650:650; --island-fw-680:680; --island-fw-700:700; --island-fw-720:720;
+  color-scheme: light;
+  --bg:#f3f3f3; --fg:#101010;
+  --fg-soft:rgba(16,16,16,.62); --fg-faint:rgba(16,16,16,.36);
+  --track:rgba(16,16,16,.11);
+  --card-bg:rgba(255,255,255,.78); --card-bd:rgba(16,16,16,.10);
+  --card-shadow:none;
+  --icon-bg-a:#ffffff; --icon-bg-b:#ededed;
+  --icon-bd:rgba(16,16,16,.12); --icon-fg:#101010;
+  --icon-shadow:none;
+  --dock-bg:rgba(255,255,255,.82); --dock-bd:rgba(16,16,16,.10);
+  --tab-bg:rgba(16,16,16,.045); --tab-bd:rgba(16,16,16,.08);
+  --bubble-bg:rgba(16,16,16,.055);
+  --bubble-them:rgba(16,16,16,.07); --bubble-them-fg:#101010;
+  --bubble-me:#101010; --bubble-me-fg:#ffffff;
+  /* Chat message tokens: stable visual API for future chat themes. */
+  --chat-bubble-sent-bg:#95EC69; --chat-bubble-received-bg:#ffffff; --chat-bubble-fg:#000000;
+  --chat-file-bg:rgba(16,16,16,.055); --chat-file-fg:#101010; --chat-file-icon-bg:#101010; --chat-file-icon-fg:#ffffff; --chat-file-meta:rgba(16,16,16,.36);
+  --chat-image-text-bg:#ffffff; --chat-image-text-fg:#111111; --chat-image-text-border:rgba(17,17,17,.08);
+  --wp-a:rgba(16,16,16,.05); --wp-b:rgba(16,16,16,.025);
+  --wallpaper-bg:#f3f3f3;
+  --home-fg:#101010; --home-soft:rgba(16,16,16,.56); --home-faint:rgba(16,16,16,.34);
+  --home-surface:rgba(255,255,255,.66); --home-surface-soft:rgba(16,16,16,.035);
+  --home-border:rgba(16,16,16,.10); --home-border-strong:rgba(16,16,16,.17);
+  --tile-bg:#ffffff; --tile-border:rgba(16,16,16,.16); --tile-fg:#101010;
+  --ok:#16a34a; --err:#dc2626; --warn:#d97706;
+}
+
+html[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#000000; --fg:#f5f5f5;
+  --fg-soft:rgba(245,245,245,.62); --fg-faint:rgba(245,245,245,.32);
+  --track:rgba(245,245,245,.12);
+  --card-bg:rgba(255,255,255,.055); --card-bd:rgba(255,255,255,.10);
+  --card-shadow:none;
+  --icon-bg-a:#111111; --icon-bg-b:#080808;
+  --icon-bd:rgba(255,255,255,.16); --icon-fg:#f5f5f5;
+  --icon-shadow:none;
+  --dock-bg:rgba(255,255,255,.045); --dock-bd:rgba(255,255,255,.10);
+  --tab-bg:rgba(255,255,255,.055); --tab-bd:rgba(255,255,255,.09);
+  --bubble-bg:rgba(255,255,255,.075);
+  --bubble-them:rgba(255,255,255,.11); --bubble-them-fg:#f5f5f5;
+  --bubble-me:#f5f5f5; --bubble-me-fg:#000000;
+  /* Chat message tokens intentionally stay fixed for chat visual consistency in dark mode. */
+  --chat-bubble-sent-bg:#95EC69; --chat-bubble-received-bg:#ffffff; --chat-bubble-fg:#000000;
+  --chat-file-bg:#2A2A2C; --chat-file-fg:#F5F5F5; --chat-file-icon-bg:#3A3A3C; --chat-file-icon-fg:#F5F5F5; --chat-file-meta:rgba(234,234,234,.55);
+  --chat-image-text-bg:#2A2A2C; --chat-image-text-fg:#EAEAEA; --chat-image-text-border:rgba(0,0,0,.42);
+  --wp-a:rgba(255,255,255,.07); --wp-b:rgba(255,255,255,.03);
+  --wallpaper-bg:#000000;
+  --home-fg:#f5f5f5; --home-soft:rgba(245,245,245,.56); --home-faint:rgba(245,245,245,.30);
+  --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
+  --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);
+  --tile-bg:#0a0a0a; --tile-border:rgba(255,255,255,.18); --tile-fg:#f5f5f5;
+  --ok:#22c55e; --err:#ef4444; --warn:#f59e0b;
+}
+
+@media (prefers-color-scheme: dark){
+html:not([data-theme]){
+    color-scheme: dark;
+    --bg:#000000; --fg:#f5f5f5;
+    --fg-soft:rgba(245,245,245,.62); --fg-faint:rgba(245,245,245,.32);
+    --track:rgba(245,245,245,.12);
+    --card-bg:rgba(255,255,255,.055); --card-bd:rgba(255,255,255,.10);
+    --card-shadow:none;
+    --icon-bg-a:#111111; --icon-bg-b:#080808;
+    --icon-bd:rgba(255,255,255,.16); --icon-fg:#f5f5f5; --icon-shadow:none;
+    --dock-bg:rgba(255,255,255,.045); --dock-bd:rgba(255,255,255,.10);
+    --tab-bg:rgba(255,255,255,.055); --tab-bd:rgba(255,255,255,.09);
+    --bubble-bg:rgba(255,255,255,.075); --bubble-them:rgba(255,255,255,.11); --bubble-them-fg:#f5f5f5;
+  --bubble-me:#f5f5f5; --bubble-me-fg:#000000;
+  /* Chat message tokens intentionally stay fixed for chat visual consistency in dark mode. */
+  --chat-bubble-sent-bg:#95EC69; --chat-bubble-received-bg:#ffffff; --chat-bubble-fg:#000000;
+  --chat-file-bg:#2A2A2C; --chat-file-fg:#F5F5F5; --chat-file-icon-bg:#3A3A3C; --chat-file-icon-fg:#F5F5F5; --chat-file-meta:rgba(234,234,234,.55);
+  --chat-image-text-bg:#2A2A2C; --chat-image-text-fg:#EAEAEA; --chat-image-text-border:rgba(0,0,0,.42);
+    --wp-a:rgba(255,255,255,.07); --wp-b:rgba(255,255,255,.03);
+    --wallpaper-bg:#000000;
+    --home-fg:#f5f5f5; --home-soft:rgba(245,245,245,.56); --home-faint:rgba(245,245,245,.30);
+    --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
+    --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);
+    --tile-bg:#0a0a0a; --tile-border:rgba(255,255,255,.18); --tile-fg:#f5f5f5;
+  }
+}
+
+*,*::before,*::after{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+html,body{ height:100%; margin:0; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+
+body{
+  background: var(--bg); color: var(--fg);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; overscroll-behavior: none;
+}
+
+button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; -webkit-tap-highlight-color: transparent; }
+
+input,textarea{ font:inherit; color:inherit; background:none; border:0; outline:none; -webkit-tap-highlight-color: transparent; }
+
+ul{ list-style:none; margin:0; padding:0; }
+
+h1,h2,h3,p{ margin:0; font-weight:inherit; }
+
+/* 启动层：全新、极简的 iOS 式入场 */
+.boot{
+  position:fixed; inset:0; z-index:100; display:grid; place-items:center;
+  background:#000; color:#fff; overflow:hidden;
+  animation: bootOut .82s 2.02s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+.boot::before{
+  content:''; position:absolute; width:46vmax; height:46vmax; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.075), transparent 64%);
+  filter:blur(8px); opacity:0; animation:bootGlow 1.8s .1s ease-out forwards;
+}
+
+.boot-stage{
+  position:relative; z-index:1; display:flex; flex-direction:column; align-items:center;
+  transform:translateY(6px); opacity:0; animation:bootStageIn 1s .08s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+.boot-symbol{
+  position:relative; width:78px; height:78px; margin-bottom:25px;
+  display:grid; place-items:center;
+}
+
+.boot-symbol::before{
+  content:''; position:absolute; inset:0; border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  transform:scale(.72); opacity:.15;
+  animation:bootCircleIn .9s .35s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+.boot-symbol::after{
+  content:''; position:absolute; width:54px; height:54px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.10); transform:rotate(-18deg);
+  border-left-color:rgba(255,255,255,.7); border-bottom-color:rgba(255,255,255,.02);
+  animation:bootOrbit 1.4s .35s linear infinite;
+}
+
+.boot-symbol svg{ width:31px; height:31px; position:relative; z-index:2; }
+
+.boot-symbol path{
+  fill:none; stroke:#fff; stroke-width:2.35; stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:82; stroke-dashoffset:82;
+  animation:bootDraw .75s .38s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+.boot-word{
+  font-size:calc(24px * var(--island-font-size-scale)); font-weight:var(--island-fw-520); letter-spacing:.23em; margin-right:-.23em;
+  line-height:1; text-transform:lowercase;
+}
+
+.boot-sub{
+  margin-top:11px; font-size:calc(8.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.31em; margin-right:-.31em;
+  color:rgba(255,255,255,.34); text-transform:uppercase;
+}
+
+.boot-status{
+  margin-top:34px; display:flex; align-items:center; gap:8px;
+  font-size:calc(9px * var(--island-font-size-scale)); letter-spacing:.17em; text-transform:uppercase; color:rgba(255,255,255,.34);
+}
+
+.boot-status i{
+  width:5px; height:5px; border-radius:50%; background:#fff; display:block; opacity:.9;
+  animation:bootDot 1.1s ease-in-out infinite;
+}
+
+.boot-line{
+  position:absolute; z-index:1; left:50%; bottom:11%; transform:translateX(-50%);
+  width:116px; height:1px; background:rgba(255,255,255,.10); overflow:hidden;
+}
+
+.boot-line span{
+  display:block; height:100%; width:0; background:#fff;
+  animation:bootLoad 1.92s cubic-bezier(.22,.9,.2,1) forwards;
+}
+
+@keyframes bootOut{
+  0%{opacity:1; transform:scale(1); filter:blur(0)}
+  60%{opacity:1; transform:scale(1.018); filter:blur(0)}
+  100%{opacity:0; transform:scale(1.045); filter:blur(10px); visibility:hidden; pointer-events:none}
+}
+
+@keyframes bootGlow{ from{opacity:0; transform:scale(.72)} to{opacity:1; transform:scale(1)} }
+
+@keyframes bootStageIn{ to{opacity:1; transform:none} }
+
+@keyframes bootCircleIn{ to{opacity:.85; transform:scale(1)} }
+
+@keyframes bootOrbit{ to{transform:rotate(342deg)} }
+
+@keyframes bootDraw{ to{stroke-dashoffset:0} }
+
+@keyframes bootDot{ 0%,100%{transform:scale(.75); opacity:.25} 50%{transform:scale(1.15); opacity:1} }
+
+@keyframes bootLoad{ 0%{width:0} 70%{width:68%} 100%{width:100%} }
+
+.status-bar{
+  flex:none; display:flex; align-items:center; justify-content:space-between; height:52px;
+  padding:0 24px; font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); color:#fff;
+}
+
+/* 全局 岛屿 状态栏：开启后覆盖桌面、聊天、私聊、设置等系统界面。 */
+.os-status-bar{
+  position:fixed; top:0; left:50%; transform:translateX(-50%);
+  z-index:90; display:none; align-items:flex-end; justify-content:space-between;
+  width:100%; max-width:520px; height:calc(env(safe-area-inset-top, 0px) + 28px);
+  padding:env(safe-area-inset-top, 0px) 24px 0;
+  box-sizing:border-box; font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); color:var(--home-fg);
+  pointer-events:none;
+}
+
+html.status-bar-enabled .os-status-bar{ display:flex; }
+
+.sb-time{ font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+
+.sb-icons{ display:flex; align-items:center; gap:7px; opacity:.9; }
+
+.sb-icons svg{ display:block; }
+
+html.pm-open{ --pm-chat-head-bg:#ededed; --pm-chat-head-fg:#171717; }
+
+html[data-theme="dark"].pm-open{ --pm-chat-head-bg:#111111; --pm-chat-head-fg:#f5f5f5; }
+
+html.pm-open .os-status-bar{ background:transparent !important; color:var(--pm-status-fg, var(--pm-chat-head-fg)); box-shadow:none; border:0; }
+
+@media (prefers-reduced-motion: reduce){
+*,*::before,*::after{
+    animation-duration:.001ms !important; animation-delay:0s !important;
+    animation-iteration-count:1 !important; transition-duration:.001ms !important;
+  }
+}
+
+.boot{ background:var(--bg); color:var(--home-fg); }
+
+.boot::before{ background:radial-gradient(circle, var(--home-surface-soft), rgba(255,255,255,0) 64%); }
+
+.boot-symbol::before{ border-color:var(--home-border-strong); }
+
+.boot-symbol::after{ border-color:var(--home-border); border-left-color:var(--home-fg); border-bottom-color:transparent; }
+
+.boot-symbol path{ stroke:var(--home-fg); }
+
+.boot-word{ color:var(--home-fg); }
+
+.boot-sub,.boot-status{ color:var(--home-faint); }
+
+.boot-status i{ background:var(--home-fg); }
+
+.boot-line{ background:var(--home-surface-soft); }
+
+.boot-line span{ background:var(--home-fg); }
+
+.status-bar{ color:var(--home-fg); }
+
+.sb-icons{ color:var(--home-fg); }

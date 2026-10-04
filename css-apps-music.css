@@ -1,0 +1,55 @@
+/* 岛屿 · 音乐 · 主屏幕播放器卡片
+ * 由原 app.css 按 App 拆分而来；规则相对顺序保持不变。
+ * 加载顺序见 index.html：core-base → core-shared → home → music → chat → phone → worldbook → settings → 其余占位 App。 */
+
+.media-card{
+  position:relative; display:grid; grid-template-columns:46px minmax(0,1fr) auto; align-items:center; gap:13px;
+  padding:15px; border-radius:24px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 14px 38px rgba(0,0,0,.26), inset 0 1px rgba(255,255,255,.04);
+}
+
+.album{
+  position:relative; width:46px; height:46px; border-radius:15px; background:#fff; color:#000;
+  overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.28);
+}
+
+.album::before{content:''; position:absolute; inset:8px; border:1px solid rgba(0,0,0,.28); border-radius:50%;}
+
+.album::after{content:''; position:absolute; width:8px; height:8px; border-radius:50%; left:50%; top:50%; transform:translate(-50%,-50%); background:#000; box-shadow:0 0 0 4px rgba(0,0,0,.08);}
+
+.music-meta{min-width:0;}
+
+.music-title{font-size:calc(13px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff;}
+
+.music-artist{margin-top:3px; font-size:calc(10px * var(--island-font-size-scale)); color:rgba(255,255,255,.38); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+
+.music-progress{position:relative; height:2px; margin-top:10px; border-radius:999px; background:rgba(255,255,255,.11); overflow:hidden;}
+
+.music-progress i{display:block; height:100%; width:32%; border-radius:inherit; background:#fff;}
+
+.music-controls{display:flex; align-items:center; gap:2px;}
+
+@media (max-width:390px){
+.media-card{grid-template-columns:42px minmax(0,1fr) auto;gap:11px;padding:13px;}
+.album{width:42px;height:42px;border-radius:13px;}
+}
+
+.media-card{
+  background:var(--home-surface-soft);
+  border-color:var(--home-border);
+  box-shadow:none;
+}
+
+.album{ background:var(--home-fg); color:var(--bg); border-radius:5px; box-shadow:none; }
+
+.album::before{ border-color:var(--bg); border-radius:50%; }
+
+.album::after{ background:var(--bg); box-shadow:none; }
+
+.music-title{ color:var(--home-fg); }
+
+.music-artist{ color:var(--home-faint); }
+
+.music-progress{ background:var(--home-surface-soft); }
+
+.music-progress i{ background:var(--home-fg); }

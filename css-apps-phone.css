@@ -1,0 +1,199 @@
+/* 岛屿 · 电话
+ * 由原 app.css 按 App 拆分而来；规则相对顺序保持不变。
+ * 加载顺序见 index.html：core-base → core-shared → home → music → chat → phone → worldbook → settings → 其余占位 App。 */
+
+/* Phone app / voice call archive */
+.phone-app{
+  position:fixed; inset:0; z-index:75; display:block; max-width:520px; width:100%; left:50%;
+  transform:translateX(-50%); opacity:0; visibility:hidden; pointer-events:none; transition:none !important;
+  background:var(--bg); color:var(--fg);
+}
+
+.phone-app.is-open{ opacity:1; visibility:visible; pointer-events:auto; transform:translateX(-50%); }
+
+.phone-shell{ position:absolute; inset:0; display:flex; flex-direction:column; min-height:100%; overflow:hidden; background:var(--bg); }
+
+.phone-panel{ position:absolute; inset:0; display:none; flex-direction:column; background:var(--bg); padding-bottom:calc(74px + env(safe-area-inset-bottom,0px)); }
+
+.phone-panel[data-phone-panel="call-detail"]{ padding-bottom:0; }
+
+.phone-panel.is-active{ display:flex; }
+
+.phone-head{
+  position:relative; flex:none; display:flex; align-items:center; gap:4px;
+  height:calc(52px + env(safe-area-inset-top,0px)); min-height:calc(52px + env(safe-area-inset-top,0px));
+  padding:env(safe-area-inset-top,0px) 8px 0; border-bottom:1px solid var(--track); background:var(--bg);
+}
+
+.phone-head .ph-btn{ width:38px; height:38px; display:grid; place-items:center; color:var(--fg); border-radius:50%; }
+
+.phone-head .ph-btn svg{ width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+.phone-head-center{ position:absolute; left:56px; right:56px; top:env(safe-area-inset-top,0px); bottom:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+
+.phone-title{ font-size:calc(17px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); letter-spacing:-.01em; }
+
+.phone-head-spacer{ width:38px; height:1px; margin-left:auto; }
+
+.phone-recent-manage-btn{ width:auto !important; min-width:58px; padding:0 10px; margin-left:auto; color:var(--fg); font-size:calc(13px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); background:none; border:0; }
+
+.phone-detail-favorite{ margin-left:auto; }
+
+.phone-detail-favorite svg{ fill:none; stroke:currentColor; }
+
+.phone-detail-favorite.is-favorite svg{ fill:currentColor; }
+
+.phone-summary{ flex:none; padding:22px 20px 16px; border-bottom:1px solid var(--track); }
+
+.phone-summary-compact{ padding-bottom:14px; }
+
+.phone-eyebrow{ font-size:calc(9px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); letter-spacing:.16em; color:var(--fg-faint); }
+
+.phone-summary h2{ margin-top:8px; font-size:calc(27px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); letter-spacing:-.035em; }
+
+.phone-summary p{ margin-top:7px; max-width:460px; color:var(--fg-faint); font-size:calc(12px * var(--island-font-size-scale)); line-height:1.6; }
+
+.phone-recent-selection{ flex:none; padding:10px 14px 8px; border-bottom:1px solid var(--track); background:var(--bg); }
+
+.phone-recent-selection[hidden]{ display:none; }
+
+.phone-recent-selection-row{ display:flex; align-items:center; gap:8px; min-width:0; }
+
+.phone-recent-selection-row + .phone-recent-selection-row{ margin-top:8px; }
+
+.phone-recent-filter-label{ flex:none; color:var(--fg-faint); font-size:calc(10px * var(--island-font-size-scale)); letter-spacing:.08em; text-transform:uppercase; }
+
+.phone-recent-char-filter{ flex:1 1 auto; min-width:0; height:34px; padding:0 10px; border:1px solid var(--card-bd); border-radius:10px; background:var(--card-bg); color:var(--fg); font:inherit; font-size:calc(12px * var(--island-font-size-scale)); outline:none; }
+
+.phone-selection-link,.phone-selection-cancel{ flex:none; border:0; background:none; color:var(--fg-soft); padding:7px 8px; border-radius:9px; font-size:calc(12px * var(--island-font-size-scale)); cursor:pointer; }
+
+.phone-selection-link:active,.phone-selection-cancel:active{ background:var(--bubble-bg); }
+
+.phone-recent-selection-actions{ justify-content:flex-end; }
+
+.phone-selection-count{ margin-right:auto; color:var(--fg-faint); font-size:calc(11px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; }
+
+.phone-selection-delete{ flex:none; min-width:62px; padding:8px 11px; border:1px solid var(--card-bd); border-radius:10px; background:var(--fg); color:var(--bg); font-size:calc(12px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); cursor:pointer; }
+
+.phone-selection-delete:disabled{ opacity:.35; cursor:default; }
+
+.phone-list{ flex:1 1 auto; min-height:0; overflow:auto; padding:10px 12px calc(16px + env(safe-area-inset-bottom,0px)); -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+
+.phone-list::-webkit-scrollbar,.phone-detail-scroll::-webkit-scrollbar{ display:none; }
+
+.phone-call-item{
+  position:relative; width:100%; display:flex; align-items:center; gap:12px; padding:13px 10px; text-align:left;
+  border:0; border-bottom:1px solid var(--track); background:none; color:var(--fg); cursor:pointer;
+}
+
+.phone-call-item:active{ opacity:.72; }
+
+.phone-call-item-selectable{ cursor:pointer; }
+
+.phone-call-item-selectable.is-selected{ background:var(--bubble-bg); }
+
+.phone-call-select{ flex:none; width:28px; height:28px; display:grid; place-items:center; cursor:pointer; }
+
+.phone-call-select input{ position:absolute; opacity:0; pointer-events:none; }
+
+.phone-call-select span{ width:20px; height:20px; display:block; border:1.5px solid var(--fg-faint); border-radius:50%; background:transparent; position:relative; }
+
+.phone-call-item-selectable.is-selected .phone-call-select span{ border-color:var(--fg); background:var(--fg); }
+
+.phone-call-item-selectable.is-selected .phone-call-select span::after{ content:""; position:absolute; left:5px; top:2px; width:6px; height:10px; border:solid var(--bg); border-width:0 1.8px 1.8px 0; transform:rotate(45deg); }
+
+.phone-call-avatar{
+  flex:none; width:46px; height:46px; display:grid; place-items:center; overflow:hidden;
+  border-radius:16px; background:var(--bubble-bg); color:var(--fg-soft); border:1px solid var(--card-bd);
+  font-size:calc(17px * var(--island-font-size-scale)); font-weight:var(--island-fw-650);
+}
+
+.phone-call-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.phone-call-copy{ flex:1 1 auto; min-width:0; }
+
+.phone-call-top{ display:flex; align-items:center; min-width:0; }
+
+.phone-call-top strong{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); }
+
+.phone-call-meta,.phone-transcript-time{ flex:none; color:var(--fg-faint); font-size:calc(10.5px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; }
+
+.phone-call-preview{ margin-top:5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:var(--fg-soft); font-size:calc(12px * var(--island-font-size-scale)); line-height:1.4; }
+
+.phone-call-meta{ margin-top:4px; }
+
+.phone-call-side{ flex:none; width:112px; min-width:112px; display:flex; align-items:center; justify-content:flex-end; }
+
+.phone-call-time{ transform:translateY(2px); flex:none; color:var(--fg-faint); font-size:calc(10.5px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; line-height:1.25; white-space:nowrap; text-align:right; }
+
+.phone-call-side-actions{ display:flex; align-items:center; justify-content:flex-end; gap:3px; width:100%; }
+
+.phone-call-chevron{ flex:none; width:18px; display:grid; place-items:center; color:var(--fg-faint); font-size:25px; line-height:1; margin-left:1px; }
+
+.phone-call-star{ flex:none; width:32px; height:32px; margin:0; padding:0; display:grid; place-items:center; border:0; color:var(--fg-faint); background:none; border-radius:50%; cursor:pointer; }
+
+.phone-call-star svg{ transform:translateY(2px); width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+
+.phone-call-star.is-favorite{ color:var(--fg); }
+
+.phone-call-star.is-favorite svg{ fill:currentColor; }
+
+.phone-contact-item{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 10px; text-align:left; border:0; border-bottom:1px solid var(--track); background:none; color:var(--fg); cursor:pointer; }
+
+.phone-contact-item:active{ opacity:.72; }
+
+.phone-contact-avatar{ flex:none; width:50px; height:50px; border-radius:17px; overflow:hidden; display:grid; place-items:center; background:var(--bubble-bg); border:1px solid var(--card-bd); color:var(--fg-soft); font-weight:var(--island-fw-650); font-size:18px; }
+
+.phone-contact-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.phone-contact-copy{ flex:1 1 auto; min-width:0; }
+
+.phone-contact-name{ display:block; font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); }
+
+.phone-contact-meta{ margin-top:5px; color:var(--fg-faint); font-size:calc(11px * var(--island-font-size-scale)); }
+
+.phone-contact-arrow{ flex:none; color:var(--fg-faint); font-size:24px; }
+
+.phone-bottom-nav{ position:absolute; left:0; right:0; bottom:0; z-index:6; display:grid; grid-template-columns:repeat(3,1fr); min-height:calc(72px + env(safe-area-inset-bottom,0px)); padding:7px 6px env(safe-area-inset-bottom,0px); border-top:1px solid var(--track); background:var(--bg); }
+
+.phone-bottom-nav.is-hidden{ display:none; }
+
+.phone-bottom-tab{ min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:0; background:none; color:var(--fg-faint); border-radius:14px; font-size:calc(10px * var(--island-font-size-scale)); cursor:pointer; }
+
+.phone-bottom-tab svg{ width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+.phone-bottom-tab.is-active{ color:var(--fg); font-weight:var(--island-fw-650); }
+
+.phone-bottom-tab.is-active svg{ stroke-width:2.2; }
+
+.phone-empty{ min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 32px; text-align:center; color:var(--fg-faint); }
+
+.phone-empty-icon{ width:50px; height:50px; display:grid; place-items:center; border:1px solid var(--track); border-radius:16px; color:var(--fg-soft); background:var(--bubble-bg); font-size:18px; margin-bottom:14px; }
+
+.phone-empty strong{ color:var(--fg); font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); }
+
+.phone-empty span{ max-width:330px; margin-top:7px; font-size:calc(12px * var(--island-font-size-scale)); line-height:1.55; }
+
+.phone-detail-scroll{ flex:1 1 auto; min-height:0; overflow:auto; padding:16px 14px calc(28px + env(safe-area-inset-bottom,0px)); -webkit-overflow-scrolling:touch; }
+
+.phone-transcript-row{ display:flex; flex-direction:column; align-items:flex-start; margin:0 0 16px; }
+
+.phone-transcript-row.is-me{ align-items:flex-end; }
+
+.phone-transcript-label{ margin:0 4px 5px; color:var(--fg-faint); font-size:calc(10px * var(--island-font-size-scale)); }
+
+.phone-transcript-bubble{
+  max-width:min(84%,430px); padding:10px 12px; border:1px solid var(--track); border-radius:16px;
+  background:var(--card-bg); color:var(--fg); font-size:calc(13px * var(--island-font-size-scale)); line-height:1.6;
+  white-space:pre-wrap; word-break:break-word;
+}
+
+.phone-transcript-row.is-me .phone-transcript-bubble{ background:var(--bubble-bg); }
+
+.phone-transcript-time{ margin:5px 4px 0; }
+
+@media (max-width:520px){
+.phone-summary{ padding-left:18px; padding-right:18px; }
+.phone-list{ padding-left:9px; padding-right:9px; }
+.phone-transcript-bubble{ max-width:88%; }
+}
