@@ -38,8 +38,6 @@ function flushSafetyState(){
 
 function init(){
   renderPlayIcon();
-  renderTrack();
-  renderProgress();
   applyChatAppearance();
   applyThemePreference();
   applyHomeAppearance();
@@ -122,6 +120,7 @@ function bindEvents(){
   bindSettingsAppearanceEvents();
   bindHomeVisibilityEvents();
   bindMusicEvents();
+  bindHomeGridEvents();
   bindCalendarWidgetEvents();
   bindHomeAppClickEvents();
   bindPhoneEvents();

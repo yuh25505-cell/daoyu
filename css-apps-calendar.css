@@ -1,19 +1,19 @@
 /* 岛屿 · 日历 · 桌面「日历」小组件（4×2：左半边图片，右半边实时月历）
  * 与 js-apps-calendar.js 对应。「日历」App 本体开发时，页面样式也写在这个文件里。 */
 
-.home-calendar-widget{ display:block; }
+.home-calendar-widget{ display:block; grid-column:1 / -1; grid-row:span 2; min-width:0; min-height:0; }
 
 .home[data-widget-calendar="off"] .home-calendar-widget{ display:none; }
 
-/* 高度 = 桌面图标网格的 2 行，由 js 写入 --cal-widget-h；176px 仅作为脚本就绪前的兜底。 */
+/* 占主屏幕网格 4 列 × 2 行；--cal-widget-h（js 写入的 2 行高度）只用来限制左侧图片的最大边长。 */
 .cal-widget{
   /* 左右留白：--cal-pad-x 为「图片左缘」和「日历数字右缘」到组件边缘的距离，两边视觉相等。
    * 日历每格数字是居中的，数字右缘比格子右缘内缩约 --cal-inset，所以右侧 padding 相应减去它。 */
   --cal-pad-x:20px; --cal-inset:4.5px; --cal-pad-r:calc(var(--cal-pad-x) - var(--cal-inset));
-  position:relative; box-sizing:border-box; width:100%; height:var(--cal-widget-h,176px);
+  position:relative; box-sizing:border-box; width:100%; height:100%;
   display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); gap:12px;
   padding:12px var(--cal-pad-r) 12px var(--cal-pad-x); border-radius:24px; overflow:hidden;
-  background:var(--home-surface); border:0; color:var(--home-fg);
+  background:var(--widget-surface,var(--home-surface)); border:0; color:var(--home-fg);
   backdrop-filter:blur(16px) saturate(.65); -webkit-backdrop-filter:blur(16px) saturate(.65);
 }
 

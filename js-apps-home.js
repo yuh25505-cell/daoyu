@@ -10,6 +10,31 @@ function tick(){
 }
 
 
+/* 主屏幕 4×6 网格：行高 = 一个应用图标格（图标 + 名称）的实际高度。
+ * 日历（4×2）、音乐（2×2）按网格跨行，高度因此自动跟随图标大小 / 名称开关 / 字号。 */
+function syncHomeGridRows(){
+  var home = $('home');
+  var grid = $('homeGrid');
+  var app = grid && grid.querySelector('.app');
+  if (!home || !app) return;
+  var rowH = app.offsetHeight;
+  if (!rowH) return;
+  var gap = parseFloat(getComputedStyle(grid).rowGap) || 0;
+  home.style.setProperty('--home-row-h', rowH + 'px');
+  home.style.setProperty('--cal-widget-h', (rowH * 2 + gap) + 'px');
+  /* 2 行高度不足 150px（例如关闭图标名称）时，音乐组件进入紧凑模式，给封面多留空间。 */
+  home.setAttribute('data-grid-compact', (rowH * 2 + gap) < 150 ? 'on' : 'off');
+}
+
+
+function bindHomeGridEvents(){
+  syncHomeGridRows();
+  var firstApp = document.querySelector('#homeGrid .app');
+  if (firstApp && window.ResizeObserver) new ResizeObserver(syncHomeGridRows).observe(firstApp);
+  window.addEventListener('resize', syncHomeGridRows);
+}
+
+
 function getSystemTheme(){
   return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
 }
@@ -142,6 +167,8 @@ function applyHomeAppearance(){
   }
   renderHomeAppIcons();
   renderCalendarPhoto();
+  renderMusicCover();
+  syncHomeGridRows();
   if (wallpaper) {
     wallpaper.setAttribute('data-wallpaper', a.wallpaper);
     wallpaper.setAttribute('data-dim-dark', a.dimDarkWallpaper ? 'on' : 'off');

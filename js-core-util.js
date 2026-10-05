@@ -111,3 +111,33 @@ function buildTimeContext(name, options){
     '说明：以上时间字段来自本次请求生成的真实时间；elapsed_seconds 仅表示距离上一条可用聊天消息经过了多久，不证明任何剧情事件已经完成。'
   ].join('\n');
 }
+
+
+/* 本地图片导入：居中裁成正方形并压缩为 JPEG data URL（主屏幕日历 / 音乐组件共用）。 */
+var IMAGE_IMPORT_MAX_BYTES = 20 * 1024 * 1024;
+
+function squarePhotoFromFile(file, size){
+  return new Promise(function(resolve, reject){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      try {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) throw new Error('empty image');
+        var side = Math.min(w, h);
+        var out = Math.min(size, side);
+        var canvas = document.createElement('canvas');
+        canvas.width = out; canvas.height = out;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, out, out);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, out, out);
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
+      } catch (err) { reject(err); }
+      finally { URL.revokeObjectURL(url); }
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('decode failed')); };
+    img.src = url;
+  });
+}

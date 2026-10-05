@@ -68,6 +68,7 @@
 </div>
 <main class="home" id="home">
 <section class="home-body">
+<div class="home-grid" id="homeGrid">
 <section aria-label="日历" class="home-calendar-widget" id="homeCalendarWidget">
 <div class="cal-widget">
 <button aria-label="更换日历图片" class="cal-photo" id="calPhotoBtn" type="button">
@@ -82,27 +83,43 @@
 </div>
 <input accept="image/*" aria-hidden="true" hidden="" id="calPhotoInput" type="file"/>
 </section>
-<section class="home-section home-music-widget" id="homeMusicWidget">
-<div class="media-card">
-<div aria-hidden="true" class="album"></div>
-<div class="music-meta">
-<div class="music-title" id="musicTitle">Midnight Drive</div>
-<div class="music-artist" id="musicArtist">Mono Waves</div>
-<div class="music-progress"><i id="musicBar"></i></div>
+<section aria-label="音乐唱片播放器" class="home-music-widget" id="homeMusicWidget">
+<div class="music-widget" data-playing="off" id="musicWidget">
+<div class="vinyl-stage">
+<div class="vinyl-disc" id="vinylDisc">
+<button aria-label="导入本地图片作为唱片封面" class="vinyl-label" id="musicCoverBtn" type="button">
+<img alt="" class="vinyl-label-img" hidden="" id="musicCoverImg"/>
+<span class="vinyl-label-empty" id="musicCoverEmpty"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"></path><circle cx="6.5" cy="18" r="2.5"></circle><circle cx="17.5" cy="16" r="2.5"></circle></svg></span>
+</button>
+</div>
+<div aria-hidden="true" class="vinyl-arm" id="vinylArm">
+<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
+<path d="M30 9 L30 60 L21.5 80" fill="none" stroke="#f1f1f1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6"></path>
+<path d="M30 9 L30 60 L21.5 80" fill="none" stroke="rgba(0,0,0,.18)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" transform="translate(.9 .9)" style="mix-blend-mode:multiply"></path>
+<g transform="rotate(20 21.5 80)"><rect fill="#f6f6f6" height="14" rx="2" stroke="rgba(0,0,0,.22)" stroke-width=".8" width="8" x="17.5" y="76"></rect><rect fill="rgba(0,0,0,.28)" height="3.2" rx="1" width="4.6" x="19.2" y="86"></rect></g>
+<circle cx="30" cy="9" fill="#f4f4f4" r="6.2" stroke="rgba(0,0,0,.2)" stroke-width=".8"></circle>
+<circle cx="30" cy="9" fill="#d3d3d3" r="2.6"></circle>
+</svg>
+</div>
 </div>
 <div class="music-controls">
+<button aria-label="喜欢" aria-pressed="false" class="m-btn m-like" id="musicLike" type="button">
+<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20.4 4.6 13.2a4.7 4.7 0 0 1 0-6.8 4.9 4.9 0 0 1 6.9 0l.5.5.5-.5a4.9 4.9 0 0 1 6.9 0 4.7 4.7 0 0 1 0 6.8z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.9"></path></svg>
+</button>
 <button aria-label="上一首" class="m-btn" id="musicPrev" type="button">
-<svg aria-hidden="true" viewbox="0 0 24 24"><path d="M18.5 6.6v10.8a1 1 0 0 1-1.53.85l-8.4-5.4a1 1 0 0 1 0-1.7l8.4-5.4a1 1 0 0 1 1.53.85z" fill="currentColor"></path><rect fill="currentColor" height="12" rx="1.2" width="2.4" x="5" y="6"></rect></svg>
+<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12.2 6.6v10.8a1 1 0 0 1-1.53.85l-6.4-4.4a1 1 0 0 1 0-1.7l6.4-4.4a1 1 0 0 1 1.53.85z" fill="currentColor"></path><path d="M20.2 6.6v10.8a1 1 0 0 1-1.53.85l-6.4-4.4a1 1 0 0 1 0-1.7l6.4-4.4a1 1 0 0 1 1.53.85z" fill="currentColor"></path></svg>
 </button>
 <button aria-label="播放 / 暂停" class="m-btn m-play" id="musicToggle" type="button"></button>
 <button aria-label="下一首" class="m-btn" id="musicNext" type="button">
-<svg aria-hidden="true" viewbox="0 0 24 24"><path d="M5.5 6.6v10.8a1 1 0 0 0 1.53.85l8.4-5.4a1 1 0 0 0 0-1.7L7.03 5.75a1 1 0 0 0-1.53.85z" fill="currentColor"></path><rect fill="currentColor" height="12" rx="1.2" width="2.4" x="16.6" y="6"></rect></svg>
+<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11.8 6.6v10.8a1 1 0 0 0 1.53.85l6.4-4.4a1 1 0 0 0 0-1.7l-6.4-4.4a1 1 0 0 0-1.53.85z" fill="currentColor"></path><path d="M3.8 6.6v10.8a1 1 0 0 0 1.53.85l6.4-4.4a1 1 0 0 0 0-1.7l-6.4-4.4a1 1 0 0 0-1.53.85z" fill="currentColor"></path></svg>
+</button>
+<button aria-label="播放列表" class="m-btn" id="musicList" type="button">
+<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7.5h14M5 12h14M5 16.5h14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9"></path></svg>
 </button>
 </div>
+<input accept="image/*" aria-hidden="true" hidden="" id="musicCoverInput" type="file"/>
 </div>
 </section>
-<section class="home-section">
-<div class="app-grid">
 <button class="app" data-app="聊天" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">聊</span></span><span class="app-name">聊天</span></button>
 <button class="app" data-app="通讯录" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">通</span></span><span class="app-name">通讯录</span></button>
 <button class="app" data-app="相册" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">相</span></span><span class="app-name">相册</span></button>
@@ -112,7 +129,6 @@
 <button class="app" data-app="时钟" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">时</span></span><span class="app-name">时钟</span></button>
 <button class="app" data-app="设置" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">设</span></span><span class="app-name">设置</span></button>
 </div>
-</section>
 </section>
 <nav class="dock">
 <button class="app" data-app="电话" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">电</span></span><span class="app-name">电话</span></button>
@@ -1471,7 +1487,7 @@
 </div>
 <div class="settings-section-title">主屏幕 · 默认小组件</div><div class="widget-library" id="widgetLibrary">
 <article class="widget-card" data-widget-card="calendar"><div class="widget-card-head"><div class="widget-card-copy"><strong>日历</strong><em>岛屿 默认日历组件 · 左图右历</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="calendarPhotoState">未选择图片</span><button class="icon-library-btn" id="calendarPhotoPick" type="button">选择图片</button><button class="icon-library-btn" hidden="" id="calendarPhotoClear" type="button">移除</button></div></article>
-<article class="widget-card" data-widget-card="music"><div class="widget-card-head"><div class="widget-card-copy"><strong>音乐</strong><em>岛屿 默认音乐组件</em></div><span aria-hidden="true" class="widget-toggle"></span></div></article>
+<article class="widget-card" data-widget-card="music"><div class="widget-card-head"><div class="widget-card-copy"><strong>音乐</strong><em>岛屿 默认音乐组件 · 2×2 唱片播放器</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="musicCoverState">未选择封面</span><button class="icon-library-btn" id="musicCoverPick" type="button">选择封面</button><button class="icon-library-btn" hidden="" id="musicCoverClear" type="button">移除</button></div></article>
 </div>
 <div class="settings-section-title">主屏幕 · 应用图标</div><div class="icon-library" id="iconLibrary"></div>
 <div style="height:30px"></div>

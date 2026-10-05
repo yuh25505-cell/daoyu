@@ -55,7 +55,7 @@ html[data-theme="dark"]{
   --wp-a:rgba(255,255,255,.07); --wp-b:rgba(255,255,255,.03);
   --wallpaper-bg:#000000;
   --home-fg:#f5f5f5; --home-soft:rgba(245,245,245,.56); --home-faint:rgba(245,245,245,.30);
-  --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
+  --widget-surface:#131315; --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
   --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);
   --tile-bg:#0a0a0a; --tile-border:rgba(255,255,255,.18); --tile-fg:#f5f5f5;
   --ok:#22c55e; --err:#ef4444; --warn:#f59e0b;
@@ -82,7 +82,7 @@ html:not([data-theme]){
     --wp-a:rgba(255,255,255,.07); --wp-b:rgba(255,255,255,.03);
     --wallpaper-bg:#000000;
     --home-fg:#f5f5f5; --home-soft:rgba(245,245,245,.56); --home-faint:rgba(245,245,245,.30);
-    --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
+    --widget-surface:#131315; --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
     --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);
     --tile-bg:#0a0a0a; --tile-border:rgba(255,255,255,.18); --tile-fg:#f5f5f5;
   }
