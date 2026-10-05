@@ -18,9 +18,9 @@ var DEFAULT_HOME_APPEARANCE = {
   iconData: {},
   dimDarkWallpaperAmount: 42, dimDarkIconAmount: 42, dimDarkWallpaperLocked: false, dimDarkIconLocked: false,
   dockRadius: 5, dockTransparency: 0, dockRadiusLocked: false, dockTransparencyLocked: false,
-  wallpaper: 'mono', wallpaperData: '',
+  wallpaper: 'mono', wallpaperData: '', calendarPhoto: '',
   widgets: {
-    time: { enabled: true, size: 'large' },
+    calendar: { enabled: true, size: 'large' },
     music: { enabled: true, size: 'medium' }
   }
 };
@@ -280,15 +280,18 @@ function normalizeHomeAppearance(){
   }
   base.wallpaper = 'mono';
   base.wallpaperData = typeof incoming.wallpaperData === 'string' ? incoming.wallpaperData : '';
+  base.calendarPhoto = typeof incoming.calendarPhoto === 'string' && incoming.calendarPhoto.indexOf('data:image/') === 0 ? incoming.calendarPhoto : '';
   var widgets = incoming.widgets && typeof incoming.widgets === 'object' ? incoming.widgets : {};
-  ['time','music'].forEach(function(key){
+  /* 旧版「时间」组件已改为「日历」组件：沿用旧的开关状态。 */
+  if (!widgets.calendar && widgets.time) widgets = Object.assign({}, widgets, { calendar: widgets.time });
+  ['calendar','music'].forEach(function(key){
     var src = widgets[key] && typeof widgets[key] === 'object' ? widgets[key] : null;
     if (src) {
       base.widgets[key].enabled = src.enabled !== false;
       base.widgets[key].size = ['small','medium','large'].indexOf(src.size) >= 0 ? src.size : base.widgets[key].size;
     }
   });
-  base.widgets.time.enabled = widgets.time ? widgets.time.enabled !== false : true;
+  base.widgets.calendar.enabled = widgets.calendar ? widgets.calendar.enabled !== false : true;
   base.widgets.music.enabled = widgets.music ? widgets.music.enabled !== false : true;
   State.settings.homeAppearance = base;
   return base;

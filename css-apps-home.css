@@ -1,4 +1,4 @@
-/* 岛屿 · 桌面 · 主屏幕 / 时间组件 / 图标网格 / Dock / 桌面外观编辑器
+/* 岛屿 · 桌面 · 主屏幕 / 图标网格 / Dock / 桌面外观编辑器
  * 由原 app.css 按 App 拆分而来；规则相对顺序保持不变。
  * 加载顺序见 index.html：core-base → core-shared → home → music → chat → phone → worldbook → settings → 其余占位 App。 */
 
@@ -36,50 +36,6 @@
 .brand-word{font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); letter-spacing:.18em; margin-right:-.18em;}
 
 .brand-meta{font-size:calc(9px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.15em; color:rgba(255,255,255,.28); white-space:nowrap;}
-
-.hero-card{
-  position:relative; min-height:232px; padding:22px 22px 18px; border-radius:34px;
-  background:linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.025));
-  border:1px solid rgba(255,255,255,.11); box-shadow:0 24px 70px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.08);
-  overflow:hidden; backdrop-filter:blur(22px) saturate(.8); -webkit-backdrop-filter:blur(22px) saturate(.8);
-}
-
-.hero-card::before{
-  content:''; position:absolute; width:260px; height:260px; right:-94px; top:-106px; border-radius:50%;
-  background:radial-gradient(circle, rgba(255,255,255,.10), rgba(255,255,255,0) 68%);
-}
-
-.hero-card::after{
-  content:''; position:absolute; left:22px; right:22px; top:0; height:1px;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
-}
-
-.hero-row{position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:16px;}
-
-.hero-kicker{font-size:calc(9px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); letter-spacing:.18em; color:rgba(255,255,255,.38); text-transform:uppercase;}
-
-.hero-mode{display:inline-flex; align-items:center; gap:6px; font-size:calc(8px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); letter-spacing:.12em; color:rgba(255,255,255,.42); text-transform:uppercase;}
-
-.hero-mode i{width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.07)}
-
-.w-time{
-  position:relative; z-index:1; margin-top:34px; font-size:clamp(70px,20vw,104px); line-height:.82;
-  font-weight:var(--island-fw-300); letter-spacing:-.065em; font-variant-numeric:tabular-nums;
-}
-
-.hero-foot{position:relative; z-index:1; display:flex; align-items:end; justify-content:space-between; gap:18px; margin-top:28px;}
-
-.w-date{font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-500); color:rgba(255,255,255,.62);}
-
-.hero-caption{margin-top:6px; font-size:calc(8.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.18em; color:rgba(255,255,255,.28); text-transform:uppercase;}
-
-.hero-progress{flex:none; width:42%; padding-bottom:3px;}
-
-.hero-progress-head{display:flex; justify-content:space-between; margin-bottom:7px; font-size:calc(8px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.1em; color:rgba(255,255,255,.28); text-transform:uppercase;}
-
-.w-day{height:2px; border-radius:999px; background:rgba(255,255,255,.10); overflow:hidden;}
-
-.w-day i{display:block; width:0; height:100%; border-radius:inherit; background:#fff; box-shadow:0 0 12px rgba(255,255,255,.24);}
 
 .home-section{margin-top:18px;}
 
@@ -142,8 +98,6 @@
 
 @media (max-width:390px){
 .home-body{padding-left:16px;padding-right:16px;}
-.hero-card{min-height:216px;padding:20px 19px 16px;border-radius:30px;}
-.w-time{font-size:calc(72px * var(--island-font-size-scale));}
 .app-grid{gap:14px 5px;}
 .app-icon{width:54px;}
 }
@@ -162,30 +116,6 @@
 .brand-word{ color:var(--home-fg); }
 
 .brand-meta{ color:var(--home-faint); }
-
-.hero-card{
-  background:var(--home-surface);
-  border-color:var(--home-border);
-  box-shadow:none;
-  backdrop-filter:blur(16px) saturate(.65);
-  -webkit-backdrop-filter:blur(16px) saturate(.65);
-}
-
-.hero-card::before{ background:radial-gradient(circle, var(--wp-a), rgba(255,255,255,0) 68%); }
-
-.hero-card::after{ background:linear-gradient(90deg, transparent, var(--home-border-strong), transparent); }
-
-.hero-kicker,.hero-mode,.hero-caption{ color:var(--home-faint); }
-
-.hero-mode i{ background:var(--home-fg); box-shadow:0 0 0 4px var(--home-surface-soft); }
-
-.w-date{ color:var(--home-soft); }
-
-.hero-progress-head{ color:var(--home-faint); }
-
-.w-day{ background:var(--home-surface-soft); }
-
-.w-day i{ background:var(--home-fg); box-shadow:none; }
 
 .m-btn{ color:var(--home-fg); }
 
@@ -251,8 +181,6 @@
 html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .app-icon.has-custom-image img{ filter:brightness(var(--dark-icon-brightness, .58)); }
 
 html[data-theme="dark"] .home[data-dim-dark-wallpaper="off"] .app-icon.has-custom-image img{ filter:none; }
-
-.home[data-widget-time="off"] .home-time-widget{ display:none; }
 
 .home[data-widget-music="off"] .home-music-widget{ display:none; }
 

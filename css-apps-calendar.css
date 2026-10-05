@@ -1,2 +1,71 @@
-/* 岛屿 · 日历 App 样式（占位，尚未开发）
- * 与 js-apps-calendar.js 对应；开发「日历」时把它的样式写在这里即可，不用再动其他 css。 */
+/* 岛屿 · 日历 · 桌面「日历」小组件（4×2：左半边图片，右半边实时月历）
+ * 与 js-apps-calendar.js 对应。「日历」App 本体开发时，页面样式也写在这个文件里。 */
+
+.home-calendar-widget{ display:block; }
+
+.home[data-widget-calendar="off"] .home-calendar-widget{ display:none; }
+
+/* 高度 = 桌面图标网格的 2 行，由 js 写入 --cal-widget-h；176px 仅作为脚本就绪前的兜底。 */
+.cal-widget{
+  /* 左右留白：--cal-pad-x 为「图片左缘」和「日历数字右缘」到组件边缘的距离，两边视觉相等。
+   * 日历每格数字是居中的，数字右缘比格子右缘内缩约 --cal-inset，所以右侧 padding 相应减去它。 */
+  --cal-pad-x:20px; --cal-inset:4.5px; --cal-pad-r:calc(var(--cal-pad-x) - var(--cal-inset));
+  position:relative; box-sizing:border-box; width:100%; height:var(--cal-widget-h,176px);
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); gap:12px;
+  padding:12px var(--cal-pad-r) 12px var(--cal-pad-x); border-radius:24px; overflow:hidden;
+  background:var(--home-surface); border:0; color:var(--home-fg);
+  backdrop-filter:blur(16px) saturate(.65); -webkit-backdrop-filter:blur(16px) saturate(.65);
+}
+
+/* 左半边：正方形图片，圆角 10px */
+.cal-photo{
+  position:relative; align-self:center; justify-self:start; box-sizing:border-box;
+  width:100%; max-width:calc(var(--cal-widget-h,176px) - 24px); aspect-ratio:1 / 1;
+  border-radius:10px; overflow:hidden; background:var(--tile-bg); border:0; color:var(--home-faint);
+  display:grid; place-items:center; transition:opacity .2s ease;
+}
+
+.cal-photo:active{ opacity:.78; }
+
+.cal-photo-img{ position:absolute; inset:0; width:100%; height:100%; display:block; object-fit:cover; border-radius:inherit; }
+
+.cal-photo-img[hidden],.cal-photo-empty[hidden]{ display:none; }
+
+.cal-photo-empty{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+
+.cal-photo-empty svg{ width:24px; height:24px; display:block; }
+
+.cal-photo-empty em{ font-style:normal; font-size:calc(10px * var(--island-font-size-scale)); font-weight:var(--island-fw-550); letter-spacing:.06em; }
+
+/* 夜间与桌面图标图片一致：跟随「夜间调暗」设置 */
+html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .cal-photo-img{ filter:brightness(var(--dark-icon-brightness,.58)); }
+
+/* 右半边：月历 */
+.cal-month{ min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+
+.cal-head{ flex:none; display:flex; align-items:baseline; justify-content:space-between; gap:6px; padding:0 var(--cal-inset) 5px 2px; }
+
+.cal-head strong{ font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); line-height:1.1; color:var(--home-fg); }
+
+.cal-head span{ font-size:calc(10px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.08em; color:var(--home-faint); }
+
+.cal-week{ flex:none; display:grid; grid-template-columns:repeat(7,1fr); padding-bottom:3px; }
+
+.cal-week span{ text-align:center; font-size:calc(9px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); line-height:1.4; color:var(--home-faint); }
+
+.cal-days{ flex:1 1 0; min-height:0; display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(var(--cal-rows,6),minmax(0,1fr)); }
+
+.cal-day{
+  min-width:0; min-height:0; display:grid; place-items:center; border-radius:5px;
+  font-size:calc(10.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-500); line-height:1;
+  font-variant-numeric:tabular-nums; color:var(--home-fg);
+}
+
+.cal-day.is-today{ background:var(--home-fg); color:var(--bg); font-weight:var(--island-fw-650); }
+
+/* 设置 · 默认小组件：日历卡片里的图片操作行 */
+.widget-card-actions{ display:flex; align-items:center; gap:8px; }
+
+.widget-card-state{ flex:1 1 auto; min-width:0; font-size:calc(11px * var(--island-font-size-scale)); color:var(--fg-faint); }
+
+.widget-card-actions .icon-library-btn{ flex:none; padding:7px 14px; }

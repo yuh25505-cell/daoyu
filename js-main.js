@@ -122,6 +122,7 @@ function bindEvents(){
   bindSettingsAppearanceEvents();
   bindHomeVisibilityEvents();
   bindMusicEvents();
+  bindCalendarWidgetEvents();
   bindHomeAppClickEvents();
   bindPhoneEvents();
   bindWorldbookEvents();

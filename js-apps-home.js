@@ -2,21 +2,11 @@
  * 拆分自原 app.js；所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
 'use strict';
 
-var WEEK = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
-
 function tick(){
   var d = new Date();
-  var h = d.getHours();
-  var hm = h + ':' + pad(d.getMinutes());
+  var hm = d.getHours() + ':' + pad(d.getMinutes());
   var st = $('statusTime'); if (st) st.textContent = hm;
-  var wt = $('widgetTime'); if (wt) wt.textContent = hm;
-  var wd = $('widgetDate');
-  if (wd) wd.textContent = (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + WEEK[d.getDay()];
-  var bar = $('dayBar');
-  if (bar) {
-    var secs = h * 3600 + d.getMinutes() * 60 + d.getSeconds();
-    bar.style.width = (secs / 86400 * 100).toFixed(2) + '%';
-  }
+  renderCalendarWidget();
 }
 
 
@@ -139,7 +129,7 @@ function applyHomeAppearance(){
     home.setAttribute('data-icon-labels', a.iconLabels ? 'on' : 'off');
     home.style.setProperty('--dark-icon-brightness', String(1 - a.dimDarkIconAmount / 100));
     home.setAttribute('data-dim-dark-wallpaper', a.dimDarkWallpaper ? 'on' : 'off');
-    home.setAttribute('data-widget-time', a.widgets.time && a.widgets.time.enabled ? 'on' : 'off');
+    home.setAttribute('data-widget-calendar', a.widgets.calendar && a.widgets.calendar.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-music', a.widgets.music && a.widgets.music.enabled ? 'on' : 'off');
   }
   var dock = document.querySelector('.dock');
@@ -151,6 +141,7 @@ function applyHomeAppearance(){
     dock.style.setProperty('--dock-effective-alpha', String(Math.max(0, Math.min(1, effectiveAlpha))));
   }
   renderHomeAppIcons();
+  renderCalendarPhoto();
   if (wallpaper) {
     wallpaper.setAttribute('data-wallpaper', a.wallpaper);
     wallpaper.setAttribute('data-dim-dark', a.dimDarkWallpaper ? 'on' : 'off');

@@ -68,22 +68,19 @@
 </div>
 <main class="home" id="home">
 <section class="home-body">
-<section class="hero-card home-time-widget" id="homeTimeWidget">
-<div class="hero-row">
-<span class="hero-kicker">Local Time</span>
-<span class="hero-mode"><i></i>Personal Space</span>
-</div>
-<div class="w-time" id="widgetTime">9:41</div>
-<div class="hero-foot">
-<div>
-<div class="w-date" id="widgetDate">9月20日 星期日</div>
-<div class="hero-caption">Quiet interface · made for focus</div>
-</div>
-<div class="hero-progress">
-<div class="hero-progress-head"><span>Day</span><span>Progress</span></div>
-<div class="w-day"><i id="dayBar"></i></div>
+<section aria-label="日历" class="home-calendar-widget" id="homeCalendarWidget">
+<div class="cal-widget">
+<button aria-label="更换日历图片" class="cal-photo" id="calPhotoBtn" type="button">
+<img alt="" class="cal-photo-img" hidden="" id="calPhotoImg"/>
+<span class="cal-photo-empty" id="calPhotoEmpty"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="m21 16-5-5-8 8"></path></svg><em>添加图片</em></span>
+</button>
+<div class="cal-month">
+<div class="cal-head"><strong id="calMonth">1月</strong><span id="calYear">2026</span></div>
+<div aria-hidden="true" class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+<div class="cal-days" id="calDays"></div>
 </div>
 </div>
+<input accept="image/*" aria-hidden="true" hidden="" id="calPhotoInput" type="file"/>
 </section>
 <section class="home-section home-music-widget" id="homeMusicWidget">
 <div class="media-card">
@@ -1473,7 +1470,7 @@
 <div class="dock-control-row"><span class="dock-control-label">透明度</span><input aria-label="Dock透明度" class="dock-control-range" id="dockTransparencyRange" max="100" min="0" step="1" type="range" value="0"/><strong class="dock-control-value" id="dockTransparencyValue">0%</strong><button aria-pressed="false" class="dock-control-lock" id="dockTransparencyLock" type="button">锁定</button></div>
 </div>
 <div class="settings-section-title">主屏幕 · 默认小组件</div><div class="widget-library" id="widgetLibrary">
-<article class="widget-card" data-widget-card="time"><div class="widget-card-head"><div class="widget-card-copy"><strong>时间</strong><em>岛屿 默认时间组件</em></div><span aria-hidden="true" class="widget-toggle"></span></div></article>
+<article class="widget-card" data-widget-card="calendar"><div class="widget-card-head"><div class="widget-card-copy"><strong>日历</strong><em>岛屿 默认日历组件 · 左图右历</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="calendarPhotoState">未选择图片</span><button class="icon-library-btn" id="calendarPhotoPick" type="button">选择图片</button><button class="icon-library-btn" hidden="" id="calendarPhotoClear" type="button">移除</button></div></article>
 <article class="widget-card" data-widget-card="music"><div class="widget-card-head"><div class="widget-card-copy"><strong>音乐</strong><em>岛屿 默认音乐组件</em></div><span aria-hidden="true" class="widget-toggle"></span></div></article>
 </div>
 <div class="settings-section-title">主屏幕 · 应用图标</div><div class="icon-library" id="iconLibrary"></div>
