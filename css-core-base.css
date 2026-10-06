@@ -114,14 +114,7 @@ h1,h2,h3,p{ margin:0; font-weight:inherit; }
  * 画面是一整张内联 SVG（自带裁切，iOS Safari 不会漏出边角），其余全部为纯 CSS 动画；不依赖图片和外部字体。 */
 .boot{
   --fit:1;
-  --b-sky-0:#C9D3EA; --b-sky-1:#E6D5E4; --b-sky-2:#F4D8CC; --b-sky-3:#FBE5D1;
-  --b-sea-0:#EBDCD2; --b-sea-1:#BFD8D5; --b-sea-2:#9CC1C3; --b-sea-3:#7BA4AA; --b-sea-d:#4F7C82;
-  --b-glow-c:#FFC498; --b-glow-o:.6; --b-glow-o2:.22; --b-seaglow:.3; --b-glint:#FFF0DE; --b-ring:var(--home-border-strong);
-  --b-sun-1:#FFF9F0; --b-sun-2:#FFD3AF;
-  --b-far:#BAC3DA; --b-isle-top:#42605A; --b-isle:#1E2D2C; --b-tree:#172423;
-  --b-rim:rgba(255,222,190,.9); --b-line:rgba(255,248,238,.95); --b-haze:#FFE9D8; --b-horizon:#FFF3E6;
-  --b-vig:#46385C; --b-grain:.05;
-  --b-day:block; --b-night:none;
+  --b-ring:var(--home-border-strong);
   position:fixed; inset:0; z-index:100; display:grid; place-items:center; overflow:hidden;
   background:var(--bg); color:var(--home-fg);
   font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Songti SC","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC",Georgia,serif;
@@ -129,26 +122,12 @@ h1,h2,h3,p{ margin:0; font-weight:inherit; }
 }
 
 html[data-theme="dark"] .boot{
-  --b-sky-0:#14112A; --b-sky-1:#251E40; --b-sky-2:#3C3053; --b-sky-3:#5F4A69;
-  --b-sea-0:#5A4968; --b-sea-1:#28394B; --b-sea-2:#15262F; --b-sea-3:#0A141A; --b-sea-d:#02070A;
-  --b-glow-c:#B3A3E6; --b-glow-o:.5; --b-glow-o2:.2; --b-seaglow:.24; --b-glint:#D9D3F5; --b-ring:rgba(255,255,255,.4);
-  --b-sun-1:#FFFFFF; --b-sun-2:#D6CBEE;
-  --b-far:#33304F; --b-isle-top:#1D2C36; --b-isle:#070C10; --b-tree:#04080B;
-  --b-rim:rgba(205,196,245,.8); --b-line:rgba(228,223,252,.85); --b-haze:#8F7BA8; --b-horizon:#C9BDE6;
-  --b-vig:#000000; --b-grain:.04;
-  --b-day:none; --b-night:block;
+  --b-ring:rgba(255,255,255,.4);
 }
 
 @media (prefers-color-scheme: dark){
   html:not([data-theme]) .boot{
-    --b-sky-0:#14112A; --b-sky-1:#251E40; --b-sky-2:#3C3053; --b-sky-3:#5F4A69;
-    --b-sea-0:#5A4968; --b-sea-1:#28394B; --b-sea-2:#15262F; --b-sea-3:#0A141A; --b-sea-d:#02070A;
-    --b-glow-c:#B3A3E6; --b-glow-o:.5; --b-glow-o2:.2; --b-seaglow:.24; --b-glint:#D9D3F5; --b-ring:rgba(255,255,255,.4);
-    --b-sun-1:#FFFFFF; --b-sun-2:#D6CBEE;
-    --b-far:#33304F; --b-isle-top:#1D2C36; --b-isle:#070C10; --b-tree:#04080B;
-    --b-rim:rgba(205,196,245,.8); --b-line:rgba(228,223,252,.85); --b-haze:#8F7BA8; --b-horizon:#C9BDE6;
-    --b-vig:#000000; --b-grain:.04;
-    --b-day:none; --b-night:block;
+    --b-ring:rgba(255,255,255,.4);
   }
 }
 
@@ -187,9 +166,13 @@ html[data-theme="dark"] .boot{
 
 .boot-scene{ position:absolute; left:0; top:0; width:150px; height:198px; display:block; }
 
-.s-day-wrap{ display:var(--b-day); }
-.s-night-wrap,.s-night,.s-birds-night{ display:var(--b-night); }
-.s-birds{ display:var(--b-day); }
+.boot-scene--night{ display:none; }
+html[data-theme="dark"] .boot-scene--day{ display:none; }
+html[data-theme="dark"] .boot-scene--night{ display:block; }
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]) .boot-scene--day{ display:none; }
+  html:not([data-theme]) .boot-scene--night{ display:block; }
+}
 
 .s-rise{ opacity:0; animation:bootRise 2s .55s cubic-bezier(.16,.84,.3,1) forwards; }
 .s-isle{ opacity:0; animation:bootEmerge 1.4s .95s cubic-bezier(.16,.84,.3,1) forwards; }
@@ -198,15 +181,15 @@ html[data-theme="dark"] .boot{
 
 .s-rip{
   opacity:0; transform-box:fill-box; transform-origin:center; transform:scale(.3);
-  animation:bootRip 2.8s var(--d,1.6s) cubic-bezier(.2,.6,.3,1) infinite;
+  animation:bootRip 2.8s 1.6s cubic-bezier(.2,.6,.3,1) infinite;
 }
 
 .gl{
-  opacity:0; transform-box:fill-box; transform-origin:center;
-  animation:bootGlit var(--t,2.4s) var(--dl,1.6s) ease-in-out infinite alternate;
+  fill-opacity:0; transform-box:fill-box; transform-origin:center;
+  animation:bootGlit 2.4s 1.6s ease-in-out infinite alternate;
 }
 
-.s-star{ opacity:0; animation:bootTwinkle 3.2s var(--d,0s) ease-in-out infinite alternate; }
+.s-star{ opacity:0; animation:bootTwinkle 3.2s 0s ease-in-out infinite alternate; }
 
 .s-bird{ opacity:0; animation:bootBird 7s 1.6s ease-in-out infinite alternate; }
 .s-bird-2{ animation-delay:2.4s; animation-duration:8s; }
@@ -257,7 +240,7 @@ html[data-theme="dark"] .boot{
 @keyframes bootFade{ to{opacity:1} }
 @keyframes bootMist{ from{transform:translateX(-4px)} to{transform:translateX(4px)} }
 @keyframes bootRip{ 0%{opacity:0; transform:scale(.3)} 20%{opacity:.75} 100%{opacity:0; transform:scale(1.18)} }
-@keyframes bootGlit{ 0%{opacity:calc(var(--a,.6)*.15); transform:scaleX(.8)} 100%{opacity:var(--a,.6); transform:scaleX(1)} }
+@keyframes bootGlit{ 0%{fill-opacity:.12; transform:scaleX(.8)} 100%{fill-opacity:1; transform:scaleX(1)} }
 @keyframes bootTwinkle{ from{opacity:.15} to{opacity:.9} }
 @keyframes bootBird{ 0%{opacity:0; transform:translate(10px,3px)} 25%{opacity:.6} 75%{opacity:.6} 100%{opacity:0; transform:translate(-12px,-3px)} }
 @keyframes bootChar{ to{opacity:1; transform:none; filter:blur(0)} }
