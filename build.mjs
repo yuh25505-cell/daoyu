@@ -87,6 +87,7 @@ for (const file of files) {
   fs.writeFileSync(path.join(dist, file), content);
 }
 for (const dir of dirs) {
+  if (!fs.existsSync(path.join(root, dir))) continue;
   fs.cpSync(path.join(root, dir), path.join(dist, dir), { recursive: true });
 }
 

@@ -109,13 +109,19 @@ ul{ list-style:none; margin:0; padding:0; }
 h1,h2,h3,p{ margin:0; font-weight:inherit; }
 
 /* 启动层 · 岛屿拱门
- * 日出时分，一座小岛从海平线浮起：拱门窗由下向上打开 → 太阳升起 → 小岛浮出 → 倒影与涟漪 → 字标落定。
- * 全部使用纯 CSS 动画；颜色随明暗主题切换；无外部字体、无图片依赖。 */
+ * 日出（深色主题为月夜）时分，一座小岛从海平线浮起：
+ * 拱门窗由下向上打开 → 太阳 / 月牙升起 → 小岛浮出 → 倒影、涟漪与碎光 → 字标落定 → 淡出。
+ * 画面是一整张内联 SVG（自带裁切，iOS Safari 不会漏出边角），其余全部为纯 CSS 动画；不依赖图片和外部字体。 */
 .boot{
-  --b-sky-1:#F6DCCD; --b-sky-2:#ECD3DB; --b-sky-3:#D2DCE5; --b-sky-4:#BCD3D6;
-  --b-sea-1:#A9CBCB; --b-sea-2:#7FA9AE;
-  --b-sun-1:#FFF6EC; --b-sun-2:#FFC6A3; --b-glow:rgba(255,184,140,.62);
-  --b-isle:#22302D; --b-line:rgba(255,255,255,.8); --b-grain:.5;
+  --fit:1;
+  --b-sky-0:#C9D3EA; --b-sky-1:#E6D5E4; --b-sky-2:#F4D8CC; --b-sky-3:#FBE5D1;
+  --b-sea-0:#EBDCD2; --b-sea-1:#BFD8D5; --b-sea-2:#9CC1C3; --b-sea-3:#7BA4AA; --b-sea-d:#4F7C82;
+  --b-glow-c:#FFC498; --b-glow-o:.6; --b-glow-o2:.22; --b-seaglow:.3; --b-glint:#FFF0DE; --b-ring:var(--home-border-strong);
+  --b-sun-1:#FFF9F0; --b-sun-2:#FFD3AF;
+  --b-far:#BAC3DA; --b-isle-top:#42605A; --b-isle:#1E2D2C; --b-tree:#172423;
+  --b-rim:rgba(255,222,190,.9); --b-line:rgba(255,248,238,.95); --b-haze:#FFE9D8; --b-horizon:#FFF3E6;
+  --b-vig:#46385C; --b-grain:.05;
+  --b-day:block; --b-night:none;
   position:fixed; inset:0; z-index:100; display:grid; place-items:center; overflow:hidden;
   background:var(--bg); color:var(--home-fg);
   font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Songti SC","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC",Georgia,serif;
@@ -123,101 +129,87 @@ h1,h2,h3,p{ margin:0; font-weight:inherit; }
 }
 
 html[data-theme="dark"] .boot{
-  --b-sky-1:#2B2341; --b-sky-2:#3B2F52; --b-sky-3:#2C4252; --b-sky-4:#1F3A41;
-  --b-sea-1:#16303A; --b-sea-2:#0C1D22;
-  --b-sun-1:#FBF8FF; --b-sun-2:#C7BEE0; --b-glow:rgba(190,175,230,.42);
-  --b-isle:#070D0F; --b-line:rgba(220,230,255,.5); --b-grain:.35;
+  --b-sky-0:#14112A; --b-sky-1:#251E40; --b-sky-2:#3C3053; --b-sky-3:#5F4A69;
+  --b-sea-0:#5A4968; --b-sea-1:#28394B; --b-sea-2:#15262F; --b-sea-3:#0A141A; --b-sea-d:#02070A;
+  --b-glow-c:#B3A3E6; --b-glow-o:.5; --b-glow-o2:.2; --b-seaglow:.24; --b-glint:#D9D3F5; --b-ring:rgba(255,255,255,.4);
+  --b-sun-1:#FFFFFF; --b-sun-2:#D6CBEE;
+  --b-far:#33304F; --b-isle-top:#1D2C36; --b-isle:#070C10; --b-tree:#04080B;
+  --b-rim:rgba(205,196,245,.8); --b-line:rgba(228,223,252,.85); --b-haze:#8F7BA8; --b-horizon:#C9BDE6;
+  --b-vig:#000000; --b-grain:.04;
+  --b-day:none; --b-night:block;
 }
 
 @media (prefers-color-scheme: dark){
   html:not([data-theme]) .boot{
-    --b-sky-1:#2B2341; --b-sky-2:#3B2F52; --b-sky-3:#2C4252; --b-sky-4:#1F3A41;
-    --b-sea-1:#16303A; --b-sea-2:#0C1D22;
-    --b-sun-1:#FBF8FF; --b-sun-2:#C7BEE0; --b-glow:rgba(190,175,230,.42);
-    --b-isle:#070D0F; --b-line:rgba(220,230,255,.5); --b-grain:.35;
+    --b-sky-0:#14112A; --b-sky-1:#251E40; --b-sky-2:#3C3053; --b-sky-3:#5F4A69;
+    --b-sea-0:#5A4968; --b-sea-1:#28394B; --b-sea-2:#15262F; --b-sea-3:#0A141A; --b-sea-d:#02070A;
+    --b-glow-c:#B3A3E6; --b-glow-o:.5; --b-glow-o2:.2; --b-seaglow:.24; --b-glint:#D9D3F5; --b-ring:rgba(255,255,255,.4);
+    --b-sun-1:#FFFFFF; --b-sun-2:#D6CBEE;
+    --b-far:#33304F; --b-isle-top:#1D2C36; --b-isle:#070C10; --b-tree:#04080B;
+    --b-rim:rgba(205,196,245,.8); --b-line:rgba(228,223,252,.85); --b-haze:#8F7BA8; --b-horizon:#C9BDE6;
+    --b-vig:#000000; --b-grain:.04;
+    --b-day:none; --b-night:block;
   }
 }
+
+/* 适配不同屏幕：矮屏（iPhone SE / 横向 / 小窗口）整体缩小，平板与大屏略放大 */
+@media (max-height:720px){ .boot{ --fit:.88; } }
+@media (max-height:600px){ .boot{ --fit:.74; } }
+@media (max-width:340px){ .boot{ --fit:.86; } }
+@media (min-width:700px) and (min-height:860px){ .boot{ --fit:1.22; } }
+
+.boot-fit{ transform:scale(var(--fit)); }
 
 .boot-stage{
   position:relative; display:flex; flex-direction:column; align-items:center;
   animation:bootStageLeave .7s 2.45s cubic-bezier(.4,0,.2,1) forwards;
 }
 
-/* 拱门框：外圈细线 + 内部画面 */
+/* 拱门框：外圈极细线 + 内部画面 */
 .boot-frame{
   position:relative; width:150px; height:198px;
   opacity:0; animation:bootFrameIn 1s .1s cubic-bezier(.22,1,.36,1) forwards;
 }
 
 .boot-frame::before{
-  content:''; position:absolute; inset:-10px; border:1px solid var(--home-border-strong);
+  content:''; position:absolute; inset:-10px; border:1px solid var(--b-ring);
   border-radius:85px 85px 30px 30px; opacity:0; transform:scale(.94);
   animation:bootRingIn 1.2s .45s cubic-bezier(.22,1,.36,1) forwards;
 }
 
 .boot-arch{
-  position:absolute; inset:0; overflow:hidden; isolation:isolate;
+  position:absolute; inset:0; overflow:hidden;
   border-radius:75px 75px 20px 20px;
-  background:linear-gradient(180deg,var(--b-sky-1) 0%,var(--b-sky-2) 34%,var(--b-sky-3) 62%,var(--b-sky-4) 100%);
-  clip-path:inset(100% 0 0 0);
+  -webkit-clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px);
+  clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px);
   animation:bootOpen 1.15s .15s cubic-bezier(.65,0,.2,1) forwards;
 }
 
-/* 太阳（深色主题下为月亮） */
-.boot-sun{
-  position:absolute; left:88px; top:calc(62% - 58px); width:46px; height:46px; border-radius:50%;
-  background:radial-gradient(circle at 38% 34%,var(--b-sun-1),var(--b-sun-2) 78%);
-  box-shadow:0 0 30px 9px var(--b-glow);
-  opacity:0; transform:translateY(44px);
-  animation:bootSun 1.7s .55s cubic-bezier(.16,.84,.3,1) forwards;
+.boot-scene{ position:absolute; left:0; top:0; width:150px; height:198px; display:block; }
+
+.s-day-wrap{ display:var(--b-day); }
+.s-night-wrap,.s-night,.s-birds-night{ display:var(--b-night); }
+.s-birds{ display:var(--b-day); }
+
+.s-rise{ opacity:0; animation:bootRise 2s .55s cubic-bezier(.16,.84,.3,1) forwards; }
+.s-isle{ opacity:0; animation:bootEmerge 1.4s .95s cubic-bezier(.16,.84,.3,1) forwards; }
+.s-refl{ opacity:0; animation:bootFade .9s 1.5s ease-out forwards; }
+.s-mist{ animation:bootMist 6s ease-in-out infinite alternate; }
+
+.s-rip{
+  opacity:0; transform-box:fill-box; transform-origin:center; transform:scale(.3);
+  animation:bootRip 2.8s var(--d,1.6s) cubic-bezier(.2,.6,.3,1) infinite;
 }
 
-/* 小岛剪影 */
-.boot-isle{
-  position:absolute; left:10px; bottom:38%; width:92px; height:31px; display:block;
-  fill:var(--b-isle); opacity:0; transform:translateY(22px);
-  animation:bootIsle 1.3s .95s cubic-bezier(.16,.84,.3,1) forwards;
+.gl{
+  opacity:0; transform-box:fill-box; transform-origin:center;
+  animation:bootGlit var(--t,2.4s) var(--dl,1.6s) ease-in-out infinite alternate;
 }
 
-/* 海面：盖住太阳与小岛的下半部分，形成“浮出”效果 */
-.boot-sea{
-  position:absolute; left:0; right:0; top:62%; bottom:0;
-  background:linear-gradient(180deg,var(--b-sea-1),var(--b-sea-2));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
-}
+.s-star{ opacity:0; animation:bootTwinkle 3.2s var(--d,0s) ease-in-out infinite alternate; }
 
-.boot-refl{
-  position:absolute; left:10px; top:0; width:92px; height:31px; display:block;
-  fill:var(--b-isle); opacity:0; transform:scaleY(-1);
-  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 85%);
-  mask-image:linear-gradient(to bottom,transparent,#000 85%);
-  animation:bootRefl .9s 1.45s ease-out forwards, bootWobble 2.4s 1.45s ease-in-out infinite alternate;
-}
-
-.boot-ripple{
-  position:absolute; left:56px; top:6px; width:78px; height:9px; margin-left:-39px;
-  border:1px solid var(--b-line); border-radius:50%; opacity:0; transform:scale(.25);
-  animation:bootRipple 2.6s var(--d,1.5s) cubic-bezier(.2,.6,.3,1) infinite;
-}
-
-.boot-glint{ position:absolute; left:111px; top:0; width:0; height:0; }
-
-.boot-glint i{
-  position:absolute; left:0; height:1.5px; border-radius:1px; background:var(--b-line);
-  opacity:0; transform:translateX(-50%) scaleX(.35);
-  animation:bootGlint 2.2s ease-in-out infinite alternate;
-}
-
-.boot-glint i:nth-child(1){ top:8px;  width:34px; animation-delay:1.5s; }
-.boot-glint i:nth-child(2){ top:16px; width:26px; animation-delay:1.65s; }
-.boot-glint i:nth-child(3){ top:24px; width:18px; animation-delay:1.8s; }
-.boot-glint i:nth-child(4){ top:32px; width:11px; animation-delay:1.95s; }
-
-/* 胶片颗粒 */
-.boot-grain{
-  position:absolute; inset:0; pointer-events:none; mix-blend-mode:soft-light; opacity:var(--b-grain);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+.s-bird{ opacity:0; animation:bootBird 7s 1.6s ease-in-out infinite alternate; }
+.s-bird-2{ animation-delay:2.4s; animation-duration:8s; }
 
 /* 字标 */
 .boot-word{
@@ -246,7 +238,7 @@ html[data-theme="dark"] .boot{
 }
 
 .boot-status i{
-  display:inline-block; width:3px; height:3px; margin-left:5px; border-radius:50%;
+  display:inline-block; width:3px; height:3px; margin-left:2px; border-radius:50%;
   background:currentColor; vertical-align:middle; opacity:.2;
   animation:bootDot 1.4s ease-in-out infinite;
 }
@@ -256,13 +248,18 @@ html[data-theme="dark"] .boot{
 
 @keyframes bootFrameIn{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
 @keyframes bootRingIn{ to{opacity:1; transform:none} }
-@keyframes bootOpen{ to{clip-path:inset(0 0 0 0)} }
-@keyframes bootSun{ 0%{opacity:0; transform:translateY(44px)} 25%{opacity:1} 100%{opacity:1; transform:none} }
-@keyframes bootIsle{ 0%{opacity:0; transform:translateY(22px)} 30%{opacity:1} 100%{opacity:1; transform:none} }
-@keyframes bootRefl{ to{opacity:.24} }
-@keyframes bootWobble{ from{transform:scaleY(-1) skewX(-2.5deg) translateX(-1px)} to{transform:scaleY(-1) skewX(2.5deg) translateX(1px)} }
-@keyframes bootRipple{ 0%{opacity:0; transform:scale(.25)} 18%{opacity:.8} 100%{opacity:0; transform:scale(1.35)} }
-@keyframes bootGlint{ 0%{opacity:0; transform:translateX(-50%) scaleX(.35)} 40%{opacity:.9} 100%{opacity:.55; transform:translateX(-50%) scaleX(1)} }
+@keyframes bootOpen{
+  from{ -webkit-clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px); clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px); }
+  to{ -webkit-clip-path:inset(0 0 0 0 round 75px 75px 20px 20px); clip-path:inset(0 0 0 0 round 75px 75px 20px 20px); }
+}
+@keyframes bootRise{ 0%{opacity:0; transform:translateY(40px)} 22%{opacity:1} 100%{opacity:1; transform:translateY(0)} }
+@keyframes bootEmerge{ 0%{opacity:0; transform:translateY(16px)} 35%{opacity:1} 100%{opacity:1; transform:translateY(0)} }
+@keyframes bootFade{ to{opacity:1} }
+@keyframes bootMist{ from{transform:translateX(-4px)} to{transform:translateX(4px)} }
+@keyframes bootRip{ 0%{opacity:0; transform:scale(.3)} 20%{opacity:.75} 100%{opacity:0; transform:scale(1.18)} }
+@keyframes bootGlit{ 0%{opacity:calc(var(--a,.6)*.15); transform:scaleX(.8)} 100%{opacity:var(--a,.6); transform:scaleX(1)} }
+@keyframes bootTwinkle{ from{opacity:.15} to{opacity:.9} }
+@keyframes bootBird{ 0%{opacity:0; transform:translate(10px,3px)} 25%{opacity:.6} 75%{opacity:.6} 100%{opacity:0; transform:translate(-12px,-3px)} }
 @keyframes bootChar{ to{opacity:1; transform:none; filter:blur(0)} }
 @keyframes bootFadeUp{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
 @keyframes bootDot{ 0%,100%{opacity:.2} 50%{opacity:.9} }
