@@ -19,7 +19,18 @@ function syncHomeGridRows(){
   if (!home || !app) return;
   var rowH = app.offsetHeight;
   if (!rowH) return;
+  /* 主屏幕不再上下滚动：先按默认行距量，若 6 行放不进可用高度（小屏手机），就把行距收紧到刚好放下。 */
+  home.style.removeProperty('--home-gap-y');
   var gap = parseFloat(getComputedStyle(grid).rowGap) || 0;
+  var body = grid.parentElement;
+  if (body) {
+    var cs = getComputedStyle(body);
+    var avail = body.clientHeight - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0);
+    if (avail > 0 && rowH * 6 + gap * 5 > avail) {
+      gap = Math.max(4, Math.floor((avail - rowH * 6) / 5));
+      home.style.setProperty('--home-gap-y', gap + 'px');
+    }
+  }
   home.style.setProperty('--home-row-h', rowH + 'px');
   home.style.setProperty('--cal-widget-h', (rowH * 2 + gap) + 'px');
   /* 2 行高度不足 150px（例如关闭图标名称）时，音乐组件进入紧凑模式，给封面多留空间。 */
@@ -156,6 +167,7 @@ function applyHomeAppearance(){
     home.setAttribute('data-dim-dark-wallpaper', a.dimDarkWallpaper ? 'on' : 'off');
     home.setAttribute('data-widget-calendar', a.widgets.calendar && a.widgets.calendar.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-music', a.widgets.music && a.widgets.music.enabled ? 'on' : 'off');
+    home.setAttribute('data-widget-polaroid', a.widgets.polaroid && a.widgets.polaroid.enabled ? 'on' : 'off');
   }
   var dock = document.querySelector('.dock');
   if (dock) {
@@ -168,6 +180,7 @@ function applyHomeAppearance(){
   renderHomeAppIcons();
   renderCalendarPhoto();
   renderMusicCover();
+  renderPolaroidPhoto();
   syncHomeGridRows();
   if (wallpaper) {
     wallpaper.setAttribute('data-wallpaper', a.wallpaper);

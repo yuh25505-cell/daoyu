@@ -1,0 +1,54 @@
+/* 岛屿 · 拍立得 · 桌面「拍立得」小组件（2×2：叠放的两张相纸，上面一张的照片可导入本地图片）
+ * 与 js-apps-polaroid.js 对应。占主屏幕网格右下 2×2（第 5–6 行、第 3–4 列）。 */
+
+.home-polaroid-widget{ display:block; grid-column:3 / span 2; grid-row:5 / span 2; min-width:0; min-height:0; }
+
+.home[data-widget-polaroid="off"] .home-polaroid-widget{ display:none; }
+
+.polaroid-widget{
+  position:relative; box-sizing:border-box; width:100%; height:100%; overflow:hidden;
+  display:grid; place-items:center; border-radius:24px;
+  background:none; border:0; color:var(--home-fg);
+}
+
+/* 相纸：宽高比 5:6，照片区为正方形，底部留出拍立得的白边 */
+.polaroid-card,.polaroid-back{
+  grid-area:1 / 1; box-sizing:border-box; height:80%; aspect-ratio:5 / 6; max-width:78%;
+  border-radius:4px; background:#fff;
+}
+
+.polaroid-back{ transform:rotate(5deg) translate(3%,-1%); background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+
+.polaroid-card{
+  position:relative; display:flex; flex-direction:column; justify-content:flex-start; align-items:stretch; padding:4% 4% 0; transform:rotate(-4deg);
+  box-shadow:0 3px 12px rgba(0,0,0,.28); transition:opacity .2s ease;
+}
+
+.polaroid-photo:active{ opacity:.82; }
+
+.polaroid-photo{
+  position:relative; flex:none; display:grid; place-items:center; width:100%; aspect-ratio:1 / 1; overflow:hidden;
+  border-radius:2px; background:#d8d6d1; color:#8a8883; border:0; padding:0; margin:0; font:inherit; transition:opacity .2s ease;
+}
+
+.polaroid-img{ position:absolute; inset:0; width:100%; height:100%; display:block; object-fit:cover; border-radius:inherit; }
+
+.polaroid-img[hidden],.polaroid-empty[hidden]{ display:none; }
+
+.polaroid-empty{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+
+.polaroid-empty svg{ width:22px; height:22px; display:block; }
+
+.polaroid-empty em{ font-style:normal; font-size:calc(9px * var(--island-font-size-scale)); font-weight:var(--island-fw-550); letter-spacing:.06em; }
+
+/* 夜间与桌面图标图片一致：跟随「夜间调暗」设置 */
+html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .polaroid-img{ filter:brightness(var(--dark-icon-brightness,.58)); }
+
+/* 相纸底部白边里的文案：居中、可直接点击编辑 */
+.polaroid-caption{
+  flex:1 1 auto; min-height:0; width:100%; box-sizing:border-box; margin:0; padding:0 2px;
+  border:0; border-radius:0; outline:none; background:transparent; -webkit-appearance:none; appearance:none;
+  text-align:center; color:#6f6d69; caret-color:#6f6d69; user-select:text; -webkit-user-select:text;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Noto Sans Symbols 2","Noto Sans Kannada","Microsoft YaHei",sans-serif;
+  font-size:calc(11px * var(--island-font-size-scale)); line-height:1; letter-spacing:0;
+}

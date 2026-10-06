@@ -18,6 +18,7 @@
 <link href="./css-core-shared.css" rel="stylesheet"/>
 <link href="./css-apps-home.css" rel="stylesheet"/>
 <link href="./css-apps-music.css" rel="stylesheet"/>
+<link href="./css-apps-polaroid.css" rel="stylesheet"/>
 <link href="./css-apps-chat.css" rel="stylesheet"/>
 <link href="./css-apps-phone.css" rel="stylesheet"/>
 <link href="./css-apps-worldbook.css" rel="stylesheet"/>
@@ -53,18 +54,26 @@
 </svg>
 </span>
 </div>
-<div class="boot" id="boot">
+<div aria-hidden="true" class="boot" id="boot">
 <div class="boot-stage">
-<div aria-hidden="true" class="boot-symbol">
-<svg viewbox="0 0 32 32">
-<path d="M6.5 21.5V10.8c0-1.8 2.3-2.5 3.3-.9l6.2 10 6.2-10c1-1.6 3.3-.9 3.3.9v10.7"></path>
-</svg>
+<div class="boot-frame">
+<div class="boot-arch">
+<i class="boot-sun"></i>
+<svg class="boot-isle" viewBox="0 0 120 40"><path d="M0 40C8 40 13 33 25 31C33 29.6 38 33 47 27C56 21 64 17.5 74 21C83 24 87 31 97 32C108 33 113 40 120 40Z"></path><path d="M62.5 2C57 8 56.5 13 62.5 16C68.5 13 68 8 62.5 2Z"></path><rect height="7" width="1.2" x="61.9" y="14"></rect><path d="M72 9C69 12.5 68.8 15.5 72 17.5C75.2 15.5 75 12.5 72 9Z"></path><rect height="5" width="1" x="71.5" y="16"></rect></svg>
+<div class="boot-sea">
+<svg class="boot-refl" viewBox="0 0 120 40"><path d="M0 40C8 40 13 33 25 31C33 29.6 38 33 47 27C56 21 64 17.5 74 21C83 24 87 31 97 32C108 33 113 40 120 40Z"></path><path d="M62.5 2C57 8 56.5 13 62.5 16C68.5 13 68 8 62.5 2Z"></path><rect height="7" width="1.2" x="61.9" y="14"></rect><path d="M72 9C69 12.5 68.8 15.5 72 17.5C75.2 15.5 75 12.5 72 9Z"></path><rect height="5" width="1" x="71.5" y="16"></rect></svg>
+<span class="boot-ripple" style="--d:1.5s"></span>
+<span class="boot-ripple" style="--d:2.3s"></span>
+<span class="boot-ripple" style="--d:3.1s"></span>
+<div class="boot-glint"><i></i><i></i><i></i><i></i></div>
 </div>
-<div class="boot-word">岛屿</div>
-<div class="boot-sub">AI-NATIVE PERSONAL OS</div>
-<div class="boot-status"><i></i><span>Preparing your space</span></div>
+<i class="boot-grain"></i>
 </div>
-<div aria-hidden="true" class="boot-line"><span></span></div>
+</div>
+<div class="boot-word"><span>岛</span><span>屿</span></div>
+<div class="boot-sub">island</div>
+</div>
+<div class="boot-status">正在靠岸<i></i><i></i><i></i></div>
 </div>
 <main class="home" id="home">
 <section class="home-body">
@@ -124,10 +133,25 @@
 <button class="app" data-app="通讯录" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">通</span></span><span class="app-name">通讯录</span></button>
 <button class="app" data-app="相册" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">相</span></span><span class="app-name">相册</span></button>
 <button class="app" data-app="日历" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">日</span></span><span class="app-name">日历</span></button>
+<div class="home-app-block">
 <button class="app" data-app="备忘录" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">备</span></span><span class="app-name">备忘录</span></button>
 <button class="app" data-app="天气" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">天</span></span><span class="app-name">天气</span></button>
 <button class="app" data-app="时钟" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">时</span></span><span class="app-name">时钟</span></button>
 <button class="app" data-app="设置" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">设</span></span><span class="app-name">设置</span></button>
+</div>
+<section aria-label="拍立得" class="home-polaroid-widget" id="homePolaroidWidget">
+<div class="polaroid-widget">
+<span aria-hidden="true" class="polaroid-back"></span>
+<div class="polaroid-card">
+<button aria-label="导入本地图片到拍立得" class="polaroid-photo" id="polaroidBtn" type="button">
+<img alt="" class="polaroid-img" hidden="" id="polaroidImg"/>
+<span class="polaroid-empty" id="polaroidEmpty"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewBox="0 0 24 24"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="m21 16-5-5-8 8"></path></svg><em>添加照片</em></span>
+</button>
+<input aria-label="拍立得文案（可编辑）" autocapitalize="off" autocomplete="off" autocorrect="off" class="polaroid-caption" enterkeyhint="done" id="polaroidCaption" maxlength="24" spellcheck="false" type="text"/>
+</div>
+<input accept="image/*" aria-hidden="true" hidden="" id="polaroidInput" type="file"/>
+</div>
+</section>
 </div>
 </section>
 <nav class="dock">
@@ -1488,6 +1512,7 @@
 <div class="settings-section-title">主屏幕 · 默认小组件</div><div class="widget-library" id="widgetLibrary">
 <article class="widget-card" data-widget-card="calendar"><div class="widget-card-head"><div class="widget-card-copy"><strong>日历</strong><em>岛屿 默认日历组件 · 左图右历</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="calendarPhotoState">未选择图片</span><button class="icon-library-btn" id="calendarPhotoPick" type="button">选择图片</button><button class="icon-library-btn" hidden="" id="calendarPhotoClear" type="button">移除</button></div></article>
 <article class="widget-card" data-widget-card="music"><div class="widget-card-head"><div class="widget-card-copy"><strong>音乐</strong><em>岛屿 默认音乐组件 · 2×2 唱片播放器</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="musicCoverState">未选择封面</span><button class="icon-library-btn" id="musicCoverPick" type="button">选择封面</button><button class="icon-library-btn" hidden="" id="musicCoverClear" type="button">移除</button></div></article>
+<article class="widget-card" data-widget-card="polaroid"><div class="widget-card-head"><div class="widget-card-copy"><strong>拍立得</strong><em>岛屿 默认拍立得组件 · 2×2 照片</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="polaroidPhotoState">未选择照片</span><button class="icon-library-btn" id="polaroidPhotoPick" type="button">选择照片</button><button class="icon-library-btn" hidden="" id="polaroidPhotoClear" type="button">移除</button></div></article>
 </div>
 <div class="settings-section-title">主屏幕 · 应用图标</div><div class="icon-library" id="iconLibrary"></div>
 <div style="height:30px"></div>
@@ -1884,6 +1909,7 @@
 <script defer="" src="./js-apps-phone.js"></script>
 <script defer="" src="./js-apps-worldbook.js"></script>
 <script defer="" src="./js-apps-music.js"></script>
+<script defer="" src="./js-apps-polaroid.js"></script>
 <script defer="" src="./js-apps-settings-core.js"></script>
 <script defer="" src="./js-apps-settings-api.js"></script>
 <script defer="" src="./js-apps-settings-fonts.js"></script>

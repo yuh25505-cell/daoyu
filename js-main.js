@@ -2,7 +2,8 @@
  * 拆分自原 app.js；所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
 'use strict';
 
-setTimeout(function(){ var boot = $('boot'); if (boot) boot.style.display = 'none'; }, 3000);
+/* 启动层由 CSS 动画自行淡出（约 3.15s），这里只做兜底移除，避免异常情况下遮挡界面。 */
+setTimeout(function(){ var boot = $('boot'); if (boot) boot.style.display = 'none'; }, 3500);
 
 function bindSafetyEvents(){
 
@@ -122,6 +123,7 @@ function bindEvents(){
   bindMusicEvents();
   bindHomeGridEvents();
   bindCalendarWidgetEvents();
+  bindPolaroidEvents();
   bindHomeAppClickEvents();
   bindPhoneEvents();
   bindWorldbookEvents();

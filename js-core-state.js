@@ -18,10 +18,11 @@ var DEFAULT_HOME_APPEARANCE = {
   iconData: {},
   dimDarkWallpaperAmount: 42, dimDarkIconAmount: 42, dimDarkWallpaperLocked: false, dimDarkIconLocked: false,
   dockRadius: 5, dockTransparency: 0, dockRadiusLocked: false, dockTransparencyLocked: false,
-  wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '',
+  wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '', polaroidPhoto: '', polaroidCaption: '⌯>ᴗ<⌯ಣ',
   widgets: {
     calendar: { enabled: true, size: 'large' },
-    music: { enabled: true, size: 'medium' }
+    music: { enabled: true, size: 'medium' },
+    polaroid: { enabled: true, size: 'medium' }
   }
 };
 
@@ -282,10 +283,12 @@ function normalizeHomeAppearance(){
   base.wallpaperData = typeof incoming.wallpaperData === 'string' ? incoming.wallpaperData : '';
   base.calendarPhoto = typeof incoming.calendarPhoto === 'string' && incoming.calendarPhoto.indexOf('data:image/') === 0 ? incoming.calendarPhoto : '';
   base.musicCover = typeof incoming.musicCover === 'string' && incoming.musicCover.indexOf('data:image/') === 0 ? incoming.musicCover : '';
+  base.polaroidPhoto = typeof incoming.polaroidPhoto === 'string' && incoming.polaroidPhoto.indexOf('data:image/') === 0 ? incoming.polaroidPhoto : '';
+  base.polaroidCaption = typeof incoming.polaroidCaption === 'string' ? incoming.polaroidCaption.slice(0, 24) : base.polaroidCaption;
   var widgets = incoming.widgets && typeof incoming.widgets === 'object' ? incoming.widgets : {};
   /* 旧版「时间」组件已改为「日历」组件：沿用旧的开关状态。 */
   if (!widgets.calendar && widgets.time) widgets = Object.assign({}, widgets, { calendar: widgets.time });
-  ['calendar','music'].forEach(function(key){
+  ['calendar','music','polaroid'].forEach(function(key){
     var src = widgets[key] && typeof widgets[key] === 'object' ? widgets[key] : null;
     if (src) {
       base.widgets[key].enabled = src.enabled !== false;
@@ -294,6 +297,7 @@ function normalizeHomeAppearance(){
   });
   base.widgets.calendar.enabled = widgets.calendar ? widgets.calendar.enabled !== false : true;
   base.widgets.music.enabled = widgets.music ? widgets.music.enabled !== false : true;
+  base.widgets.polaroid.enabled = widgets.polaroid ? widgets.polaroid.enabled !== false : true;
   State.settings.homeAppearance = base;
   return base;
 }

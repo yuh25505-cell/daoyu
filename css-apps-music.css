@@ -8,8 +8,7 @@
 .music-widget{
   position:relative; box-sizing:border-box; width:100%; height:100%;
   display:flex; flex-direction:column; padding:9px 8px 6px; overflow:hidden;
-  border-radius:24px; background:var(--widget-surface,var(--home-surface)); border:0; color:var(--home-fg);
-  backdrop-filter:blur(16px) saturate(.65); -webkit-backdrop-filter:blur(16px) saturate(.65);
+  border-radius:24px; background:none; border:0; color:var(--home-fg);
 }
 
 /* 唱片区：吃掉控制栏以外的全部空间；唱片取宽高中较小者，保持正圆 */

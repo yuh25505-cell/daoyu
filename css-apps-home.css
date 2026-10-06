@@ -6,15 +6,11 @@
   position:relative; z-index:1; display:flex; flex-direction:column; width:100%;
   max-width:520px; height:100vh; height:100dvh; margin:0 auto; color:#f7f7f7;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-  opacity:0; transform:translateY(14px) scale(.985);
-  animation:homeReveal .95s 1.55s cubic-bezier(.22,1,.36,1) forwards;
 }
 
-@keyframes homeReveal{ to{opacity:1; transform:none} }
-
 .home-body{
-  flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none;
-  -webkit-overflow-scrolling:touch; padding:16px 20px 14px;
+  flex:1 1 auto; min-height:0; overflow:hidden; overscroll-behavior:none;
+  padding:16px 20px 14px;
 }
 
 .home-body::-webkit-scrollbar{display:none}
@@ -47,10 +43,17 @@
  * 行高 --home-row-h 由 js（syncHomeGridRows）按图标实际高度写入，所以改图标大小 / 关闭标签后整张网格会一起缩放。 */
 .home-grid{
   display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:repeat(6,var(--home-row-h,80px));
-  gap:16px 8px; padding:0;
+  gap:var(--home-gap-y,16px) 8px; padding:0;
 }
 
-.home-grid > .app{ align-self:start; }
+.home-grid > .app,.home-app-block > .app{ align-self:start; }
+
+/* 备忘录 / 天气 / 时钟 / 设置：占网格左下 2×2（第 5–6 行、第 1–2 列），内部栅格与外层列宽、行高、间距完全对齐 */
+.home-app-block{
+  grid-column:1 / span 2; grid-row:5 / span 2; min-width:0;
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,var(--home-row-h,80px));
+  gap:var(--home-gap-y,16px) 8px;
+}
 
 .app{
   display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; text-align:center;
@@ -91,7 +94,7 @@
 
 @media (max-width:390px){
 .home-body{padding-left:16px;padding-right:16px;}
-.home-grid{gap:14px 5px;}
+.home-grid,.home-app-block{gap:var(--home-gap-y,14px) 5px;}
 .app-icon{width:54px;}
 }
 
