@@ -50,7 +50,6 @@ function init(){
     applyThemePreference();
     applyHomeAppearance();
     applyFontPreference();
-    applyStatusBarPreference();
     renderAll();
     refreshApiState();
     refreshSecondaryApiState();
@@ -70,7 +69,6 @@ function init(){
     applyThemePreference();
     applyHomeAppearance();
     applyFontPreference();
-    applyStatusBarPreference();
     renderAll();
     refreshApiState();
     refreshSecondaryApiState();

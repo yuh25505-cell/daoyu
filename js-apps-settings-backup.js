@@ -2,6 +2,74 @@
  * 拆分自原 app.js；所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
 'use strict';
 
+
+/* ---------- 字体 ↔ 备份 ----------
+ * 本地 TTF 以 ArrayBuffer 存在 settings.font.items[].data 里；clone()/JSON.stringify 会把它变成 {}，
+ * 导致备份里没有字体内容，导入后字体无法应用。这里导出时转成 base64，导入时还原成 ArrayBuffer。 */
+function arrayBufferToBase64(buffer){
+  var bytes = new Uint8Array(buffer);
+  var chunk = 0x8000, parts = [];
+  for (var i = 0; i < bytes.length; i += chunk) {
+    parts.push(String.fromCharCode.apply(null, bytes.subarray(i, i + chunk)));
+  }
+  return btoa(parts.join(''));
+}
+
+function base64ToArrayBuffer(b64){
+  var bin = atob(b64);
+  var bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}
+
+function cloneSettingsForBackup(settings){
+  settings = settings || {};
+  var font = settings.font;
+  var hasFontData = font && Array.isArray(font.items) && font.items.some(function(it){
+    return it && (it.data instanceof ArrayBuffer || ArrayBuffer.isView(it.data));
+  });
+  if (!hasFontData) return clone(settings);
+  var rest = Object.assign({}, settings);
+  delete rest.font;
+  var out = clone(rest);
+  out.font = Object.assign({}, font, {
+    items: font.items.map(function(it){
+      if (!it || !(it.data instanceof ArrayBuffer || ArrayBuffer.isView(it.data))) return clone(it);
+      var buf = it.data instanceof ArrayBuffer ? it.data : it.data.buffer.slice(it.data.byteOffset, it.data.byteOffset + it.data.byteLength);
+      var copy = Object.assign({}, it);
+      delete copy.data;
+      copy.dataBase64 = arrayBufferToBase64(buf);
+      return clone(copy);
+    })
+  });
+  return out;
+}
+
+function restoreSettingsFromBackup(settings){
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return settings;
+  var font = settings.font;
+  if (!font || typeof font !== 'object' || !Array.isArray(font.items)) return settings;
+  var items = [];
+  font.items.forEach(function(it){
+    if (!it || typeof it !== 'object') return;
+    if (typeof it.dataBase64 === 'string' && it.dataBase64) {
+      try {
+        var buf = base64ToArrayBuffer(it.dataBase64);
+        var copy = Object.assign({}, it, { data: buf, byteLength: buf.byteLength });
+        delete copy.dataBase64;
+        items.push(copy);
+        return;
+      } catch(e) { console.warn('[岛屿] 备份中的字体解码失败：', it.name || it.id, e); }
+    }
+    /* 链接字体保留；旧版备份里丢失了内容的本地字体（data 为空对象）无法恢复，直接丢弃，避免出现“已应用但不生效”的假字体。 */
+    if (it.source === 'url' && it.url) items.push(it);
+  });
+  var activeOk = items.some(function(it){ return it.id === font.activeId; });
+  settings.font = Object.assign({}, font, { items: items, activeId: activeOk ? font.activeId : '' });
+  return settings;
+}
+
+
 function buildBackupPayload(){
   return {
     kind: 'island-backup',
@@ -9,7 +77,7 @@ function buildBackupPayload(){
     app: '岛屿',
     exportedAt: Date.now(),
     data: {
-      settings: clone(State.settings || {}),
+      settings: cloneSettingsForBackup(State.settings),
       chats: clone(CHATS || []),
       contacts: clone(CONTACTS || []),
       moments: clone(MOMENTS || []),
@@ -64,7 +132,7 @@ var BACKUP_PART_META = {
 function buildPartialBackupPayload(part){
   var data;
   switch(part){
-    case 'settings': data = { settings: clone(State.settings || {}) }; break;
+    case 'settings': data = { settings: cloneSettingsForBackup(State.settings) }; break;
     case 'chats':
       data = { chats: clone(CHATS || []), messages: clone(MESSAGES || {}) };
       break;
@@ -305,7 +373,7 @@ function normalizeImportedBackup(raw){
   var found = required.some(function(k){ return Object.prototype.hasOwnProperty.call(data, k); });
   if (!found) throw new Error('这不是可识别的岛屿备份文件');
   return {
-    settings: data.settings && typeof data.settings === 'object' ? data.settings : {},
+    settings: data.settings && typeof data.settings === 'object' ? restoreSettingsFromBackup(data.settings) : {},
     chats: Array.isArray(data.chats) ? data.chats : [],
     contacts: Array.isArray(data.contacts) ? data.contacts : [],
     moments: Array.isArray(data.moments) ? data.moments : [],
@@ -355,7 +423,7 @@ function normalizePartialBackup(raw, requestedPart){
   switch(requestedPart){
     case 'settings':
       if (!source.settings || typeof source.settings !== 'object' || Array.isArray(source.settings)) throw new Error('备份中没有有效的系统设置');
-      out.settings = source.settings; break;
+      out.settings = restoreSettingsFromBackup(source.settings); break;
     case 'chats':
       if (!Array.isArray(source.chats)) throw new Error('备份中没有有效的聊天列表');
       if (!source.messages || typeof source.messages !== 'object' || Array.isArray(source.messages)) throw new Error('备份中没有有效的聊天记录');

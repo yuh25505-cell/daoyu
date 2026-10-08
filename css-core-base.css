@@ -249,34 +249,9 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 @keyframes bootStageLeave{ to{transform:scale(1.035)} }
 @keyframes bootLeave{ to{opacity:0; visibility:hidden; pointer-events:none} }
 
-.status-bar{
-  flex:none; display:flex; align-items:center; justify-content:space-between; height:52px;
-  padding:0 24px; font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); color:#fff;
-}
-
-/* 全局 岛屿 状态栏：开启后覆盖桌面、聊天、私聊、设置等系统界面。 */
-.os-status-bar{
-  position:fixed; top:0; left:50%; transform:translateX(-50%);
-  z-index:90; display:none; align-items:flex-end; justify-content:space-between;
-  width:100%; max-width:520px; height:calc(env(safe-area-inset-top, 0px) + 28px);
-  padding:env(safe-area-inset-top, 0px) 24px 0;
-  box-sizing:border-box; font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); color:var(--home-fg);
-  pointer-events:none;
-}
-
-html.status-bar-enabled .os-status-bar{ display:flex; }
-
-.sb-time{ font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
-
-.sb-icons{ display:flex; align-items:center; gap:7px; opacity:.9; }
-
-.sb-icons svg{ display:block; }
-
 html.pm-open{ --pm-chat-head-bg:#ededed; --pm-chat-head-fg:#171717; }
 
 html[data-theme="dark"].pm-open{ --pm-chat-head-bg:#111111; --pm-chat-head-fg:#f5f5f5; }
-
-html.pm-open .os-status-bar{ background:transparent !important; color:var(--pm-status-fg, var(--pm-chat-head-fg)); box-shadow:none; border:0; }
 
 @media (prefers-reduced-motion: reduce){
 *,*::before,*::after{
@@ -285,6 +260,3 @@ html.pm-open .os-status-bar{ background:transparent !important; color:var(--pm-s
   }
 }
 
-.status-bar{ color:var(--home-fg); }
-
-.sb-icons{ color:var(--home-fg); }

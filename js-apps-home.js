@@ -5,7 +5,6 @@
 function tick(){
   var d = new Date();
   var hm = d.getHours() + ':' + pad(d.getMinutes());
-  var st = $('statusTime'); if (st) st.textContent = hm;
   renderCalendarWidget();
 }
 
@@ -452,27 +451,6 @@ function renderThemeOptions(){
 }
 
 
-function applyStatusBarPreference(){
-  var on = !(State.settings && State.settings.statusBar === false);
-  document.documentElement.classList.toggle('status-bar-enabled', on);
-  var btn = $('statusBarToggle');
-  if (btn) {
-    btn.classList.toggle('is-on', on);
-    btn.setAttribute('aria-checked', on ? 'true' : 'false');
-  }
-}
-
-
-function setStatusBarPreference(on){
-  on = !!on;
-  State.settings.statusBar = on;
-  applyStatusBarPreference();
-  refreshSecondaryApiState();
-  saveSettings();
-  toast(on ? '已开启 岛屿 状态栏' : '已关闭 岛屿 状态栏');
-}
-
-
 function setThemePreference(pref){
   if (pref !== 'system' && pref !== 'light' && pref !== 'dark') pref = 'system';
   State.settings.theme = pref;
@@ -484,7 +462,6 @@ function setThemePreference(pref){
 function bindHomeThemeEvents(){
   tick();
   applyThemePreference();
-  applyStatusBarPreference();
   setInterval(tick, 1000);
   var mediaTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   if (mediaTheme) {

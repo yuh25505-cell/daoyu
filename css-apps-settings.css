@@ -451,22 +451,6 @@ textarea.api-input{ resize:none; min-height:84px; padding:12px 14px; font-family
 
 .theme-option.is-on .theme-check{ opacity:1; }
 
-.statusbar-option{ cursor:pointer; }
-
-.statusbar-switch{
-  position:relative; flex:none; width:46px; height:28px; border-radius:999px;
-  background:var(--track); border:1px solid var(--card-bd); transition:background .2s ease, border-color .2s ease;
-}
-
-.statusbar-switch::after{
-  content:''; position:absolute; left:3px; top:3px; width:20px; height:20px;
-  border-radius:50%; background:var(--fg); box-shadow:0 1px 4px rgba(0,0,0,.18);
-  transition:transform .2s ease;
-}
-
-.statusbar-option.is-on .statusbar-switch{ background:var(--fg); border-color:var(--fg); }
-
-.statusbar-option.is-on .statusbar-switch::after{ background:var(--bg); transform:translateX(18px); }
 
 .theme-preview{ flex:none; width:44px; height:44px; border-radius:5px; border:1px solid var(--home-border-strong); position:relative; overflow:hidden; }
 

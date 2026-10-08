@@ -323,8 +323,6 @@ function bindSettingsAppearanceEvents(){
       backupPartBatchFileInput.value = '';
     });
   }
-  var statusBarToggle = $('statusBarToggle');
-  if (statusBarToggle) statusBarToggle.addEventListener('click', function(){ setStatusBarPreference(!((State.settings && State.settings.statusBar) === true)); });
   var appearanceOpenFromChat = $('openAppearanceFromChat');
   if (appearanceOpenFromChat) appearanceOpenFromChat.addEventListener('click', function(){ openChatAppearance(); });
   $$('#themeMenu .theme-option').forEach(function(btn){

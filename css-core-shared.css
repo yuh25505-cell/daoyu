@@ -24,16 +24,6 @@
 
 .wallpaper{ color:#fff; }
 
-html.status-bar-enabled .home,
-html.status-bar-enabled .chat-shell,
-html.status-bar-enabled .pm-shell,
-html.status-bar-enabled .up-shell,
-html.status-bar-enabled .settings-shell,
-html.status-bar-enabled .chat-appearance-shell,
-html.status-bar-enabled .worldbook-shell{
-  padding-top:calc(env(safe-area-inset-top, 0px) + 28px);
-}
-
 .panel-head{ position:relative; flex:none; display:flex; align-items:center; gap:2px; height:52px; padding:0 8px; }
 
 .ph-btn{ flex:none; width:38px; height:38px; display:grid; place-items:center; border-radius:50%; color:var(--fg); }
