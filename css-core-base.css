@@ -4,6 +4,8 @@
 
 :root{
   --island-font-size-scale:1;
+  --island-scale:1;            /* 屏幕比例（全局缩放），由 js 写入 */
+  --island-bottom-lift:10px;   /* 所有界面的底栏统一上移的距离 */
   --island-fw-300:300; --island-fw-400:400; --island-fw-500:500; --island-fw-520:520; --island-fw-550:550;
   --island-fw-600:600; --island-fw-650:650; --island-fw-680:680; --island-fw-700:700; --island-fw-720:720;
   color-scheme: light;
@@ -98,6 +100,14 @@ body{
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   overflow: hidden; overscroll-behavior: none;
+}
+
+/* 屏幕比例 ≠ 100%：整个岛屿作为一块整体缩放。body 先按 1/比例 放大尺寸，再 scale 回来，刚好铺满屏幕；
+ * body 带 transform 后，里面所有 position:fixed 的页面/弹层也都以 body 为参照，一起缩放。 */
+html[data-scaled] body{
+  position:fixed; left:0; top:0; height:auto;
+  width:calc(100vw / var(--island-scale)); height:calc(100dvh / var(--island-scale));
+  transform:scale(var(--island-scale)); transform-origin:0 0;
 }
 
 button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; -webkit-tap-highlight-color: transparent; }

@@ -34,7 +34,7 @@
 
 .worldbook-head .ph-btn svg{width:21px;height:21px;}
 
-.worldbook-head-copy{position:absolute;left:50%;top:calc(50% + env(safe-area-inset-top,0px) / 2);transform:translate(-50%,-50%);text-align:center;min-width:0;width:min(58vw,260px);}
+.worldbook-head-copy{position:absolute;left:50%;top:calc(50% + env(safe-area-inset-top,0px) / 2);transform:translate(-50%,-50%);text-align:center;min-width:0;width:min(calc(58vw / var(--island-scale,1)),260px);}
 
 .worldbook-title{font-size:calc(18px * var(--island-font-size-scale));font-weight:var(--island-fw-650);letter-spacing:.01em;}
 

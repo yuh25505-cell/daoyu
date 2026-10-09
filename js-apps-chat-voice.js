@@ -172,7 +172,7 @@ function finishVoiceRecording(cancelled){
 function handleVoicePointerMove(e){
   if (!voiceRecording || !voicePointerActive || e.pointerId !== voicePointerId || !pmHold) return;
   var rect = pmHold.getBoundingClientRect();
-  var cancel = e.clientY < rect.top - 56;
+  var cancel = e.clientY < rect.top - 56 * ((typeof getIslandScale === 'function') ? getIslandScale() : 1);
   if (cancel !== voiceCancelRequested) {
     voiceCancelRequested = cancel;
     pmHold.classList.toggle('is-cancel', cancel);

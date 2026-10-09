@@ -1533,10 +1533,33 @@
 <button aria-checked="false" class="theme-option" data-theme-choice="dark" role="radio" type="button"><span class="theme-option-main"><strong>夜间</strong></span><span aria-hidden="true" class="appearance-switch"></span></button>
 </div>
 <div class="settings-section-title">主屏幕 · 图标</div><div class="appearance-menu">
-<div class="appearance-row"><div class="appearance-copy"><strong>图标主题</strong><em>统一调整桌面 App 图标的视觉语言</em></div></div><div class="appearance-options"><button class="appearance-pill" data-home-icon-theme="mono" type="button">Mono</button><button class="appearance-pill" data-home-icon-theme="solid" type="button">实心</button><button class="appearance-pill" data-home-icon-theme="outline" type="button">线框</button><button class="appearance-pill" data-home-icon-theme="glass" type="button">玻璃</button><button class="appearance-pill" data-home-icon-theme="borderless" type="button">无边框</button></div>
-<div class="appearance-row"><div class="appearance-copy"><strong>图标形状</strong><em>方形、柔和圆角、圆形或胶囊</em></div></div><div class="appearance-options"><button class="appearance-pill" data-home-icon-shape="square" type="button">方形</button><button class="appearance-pill" data-home-icon-shape="soft" type="button">圆角</button><button class="appearance-pill" data-home-icon-shape="round" type="button">圆形</button><button class="appearance-pill" data-home-icon-shape="pill" type="button">胶囊</button></div>
-<div class="appearance-row"><div class="appearance-copy"><strong>图标尺寸</strong><em>调整主屏幕与 Dock 中图标的整体比例</em></div></div><div class="appearance-options"><button class="appearance-pill" data-home-icon-size="small" type="button">小</button><button class="appearance-pill" data-home-icon-size="medium" type="button">中</button><button class="appearance-pill" data-home-icon-size="large" type="button">大</button></div>
+<div class="appearance-row"><div class="appearance-copy"><strong>图标主题</strong><em>统一调整桌面 App 图标的视觉语言</em></div></div><div class="appearance-options is-two"><button class="appearance-pill" data-home-icon-theme="glass" type="button">液态玻璃</button><button class="appearance-pill" data-home-icon-theme="borderless" type="button">无边框</button></div>
+<div class="appearance-row"><div class="appearance-copy"><strong>图标调节</strong></div></div>
+<div class="dock-control-row"><span class="dock-control-label">圆角</span><input aria-label="图标圆角" class="dock-control-range" id="iconRadiusRange" max="50" min="0" step="1" type="range" value="9"/><strong class="dock-control-value" id="iconRadiusValue">9%</strong><button aria-pressed="false" class="dock-control-lock" id="iconRadiusLock" type="button">锁定</button></div>
+<div class="dock-control-divider"></div>
+<div class="icon-adj-group" data-icon-group="glass">
+<button aria-expanded="false" class="icon-adj-group-head" type="button"><span class="icon-adj-group-title">液态玻璃</span><svg aria-hidden="true" class="icon-adj-group-chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9.5 12 15.5 18 9.5"></path></svg></button>
+<div class="icon-adj-group-body" hidden>
+<div class="dock-control-divider"></div>
+<div class="dock-control-row"><span class="dock-control-label">磨砂模糊</span><input aria-label="液态玻璃图标磨砂模糊" class="dock-control-range" id="iconBlurRange" max="30" min="0" step="1" type="range" value="0"/><strong class="dock-control-value" id="iconBlurValue">0px</strong><button aria-pressed="false" class="dock-control-lock" id="iconBlurLock" type="button">锁定</button></div>
+<div class="dock-control-divider"></div>
+<div class="dock-control-row"><span class="dock-control-label">清透度</span><input aria-label="液态玻璃图标清透度" class="dock-control-range" id="iconClarityRange" max="100" min="0" step="1" type="range" value="100"/><strong class="dock-control-value" id="iconClarityValue">100%</strong><button aria-pressed="false" class="dock-control-lock" id="iconClarityLock" type="button">锁定</button></div>
+<div class="dock-control-divider"></div>
+<div class="dock-control-row"><span class="dock-control-label">折射强度</span><input aria-label="液态玻璃边缘折射强度" class="dock-control-range" id="iconLensRange" max="100" min="0" step="1" type="range" value="100"/><strong class="dock-control-value" id="iconLensValue">100%</strong><button aria-pressed="false" class="dock-control-lock" id="iconLensLock" type="button">锁定</button></div>
+<div class="dock-control-divider"></div>
+<div class="dock-control-row"><span class="dock-control-label">立体厚度</span><input aria-label="液态玻璃立体厚度" class="dock-control-range" id="iconDepthRange" max="100" min="0" step="1" type="range" value="100"/><strong class="dock-control-value" id="iconDepthValue">100%</strong><button aria-pressed="false" class="dock-control-lock" id="iconDepthLock" type="button">锁定</button></div>
+<div class="dock-control-divider"></div>
+<div class="dock-control-row"><span class="dock-control-label">符号模糊</span><input aria-label="液态玻璃符号模糊度" class="dock-control-range" id="glyphBlurRange" max="20" min="0" step="1" type="range" value="0"/><strong class="dock-control-value" id="glyphBlurValue">0px</strong><button aria-pressed="false" class="dock-control-lock" id="glyphBlurLock" type="button">锁定</button></div>
+<div class="dock-control-divider"></div>
+<div class="dock-control-row"><span class="dock-control-label">符号清晰</span><input aria-label="液态玻璃符号清晰度" class="dock-control-range" id="glyphClarityRange" max="100" min="0" step="1" type="range" value="79"/><strong class="dock-control-value" id="glyphClarityValue">79%</strong><button aria-pressed="false" class="dock-control-lock" id="glyphClarityLock" type="button">锁定</button></div>
+</div>
+</div>
+<div class="appearance-row"><div class="appearance-copy"><strong>屏幕比例</strong></div></div>
+<div class="num-row"><span class="num-row-label">比例</span><input aria-label="屏幕比例" class="num-input" id="islandScaleInput" inputmode="numeric" max="130" min="70" step="1" type="number" value="100"/><span class="num-unit">%</span></div>
 <button aria-checked="true" class="appearance-row" id="homeIconLabelsToggle" role="switch" type="button"><span class="appearance-copy"><strong>显示图标名称</strong></span><span aria-hidden="true" class="appearance-switch"></span></button>
+<div class="num-row"><span class="num-row-label">名称字号</span><input aria-label="图标名称字号" class="num-input" id="labelSizeInput" inputmode="numeric" max="18" min="8" step="1" type="number" value="11"/><span class="num-unit">px</span></div>
+<div class="dock-control-divider"></div>
+<div class="num-row"><span class="num-row-label">名称颜色</span><input aria-label="图标名称颜色" class="color-input" id="labelColorPicker" type="color" value="#ffffff"/><input aria-label="图标名称颜色色值" autocapitalize="characters" autocomplete="off" class="num-input hex" id="labelColorInput" maxlength="7" spellcheck="false" type="text" value="#FFFFFF"/><button class="dock-control-lock" id="labelColorReset" type="button">默认</button></div>
 </div>
 <div class="settings-section-title">主屏幕 · 壁纸</div><div class="appearance-menu"><div class="appearance-upload" style="border-top:0"><div class="appearance-upload-copy"><strong>本地图片壁纸</strong><em id="wallpaperState">未选择本地图片</em></div><button class="appearance-upload-btn" id="wallpaperUploadBtn" type="button">导入图片</button><input accept="image/*" hidden="" id="wallpaperInput" type="file"/></div></div><div class="appearance-menu"><button aria-checked="true" class="appearance-row" id="dimDarkWallpaperToggle" role="switch" type="button"><span class="appearance-copy"><strong>夜间压暗壁纸与本地图标</strong></span><span aria-hidden="true" class="appearance-switch"></span></button></div><div class="dark-dim-menu">
 <div class="dark-dim-row">
@@ -1554,9 +1577,13 @@
 </div>
 </div>
 <div class="settings-section-title">主屏幕 · Dock</div><div class="appearance-menu dock-settings-menu">
+<button aria-checked="false" class="appearance-row" id="dockNoBgToggle" role="switch" type="button"><span class="appearance-copy"><strong>无 Dock 栏背景</strong><em>开启后 Dock 只留图标，没有底板</em></span><span aria-hidden="true" class="appearance-switch"></span></button>
+<div class="dock-control-divider"></div>
 <div class="dock-control-row"><span class="dock-control-label">圆角</span><input aria-label="Dock圆角" class="dock-control-range" id="dockRadiusRange" max="40" min="0" step="1" type="range" value="5"/><strong class="dock-control-value" id="dockRadiusValue">5px</strong><button aria-pressed="false" class="dock-control-lock" id="dockRadiusLock" type="button">锁定</button></div>
 <div class="dock-control-divider"></div>
 <div class="dock-control-row"><span class="dock-control-label">透明度</span><input aria-label="Dock透明度" class="dock-control-range" id="dockTransparencyRange" max="100" min="0" step="1" type="range" value="0"/><strong class="dock-control-value" id="dockTransparencyValue">0%</strong><button aria-pressed="false" class="dock-control-lock" id="dockTransparencyLock" type="button">锁定</button></div>
+<div class="dock-control-divider"></div>
+<div class="dock-control-row"><span class="dock-control-label">模糊度</span><input aria-label="Dock毛玻璃模糊度" class="dock-control-range" id="dockBlurRange" max="60" min="0" step="1" type="range" value="16"/><strong class="dock-control-value" id="dockBlurValue">16px</strong><button aria-pressed="false" class="dock-control-lock" id="dockBlurLock" type="button">锁定</button></div>
 </div>
 <div class="settings-section-title">主屏幕 · 默认小组件</div><div class="widget-library" id="widgetLibrary">
 <article class="widget-card" data-widget-card="calendar"><div class="widget-card-head"><div class="widget-card-copy"><strong>日历</strong><em>岛屿 默认日历组件 · 左图右历</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="calendarPhotoState">未选择图片</span><button class="icon-library-btn" id="calendarPhotoPick" type="button">选择图片</button><button class="icon-library-btn" hidden="" id="calendarPhotoClear" type="button">移除</button></div></article>

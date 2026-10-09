@@ -266,13 +266,15 @@ function renderMessageActionMenu(index, anchorEl){
   pmMessageActionPopover.classList.remove('is-below','align-left','align-right');
 
   var menuRect = pmMessageActionPopover.getBoundingClientRect();
-  var shellW = shellRect.width, shellH = shellRect.height;
-  var menuW = menuRect.width, menuH = menuRect.height;
-  var left = anchorRect.left - shellRect.left + (anchorRect.width / 2) - (menuW / 2);
+  /* 屏幕比例 ≠ 100% 时 getBoundingClientRect 是缩放后的值，换算回 CSS 像素 */
+  var sc = (typeof getIslandScale === 'function') ? getIslandScale() : 1;
+  var shellW = shellRect.width / sc, shellH = shellRect.height / sc;
+  var menuW = menuRect.width / sc, menuH = menuRect.height / sc;
+  var left = (anchorRect.left - shellRect.left) / sc + (anchorRect.width / sc / 2) - (menuW / 2);
   left = Math.max(10, Math.min(left, shellW - menuW - 10));
-  var preferredTop = anchorRect.top - shellRect.top - menuH - 12;
+  var preferredTop = (anchorRect.top - shellRect.top) / sc - menuH - 12;
   var below = preferredTop < 8;
-  var top = below ? (anchorRect.bottom - shellRect.top + 12) : preferredTop;
+  var top = below ? ((anchorRect.bottom - shellRect.top) / sc + 12) : preferredTop;
   top = Math.max(8, Math.min(top, shellH - menuH - 8));
 
   pmMessageActionPopover.style.left = left + 'px';

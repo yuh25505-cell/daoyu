@@ -13,12 +13,12 @@
 }
 
 .wallpaper::before{
-  width:80vw; height:80vw; left:50%; top:-38vw; transform:translateX(-50%);
+  width:calc(80vw / var(--island-scale,1)); height:calc(80vw / var(--island-scale,1)); left:50%; top:calc(-38vw / var(--island-scale,1)); transform:translateX(-50%);
   background:radial-gradient(circle, rgba(255,255,255,.11), rgba(255,255,255,0) 68%);
 }
 
 .wallpaper::after{
-  width:72vw; height:72vw; left:-28vw; bottom:-36vw;
+  width:calc(72vw / var(--island-scale,1)); height:calc(72vw / var(--island-scale,1)); left:calc(-28vw / var(--island-scale,1)); bottom:calc(-36vw / var(--island-scale,1));
   background:radial-gradient(circle, rgba(255,255,255,.045), rgba(255,255,255,0) 68%);
 }
 
@@ -64,7 +64,7 @@
 
 .sheet{
   position:fixed; left:50%; bottom:0; z-index:71;
-  width:100%; max-width:520px; max-height:88vh; overflow-y:auto; scrollbar-width:none;
+  width:100%; max-width:520px; max-height:calc(88vh / var(--island-scale,1)); overflow-y:auto; scrollbar-width:none;
   transform: translateX(-50%);
   padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 22px);
   border-radius: 28px 28px 0 0;

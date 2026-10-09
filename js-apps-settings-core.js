@@ -332,12 +332,21 @@ function bindSettingsAppearanceEvents(){
   $$('[data-home-icon-theme]').forEach(function(btn){
     btn.addEventListener('click', function(){ setHomeIconOption('theme', btn.dataset.homeIconTheme); });
   });
-  $$('[data-home-icon-shape]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setHomeIconOption('shape', btn.dataset.homeIconShape); });
-  });
-  $$('[data-home-icon-size]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setHomeIconOption('size', btn.dataset.homeIconSize); });
-  });
+  bindHomeSliders();
+  /* 数值框：改完（失焦 / 回车）再生效，避免输入到一半就被改写 */
+  var commitOnEnter = function(el){ el.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); el.blur(); } }); };
+  var islandScaleInput = $('islandScaleInput');
+  if (islandScaleInput) { islandScaleInput.addEventListener('change', function(){ setIslandScale(islandScaleInput.value); }); commitOnEnter(islandScaleInput); }
+  var labelSizeInput = $('labelSizeInput');
+  if (labelSizeInput) { labelSizeInput.addEventListener('change', function(){ setLabelSize(labelSizeInput.value); }); commitOnEnter(labelSizeInput); }
+  var labelColorPicker = $('labelColorPicker');
+  if (labelColorPicker) labelColorPicker.addEventListener('change', function(){ setLabelColor(labelColorPicker.value); });
+  var labelColorInput = $('labelColorInput');
+  if (labelColorInput) { labelColorInput.addEventListener('change', function(){ setLabelColor(labelColorInput.value); }); commitOnEnter(labelColorInput); }
+  var labelColorReset = $('labelColorReset');
+  if (labelColorReset) labelColorReset.addEventListener('click', function(){ setLabelColor('#ffffff'); });
+  var dockNoBgToggle = $('dockNoBgToggle');
+  if (dockNoBgToggle) dockNoBgToggle.addEventListener('click', function(){ setDockNoBackground(!normalizeHomeAppearance().dockNoBackground); });
   var dockRadiusRange = $('dockRadiusRange');
   if (dockRadiusRange) {
     dockRadiusRange.addEventListener('input', function(){ setDockSetting('radius', dockRadiusRange.value); });

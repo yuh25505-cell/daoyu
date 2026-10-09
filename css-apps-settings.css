@@ -184,7 +184,7 @@ textarea.api-input{ resize:none; min-height:84px; padding:12px 14px; font-family
 /* 模型选择弹层 */
 .model-sheet{
   position:fixed; left:50%; bottom:0; z-index:81;
-  width:100%; max-width:520px; max-height:76vh;
+  width:100%; max-width:520px; max-height:calc(76vh / var(--island-scale,1));
   display:none; flex-direction:column;
   transform: translateX(-50%);
   border-radius: 28px 28px 0 0;
@@ -257,6 +257,7 @@ textarea.api-input{ resize:none; min-height:84px; padding:12px 14px; font-family
 
 .appearance-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px 15px}
 
+.appearance-options.is-two{grid-template-columns:repeat(2,1fr)}
 .appearance-pill{min-height:42px;padding:9px 10px;border-radius:10px;border:1px solid var(--track);background:var(--bubble-bg);color:var(--fg-soft);font-size:calc(13px * var(--island-font-size-scale));font-weight:var(--island-fw-550)}
 
 .appearance-pill.is-on{background:var(--fg);border-color:var(--fg);color:var(--bg)}
