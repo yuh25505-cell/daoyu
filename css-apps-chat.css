@@ -1201,7 +1201,7 @@ textarea.field{ min-height:92px; resize:none; line-height:1.5; }
 
 .char-language-switch{ width:46px; height:28px; padding:2px; border-radius:999px; background:var(--track); flex:none; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; pointer-events:auto; }
 
-.char-language-switch span{ display:block; width:24px; height:24px; border-radius:50%; background:var(--bg); box-shadow:0 1px 4px rgba(0,0,0,.18); transform:translateX(0); transition:transform .16s ease; }
+.char-language-switch span{ display:block; width:24px; height:24px; border-radius:50%; background:var(--bg); box-shadow:0 1px 4px rgba(0,0,0,.18); transform:translateX(0); will-change:transform; transition:transform .2s cubic-bezier(.3,.8,.3,1); }
 
 .char-language-switch[aria-checked="true"]{ background:var(--fg); }
 

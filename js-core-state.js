@@ -368,7 +368,7 @@ function saveSettings(){ return IslandDB.set('island.settings', State.settings);
 
 function scheduleSettingsSave(delay){
   clearTimeout(settingsSaveTimer);
-  settingsSaveTimer = setTimeout(function(){ settingsSaveTimer = 0; saveSettings(); }, delay || 140);
+  settingsSaveTimer = setTimeout(function(){ settingsSaveTimer = 0; whenIdle(function(){ saveSettings(); }); }, delay || 140);
 }
 
 function savePersonas(){ return IslandDB.set('island.personas', State.personas); }

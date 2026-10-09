@@ -141,3 +141,53 @@ function squarePhotoFromFile(file, size){
     img.src = url;
   });
 }
+
+
+/* ===== 交互性能助手（v1.54.1）=====
+ * afterPaint：先让浏览器把当前这一帧画出去，再执行重活，避免点击后"先卡一下才动"。
+ * whenIdle：把大对象存盘等耗时操作放到空闲时执行，不抢拖动 / 动画的帧。
+ * bindSmoothRange：拉条每帧最多处理一次 input，松手时补一次最终值并提交存盘。 */
+function afterPaint(fn){
+  requestAnimationFrame(function(){ setTimeout(fn, 0); });
+}
+
+function whenIdle(fn, timeout){
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(function(){ fn(); }, { timeout: timeout || 1200 });
+  else setTimeout(fn, 60);
+}
+
+function yieldToPaint(){
+  /* 后台 / 隐藏状态下 rAF 不会触发，加一个超时兜底，保证启动流程不会被卡住 */
+  return new Promise(function(resolve){
+    var done = false;
+    function go(){ if (done) return; done = true; resolve(); }
+    afterPaint(go);
+    setTimeout(go, 120);
+  });
+}
+
+function bindSmoothRange(el, onFrame, onCommit){
+  if (!el) return;
+  var raf = 0, pending = false, dirty = false;
+  function flush(){
+    raf = 0;
+    if (!pending) return;
+    pending = false;
+    onFrame(el.value);
+  }
+  function commit(){
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (pending) { pending = false; onFrame(el.value); }
+    if (!dirty) return;
+    dirty = false;
+    if (onCommit) onCommit(el.value);
+  }
+  el.addEventListener('input', function(){
+    pending = true; dirty = true;
+    if (!raf) raf = requestAnimationFrame(flush);
+  });
+  el.addEventListener('change', commit);
+  el.addEventListener('pointerup', commit);
+  el.addEventListener('pointercancel', commit);
+  el.addEventListener('blur', commit);
+}

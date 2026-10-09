@@ -1,6 +1,6 @@
 {
   "name": "island-worldbook",
-  "version": "1.54.0",
+  "version": "1.54.1",
   "private": true,
   "description": "岛屿 AI-Native 小手机 PWA",
   "type": "module",

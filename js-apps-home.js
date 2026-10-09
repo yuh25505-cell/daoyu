@@ -87,6 +87,11 @@ function setAppIconVisual(iconEl, appName, imageData){
   if (!iconEl) return;
   var liquid = getHomeIconTheme() === 'glass';
   var flat = getHomeIconTheme() === 'borderless';
+  /* 主题 / 名称 / 自定义图片都没变就不重建：开关一点就把 12 个玻璃图标（含 SVG、遮罩）全部拆了重建，是卡顿来源之一 */
+  var visKey = (liquid ? 'g' : flat ? 'f' : 'n') + '|' + appName;
+  if (iconEl.__visKey === visKey && iconEl.__visData === (imageData || '') && iconEl.firstChild) return;
+  iconEl.__visKey = visKey;
+  iconEl.__visData = imageData || '';
   iconEl.classList.toggle('has-custom-image', !!imageData);
   iconEl.classList.toggle('is-flat', flat && !imageData);
   iconEl.classList.toggle('is-liquid', liquid);
@@ -143,6 +148,9 @@ function renderHomeIconLibrary(){
   var host = $('iconLibrary');
   if (!host) return;
   var a = normalizeHomeAppearance();
+  var libSig = getHomeIconTheme() + '#' + HOME_APP_NAMES.map(function(name){ var d = a.iconData[name] || ''; return d.length + ':' + d.slice(-16); }).join('|');
+  if (host.__libSig === libSig && host.firstChild) return;
+  host.__libSig = libSig;
   host.innerHTML = '';
   HOME_APP_NAMES.forEach(function(name){
     var item = document.createElement('div');
@@ -248,8 +256,12 @@ function applyHomeAppearance(){
     wallpaper.setAttribute('data-dim-dark', a.dimDarkWallpaper ? 'on' : 'off');
     wallpaper.style.setProperty('--dark-wallpaper-brightness', String(1 - a.dimDarkWallpaperAmount / 100));
     wallpaper.classList.toggle('is-custom', !!a.wallpaperData);
-    if (a.wallpaperData) wallpaper.style.backgroundImage = 'url(\"' + a.wallpaperData + '\")';
-    else wallpaper.style.backgroundImage = '';
+    /* 壁纸是 base64 大字符串：只在真正变化时才重设，否则每次开关都会重新解析数 MB 的样式值 */
+    if (wallpaper.__wpData !== (a.wallpaperData || '')) {
+      wallpaper.__wpData = a.wallpaperData || '';
+      if (a.wallpaperData) wallpaper.style.backgroundImage = 'url(\"' + a.wallpaperData + '\")';
+      else wallpaper.style.backgroundImage = '';
+    }
   }
   renderHomeAppearanceOptions();
 }
@@ -318,6 +330,19 @@ function renderHomeAppearanceOptions(){
 }
 
 
+/* 点击开关 / 选项后：先同步刷新控件外观（很轻，动画立刻开始），
+ * 再等这一帧画完后才做整屏重应用与存盘，避免点击瞬间主线程被占满导致开关"卡一下"。 */
+var _homeApplyQueued = false;
+function queueHomeAppearanceApply(){
+  renderHomeAppearanceOptions();
+  if (!_homeApplyQueued) {
+    _homeApplyQueued = true;
+    afterPaint(function(){ _homeApplyQueued = false; applyHomeAppearance(); });
+  }
+  scheduleSettingsSave(260);
+}
+
+
 function setHomeIconOption(kind, value){
   var a = normalizeHomeAppearance();
   if (kind === 'theme' && ['glass','borderless'].indexOf(value) >= 0) {
@@ -325,8 +350,7 @@ function setHomeIconOption(kind, value){
      * 与「锁定」无关——锁定只是防误触拉条，不会让数值卡在上一个主题。 */
     a.iconTheme = value;
   }
-  applyHomeAppearance();
-  saveSettings();
+  queueHomeAppearanceApply();
 }
 
 
@@ -349,7 +373,7 @@ function setDockSetting(kind, value){
     dock.style.setProperty('--dock-radius', a.dockRadius + 'px');
     dock.style.setProperty('--dock-effective-alpha', String(Math.max(0, Math.min(1, effectiveAlpha))));
   }
-  scheduleSettingsSave(120);
+  scheduleSettingsSave(900);
 }
 
 
@@ -357,8 +381,7 @@ function setDockLock(kind, on){
   var a = normalizeHomeAppearance();
   if (kind === 'radius') a.dockRadiusLocked = !!on;
   if (kind === 'transparency') a.dockTransparencyLocked = !!on;
-  applyHomeAppearance();
-  saveSettings();
+  queueHomeAppearanceApply();
 }
 
 
@@ -377,8 +400,11 @@ var HOME_SLIDERS = {
 
 /* 写入全局 CSS 变量：桌面、Dock 与设置里的图标预览共用同一组参数。
  * 清透度 0→100：底板填充从 2 倍（偏奶白）渐变到 0（完全通透），50 为原有观感。 */
+var _glassVarCache = {};
 function applyHomeGlassVars(a){
-  var st = document.documentElement.style;
+  var rootStyle = document.documentElement.style;
+  /* 这些变量挂在根节点上，每写一次都会让整棵样式树失效重算：只写真正变化的那几个 */
+  var st = { setProperty: function(k, v){ if (_glassVarCache[k] === v) return; _glassVarCache[k] = v; rootStyle.setProperty(k, v); } };
   st.setProperty('--icon-radius', a.iconRadius + '%');
   st.setProperty('--lq-blur', a.iconBlur + 'px');
   st.setProperty('--lq-fill', String(Math.max(0, 2 * (1 - a.iconClarity / 100))));
@@ -455,14 +481,24 @@ function ensureLensFilters(){
   mk('lqLensIcon'); mk('lqLensDock');
 }
 
-var _lensRaf = 0;
+var _lensRaf = 0, _lensTimer = 0, _lensLast = 0, _lensKeys = {};
+/* 折射贴图要用 canvas 逐像素生成 + PNG 编码 + 重新解码，很贵：
+ * ① 参数没变就不重建（磨砂 / 清透 / 符号等拉条根本不影响贴图，原来也在每帧重建）；
+ * ② 折射 / 圆角拉条拖动时最多每 90ms 重建一次，松手后补一次最终值。 */
 function scheduleLensUpdate(){
-  if (_lensRaf) return;
-  _lensRaf = requestAnimationFrame(function(){
-    _lensRaf = 0;
-    var a = State.settings && State.settings.homeAppearance;
-    if (a) updateLensFilters(a);
-  });
+  if (_lensRaf || _lensTimer) return;
+  var run = function(){
+    _lensRaf = requestAnimationFrame(function(){
+      _lensRaf = 0;
+      _lensLast = (window.performance && performance.now) ? performance.now() : Date.now();
+      var a = State.settings && State.settings.homeAppearance;
+      if (a) updateLensFilters(a);
+    });
+  };
+  var now = (window.performance && performance.now) ? performance.now() : Date.now();
+  var wait = 90 - (now - _lensLast);
+  if (wait > 0) _lensTimer = setTimeout(function(){ _lensTimer = 0; run(); }, wait);
+  else run();
 }
 window.addEventListener('resize', function(){ scheduleLensUpdate(); });
 
@@ -473,7 +509,10 @@ function updateLensFilters(a){
   if (!on) return;
   ensureLensFilters();
   var setMap = function(id, w, h, rPx, band, P){
+    var lensKey = [w, h, Math.round(rPx * 100), Math.round(band * 100), Math.round(P * 100)].join('|');
+    if (_lensKeys[id] === lensKey) return;
     var m = buildLensMap(w, h, rPx, band, P); if (!m) return;
+    _lensKeys[id] = lensKey;
     var im = document.getElementById(id + 'Map'), dm = document.getElementById(id + 'Disp');
     if (!im || !dm) return;
     im.setAttribute('href', m.url); im.setAttributeNS('http://www.w3.org/1999/xlink', 'href', m.url);
@@ -509,6 +548,16 @@ function paintHomeSlider(name, a){
   }
 }
 
+/* 拖动中的轻量绘制：只更新轨道进度和数值文字。
+ * 原来每次 input 都走 paintHomeSlider，会把 range.value 回写给正在拖的拉条，造成"手指和滑块打架"。 */
+function paintHomeSliderLive(name, a){
+  var d = HOME_SLIDERS[name];
+  var range = $(name + 'Range'), valueEl = $(name + 'Value');
+  var v = a[name];
+  if (range) range.style.setProperty('--dock-range-pct', ((v - d.min) / (d.max - d.min) * 100) + '%');
+  if (valueEl) valueEl.textContent = String(v) + d.unit;
+}
+
 function renderHomeSliders(a){
   Object.keys(HOME_SLIDERS).forEach(function(name){ paintHomeSlider(name, a); });
 }
@@ -525,9 +574,9 @@ function setHomeSlider(name, value){
   var tk = a.iconTheme === 'borderless' ? 'borderless' : 'glass';
   if (!a.themeParams[tk]) a.themeParams[tk] = {};
   a.themeParams[tk][name] = a[name];
-  paintHomeSlider(name, a);
+  paintHomeSliderLive(name, a);
   applyHomeGlassVars(a);
-  scheduleSettingsSave(120);
+  scheduleSettingsSave(900);
 }
 
 function setHomeSliderLock(name, on){
@@ -536,7 +585,7 @@ function setHomeSliderLock(name, on){
   var a = normalizeHomeAppearance();
   a[d.lockKey] = !!on;
   paintHomeSlider(name, a);
-  saveSettings();
+  scheduleSettingsSave(200);
 }
 
 function setIconGroupOpen(group, open){
@@ -561,8 +610,7 @@ function bindHomeSliders(){
   Object.keys(HOME_SLIDERS).forEach(function(name){
     var range = $(name + 'Range');
     if (range) {
-      range.addEventListener('input', function(){ setHomeSlider(name, range.value); });
-      range.addEventListener('change', function(){ saveSettings(); });
+      bindSmoothRange(range, function(v){ setHomeSlider(name, v); }, function(){ scheduleSettingsSave(200); });
     }
     var lock = $(name + 'Lock');
     if (lock) lock.addEventListener('click', function(){
@@ -592,7 +640,7 @@ function setDimDarkAmount(kind, value){
   }
   if (range) range.style.setProperty('--range-pct', n + '%');
   if (valueEl) valueEl.textContent = String(n) + '%';
-  scheduleSettingsSave(120);
+  scheduleSettingsSave(900);
 }
 
 
@@ -600,16 +648,14 @@ function setDimDarkLock(kind, on){
   var a = normalizeHomeAppearance();
   if (kind === 'wallpaper') a.dimDarkWallpaperLocked = !!on;
   if (kind === 'icon') a.dimDarkIconLocked = !!on;
-  applyHomeAppearance();
-  saveSettings();
+  queueHomeAppearanceApply();
 }
 
 
 function setDimDarkWallpaper(on){
   var a = normalizeHomeAppearance();
   a.dimDarkWallpaper = !!on;
-  applyHomeAppearance();
-  saveSettings();
+  queueHomeAppearanceApply();
 }
 
 
@@ -672,14 +718,13 @@ function setLabelColor(v){
 function setDockNoBackground(on){
   var a = normalizeHomeAppearance();
   a.dockNoBackground = !!on;
-  applyHomeAppearance(); saveSettings();
+  queueHomeAppearanceApply();
 }
 
 function setHomeIconLabels(on){
   var a = normalizeHomeAppearance();
   a.iconLabels = !!on;
-  applyHomeAppearance();
-  saveSettings();
+  queueHomeAppearanceApply();
 }
 
 
@@ -687,8 +732,7 @@ function setWidgetEnabled(key, on){
   var a = normalizeHomeAppearance();
   if (!a.widgets[key]) return;
   a.widgets[key].enabled = !!on;
-  applyHomeAppearance();
-  saveSettings();
+  queueHomeAppearanceApply();
 }
 
 
@@ -696,8 +740,7 @@ function setWidgetSize(key, size){
   var a = normalizeHomeAppearance();
   if (!a.widgets[key] || ['small','medium','large'].indexOf(size) < 0) return;
   a.widgets[key].size = size;
-  applyHomeAppearance();
-  saveSettings();
+  queueHomeAppearanceApply();
 }
 
 
