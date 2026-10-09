@@ -252,9 +252,10 @@ function bindSettingsAppearanceEvents(){
   if (fontUrlInput) fontUrlInput.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(fontUrlAddBtn) fontUrlAddBtn.click(); } });
   var fontLibrary = $('fontLibrary');
   if (fontLibrary) fontLibrary.addEventListener('click', function(e){ var apply=e.target.closest('[data-font-apply]'); if(apply){ activateFont(apply.dataset.fontApply); return; } var del=e.target.closest('[data-font-delete]'); if(del){ deleteFont(del.dataset.fontDelete); return; } });
-  /* 字号 / 字重拉条：拖动中只更新字体变量与数值（不重建 @font-face、不回写 range.value），松手后再存盘 */
-  bindSmoothRange($('fontSizeRange'), function(v){ var cfg=getFontConfig(); cfg.sizeScale=Number(v)/100; applyFontMetrics(cfg); }, function(){ scheduleSettingsSave(200); });
-  bindSmoothRange($('fontWeightRange'), function(v){ var cfg=getFontConfig(); cfg.weight=Number(v); applyFontMetrics(cfg); }, function(){ scheduleSettingsSave(200); });
+  var fontSizeRange = $('fontSizeRange');
+  if (fontSizeRange) fontSizeRange.addEventListener('input', function(){ var cfg=getFontConfig(); cfg.sizeScale=Number(fontSizeRange.value)/100; applyFontPreference(); scheduleSettingsSave(0); });
+  var fontWeightRange = $('fontWeightRange');
+  if (fontWeightRange) fontWeightRange.addEventListener('input', function(){ var cfg=getFontConfig(); cfg.weight=Number(fontWeightRange.value); applyFontPreference(); scheduleSettingsSave(0); });
   var islandStorageOpen = $('openIslandStorage');
   if (islandStorageOpen) islandStorageOpen.addEventListener('click', function(){ switchSettingsPanel('storage'); renderIslandStorage(); });
   $$('.js-about-back').forEach(function(btn){ btn.addEventListener('click', function(){ switchSettingsPanel('main'); }); });
@@ -331,20 +332,45 @@ function bindSettingsAppearanceEvents(){
   $$('[data-home-icon-theme]').forEach(function(btn){
     btn.addEventListener('click', function(){ setHomeIconOption('theme', btn.dataset.homeIconTheme); });
   });
-  $$('[data-home-icon-shape]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setHomeIconOption('shape', btn.dataset.homeIconShape); });
-  });
-  $$('[data-home-icon-size]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setHomeIconOption('size', btn.dataset.homeIconSize); });
-  });
-  bindSmoothRange($('dockRadiusRange'), function(v){ setDockSetting('radius', v); }, function(){ scheduleSettingsSave(200); });
-  bindSmoothRange($('dockTransparencyRange'), function(v){ setDockSetting('transparency', v); }, function(){ scheduleSettingsSave(200); });
+  bindHomeSliders();
+  /* 数值框：改完（失焦 / 回车）再生效，避免输入到一半就被改写 */
+  var commitOnEnter = function(el){ el.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); el.blur(); } }); };
+  var islandScaleInput = $('islandScaleInput');
+  if (islandScaleInput) { islandScaleInput.addEventListener('change', function(){ setIslandScale(islandScaleInput.value); }); commitOnEnter(islandScaleInput); }
+  var labelSizeInput = $('labelSizeInput');
+  if (labelSizeInput) { labelSizeInput.addEventListener('change', function(){ setLabelSize(labelSizeInput.value); }); commitOnEnter(labelSizeInput); }
+  var labelColorPicker = $('labelColorPicker');
+  if (labelColorPicker) labelColorPicker.addEventListener('change', function(){ setLabelColor(labelColorPicker.value); });
+  var labelColorInput = $('labelColorInput');
+  if (labelColorInput) { labelColorInput.addEventListener('change', function(){ setLabelColor(labelColorInput.value); }); commitOnEnter(labelColorInput); }
+  var labelColorReset = $('labelColorReset');
+  if (labelColorReset) labelColorReset.addEventListener('click', function(){ setLabelColor('#ffffff'); });
+  var dockNoBgToggle = $('dockNoBgToggle');
+  if (dockNoBgToggle) dockNoBgToggle.addEventListener('click', function(){ setDockNoBackground(!normalizeHomeAppearance().dockNoBackground); });
+  var dockRadiusRange = $('dockRadiusRange');
+  if (dockRadiusRange) {
+    dockRadiusRange.addEventListener('input', function(){ setDockSetting('radius', dockRadiusRange.value); });
+    dockRadiusRange.addEventListener('change', function(){ saveSettings(); });
+  }
+  var dockTransparencyRange = $('dockTransparencyRange');
+  if (dockTransparencyRange) {
+    dockTransparencyRange.addEventListener('input', function(){ setDockSetting('transparency', dockTransparencyRange.value); });
+    dockTransparencyRange.addEventListener('change', function(){ saveSettings(); });
+  }
   var dockRadiusLock = $('dockRadiusLock');
   if (dockRadiusLock) dockRadiusLock.addEventListener('click', function(){ setDockLock('radius', !normalizeHomeAppearance().dockRadiusLocked); });
   var dockTransparencyLock = $('dockTransparencyLock');
   if (dockTransparencyLock) dockTransparencyLock.addEventListener('click', function(){ setDockLock('transparency', !normalizeHomeAppearance().dockTransparencyLocked); });
-  bindSmoothRange($('dimDarkWallpaperAmount'), function(v){ setDimDarkAmount('wallpaper', v); }, function(){ scheduleSettingsSave(200); });
-  bindSmoothRange($('dimDarkIconAmount'), function(v){ setDimDarkAmount('icon', v); }, function(){ scheduleSettingsSave(200); });
+  var dimDarkWallpaperAmount = $('dimDarkWallpaperAmount');
+  if (dimDarkWallpaperAmount) {
+    dimDarkWallpaperAmount.addEventListener('input', function(){ setDimDarkAmount('wallpaper', dimDarkWallpaperAmount.value); });
+    dimDarkWallpaperAmount.addEventListener('change', function(){ saveSettings(); });
+  }
+  var dimDarkIconAmount = $('dimDarkIconAmount');
+  if (dimDarkIconAmount) {
+    dimDarkIconAmount.addEventListener('input', function(){ setDimDarkAmount('icon', dimDarkIconAmount.value); });
+    dimDarkIconAmount.addEventListener('change', function(){ saveSettings(); });
+  }
   var dimDarkWallpaperLock = $('dimDarkWallpaperLock');
   if (dimDarkWallpaperLock) dimDarkWallpaperLock.addEventListener('click', function(){ setDimDarkLock('wallpaper', !normalizeHomeAppearance().dimDarkWallpaperLocked); });
   var dimDarkIconLock = $('dimDarkIconLock');
