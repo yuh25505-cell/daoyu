@@ -23,15 +23,29 @@ function getSafeFontName(id){ return 'IslandFont_' + String(id || '').replace(/[
 
 function fontLabel(item){ return String(item && (item.name || item.fileName || '自定义字体') || '自定义字体'); }
 
-function applyFontPreference(){
-  var cfg = getFontConfig();
+/* 轻量路径：只改字号 / 字重变量与旁边的数值，供拉条拖动时使用 */
+var _fontWeightKey = '';
+function applyFontMetrics(cfg){
+  cfg = cfg || getFontConfig();
   var rootStyle = document.documentElement.style;
   rootStyle.setProperty('--island-font-size-scale', String(cfg.sizeScale));
   var selectedWeight = Math.round(Number(cfg.weight));
-  [300,400,500,520,550,600,650,680,700,720].forEach(function(base){
-    var shifted = Math.max(100, Math.min(900, base + (selectedWeight - 400)));
-    rootStyle.setProperty('--island-fw-' + base, String(shifted));
-  });
+  if (_fontWeightKey !== String(selectedWeight)) {
+    _fontWeightKey = String(selectedWeight);
+    [300,400,500,520,550,600,650,680,700,720].forEach(function(base){
+      var shifted = Math.max(100, Math.min(900, base + (selectedWeight - 400)));
+      rootStyle.setProperty('--island-fw-' + base, String(shifted));
+    });
+  }
+  var sizeValue = $('fontSizeValue'); if (sizeValue) sizeValue.textContent = Math.round(cfg.sizeScale * 100) + '%';
+  var weightValue = $('fontWeightValue'); if (weightValue) weightValue.textContent = String(cfg.weight);
+}
+
+
+function applyFontPreference(){
+  var cfg = getFontConfig();
+  _fontWeightKey = '';
+  applyFontMetrics(cfg);
   var active = cfg.items.find(function(item){ return item && item.id === cfg.activeId; }) || null;
   var style = ensureFontStyle();
   revokeFontUrls();

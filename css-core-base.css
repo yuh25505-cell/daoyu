@@ -4,8 +4,6 @@
 
 :root{
   --island-font-size-scale:1;
-  --island-scale:1;            /* 屏幕比例（全局缩放），由 js 写入 */
-  --island-bottom-lift:10px;   /* 所有界面的底栏统一上移的距离 */
   --island-fw-300:300; --island-fw-400:400; --island-fw-500:500; --island-fw-520:520; --island-fw-550:550;
   --island-fw-600:600; --island-fw-650:650; --island-fw-680:680; --island-fw-700:700; --island-fw-720:720;
   color-scheme: light;
@@ -102,14 +100,6 @@ body{
   overflow: hidden; overscroll-behavior: none;
 }
 
-/* 屏幕比例 ≠ 100%：整个岛屿作为一块整体缩放。body 先按 1/比例 放大尺寸，再 scale 回来，刚好铺满屏幕；
- * body 带 transform 后，里面所有 position:fixed 的页面/弹层也都以 body 为参照，一起缩放。 */
-html[data-scaled] body{
-  position:fixed; left:0; top:0; height:auto;
-  width:calc(100vw / var(--island-scale)); height:calc(100dvh / var(--island-scale));
-  transform:scale(var(--island-scale)); transform-origin:0 0;
-}
-
 button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; -webkit-tap-highlight-color: transparent; }
 
 input,textarea{ font:inherit; color:inherit; background:none; border:0; outline:none; -webkit-tap-highlight-color: transparent; }
@@ -166,15 +156,20 @@ html[data-theme="dark"] .boot{
   animation:bootRingIn 1.2s .45s cubic-bezier(.22,1,.36,1) forwards;
 }
 
+/* 拱门"由下向上打开"：原先动画 clip-path（只能在主线程上重绘，脚本一加载就掉帧），
+ * 现在改为一块与背景同色的幕布做 scaleY 收起（纯 transform，由合成器线程执行，主线程忙时也不卡）。 */
 .boot-arch{
   position:absolute; inset:0; overflow:hidden;
   border-radius:75px 75px 20px 20px;
-  -webkit-clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px);
-  clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px);
-  animation:bootOpen 1.15s .15s cubic-bezier(.65,0,.2,1) forwards;
 }
 
-.boot-scene{ position:absolute; left:0; top:0; width:150px; height:198px; display:block; }
+.boot-arch::after{
+  content:''; position:absolute; inset:-1px; background:var(--bg);
+  transform-origin:50% 0; will-change:transform;
+  animation:bootCurtain 1.15s .15s cubic-bezier(.65,0,.2,1) forwards;
+}
+
+.boot-scene{ position:absolute; left:0; top:0; width:150px; height:198px; display:block; contain:layout paint style; }
 
 .boot-scene--night{ display:none; }
 html[data-theme="dark"] .boot-scene--day{ display:none; }
@@ -187,7 +182,7 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 .s-rise{ opacity:0; animation:bootRise 2s .55s cubic-bezier(.16,.84,.3,1) forwards; }
 .s-isle{ opacity:0; animation:bootEmerge 1.4s .95s cubic-bezier(.16,.84,.3,1) forwards; }
 .s-refl{ opacity:0; animation:bootFade .9s 1.5s ease-out forwards; }
-.s-mist{ animation:bootMist 6s ease-in-out infinite alternate; }
+.s-mist{ animation:bootMist 6s steps(16,end) infinite alternate; }
 
 .s-rip{
   opacity:0; transform-box:fill-box; transform-origin:center; transform:scale(.3);
@@ -196,12 +191,12 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 
 .gl{
   fill-opacity:0; transform-box:fill-box; transform-origin:center;
-  animation:bootGlit 2.4s 1.6s ease-in-out infinite alternate;
+  animation:bootGlit 2.4s 1.6s steps(8,end) infinite alternate;
 }
 
-.s-star{ opacity:0; animation:bootTwinkle 3.2s 0s ease-in-out infinite alternate; }
+.s-star{ opacity:0; animation:bootTwinkle 3.2s 0s steps(8,end) infinite alternate; }
 
-.s-bird{ opacity:0; animation:bootBird 7s 1.6s ease-in-out infinite alternate; }
+.s-bird{ opacity:0; animation:bootBird 7s 1.6s steps(28,end) infinite alternate; }
 .s-bird-2{ animation-delay:2.4s; animation-duration:8s; }
 
 /* 字标 */
@@ -211,7 +206,7 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 }
 
 .boot-word span{
-  display:inline-block; opacity:0; transform:translateY(8px); filter:blur(6px);
+  display:inline-block; opacity:0; transform:translateY(8px); will-change:transform,opacity;
   animation:bootChar 1s cubic-bezier(.22,1,.36,1) forwards;
 }
 
@@ -241,10 +236,7 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 
 @keyframes bootFrameIn{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
 @keyframes bootRingIn{ to{opacity:1; transform:none} }
-@keyframes bootOpen{
-  from{ -webkit-clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px); clip-path:inset(100% 0 0 0 round 75px 75px 20px 20px); }
-  to{ -webkit-clip-path:inset(0 0 0 0 round 75px 75px 20px 20px); clip-path:inset(0 0 0 0 round 75px 75px 20px 20px); }
-}
+@keyframes bootCurtain{ from{ transform:scaleY(1) } to{ transform:scaleY(0) } }
 @keyframes bootRise{ 0%{opacity:0; transform:translateY(40px)} 22%{opacity:1} 100%{opacity:1; transform:translateY(0)} }
 @keyframes bootEmerge{ 0%{opacity:0; transform:translateY(16px)} 35%{opacity:1} 100%{opacity:1; transform:translateY(0)} }
 @keyframes bootFade{ to{opacity:1} }
@@ -253,7 +245,7 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 @keyframes bootGlit{ 0%{fill-opacity:.12; transform:scaleX(.8)} 100%{fill-opacity:1; transform:scaleX(1)} }
 @keyframes bootTwinkle{ from{opacity:.15} to{opacity:.9} }
 @keyframes bootBird{ 0%{opacity:0; transform:translate(10px,3px)} 25%{opacity:.6} 75%{opacity:.6} 100%{opacity:0; transform:translate(-12px,-3px)} }
-@keyframes bootChar{ to{opacity:1; transform:none; filter:blur(0)} }
+@keyframes bootChar{ to{opacity:1; transform:none} }
 @keyframes bootFadeUp{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
 @keyframes bootDot{ 0%,100%{opacity:.2} 50%{opacity:.9} }
 @keyframes bootStageLeave{ to{transform:scale(1.035)} }
