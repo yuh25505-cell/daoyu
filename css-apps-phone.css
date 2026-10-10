@@ -67,8 +67,6 @@
 
 .phone-selection-link,.phone-selection-cancel{ flex:none; border:0; background:none; color:var(--fg-soft); padding:7px 8px; border-radius:9px; font-size:calc(12px * var(--island-font-size-scale)); cursor:pointer; }
 
-.phone-selection-link:active,.phone-selection-cancel:active{ background:var(--bubble-bg); }
-
 .phone-recent-selection-actions{ justify-content:flex-end; }
 
 .phone-selection-count{ margin-right:auto; color:var(--fg-faint); font-size:calc(11px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; }
@@ -85,8 +83,6 @@
   position:relative; width:100%; display:flex; align-items:center; gap:12px; padding:13px 10px; text-align:left;
   border:0; border-bottom:1px solid var(--track); background:none; color:var(--fg); cursor:pointer;
 }
-
-.phone-call-item:active{ opacity:.72; }
 
 .phone-call-item-selectable{ cursor:pointer; }
 
@@ -139,8 +135,6 @@
 .phone-call-star.is-favorite svg{ fill:currentColor; }
 
 .phone-contact-item{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 10px; text-align:left; border:0; border-bottom:1px solid var(--track); background:none; color:var(--fg); cursor:pointer; }
-
-.phone-contact-item:active{ opacity:.72; }
 
 .phone-contact-avatar{ flex:none; width:50px; height:50px; border-radius:17px; overflow:hidden; display:grid; place-items:center; background:var(--bubble-bg); border:1px solid var(--card-bd); color:var(--fg-soft); font-weight:var(--island-fw-650); font-size:18px; }
 

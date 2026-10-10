@@ -60,7 +60,7 @@
   color:#fff; transition:transform .22s cubic-bezier(.22,1,.36,1), opacity .22s ease;
 }
 
-.app:active{transform:scale(.93); opacity:.72;}
+.app:active{ transform:scale(.93); }
 
 .app-icon{
   width:min(100%,58px); aspect-ratio:1; border-radius:20px; display:grid; place-items:center; color:#fff;
@@ -90,7 +90,7 @@
 
 .dock .app-name{display:none;}
 
-.dock .app:active{transform:scale(.9);}
+.dock .app:active{ transform:scale(.9); }
 
 
 @media (max-width:390px){
@@ -150,8 +150,6 @@
 
 .app-name{ color:var(--home-soft); }
 
-.app:active .app-icon{ background:var(--home-fg); color:var(--bg); border-color:var(--home-fg); transform:none; }
-
 .dock{
   background:var(--home-surface);
   border:none;
@@ -162,8 +160,6 @@
 }
 
 .dock .app-icon{ width:52px; border-radius:5px; background:var(--tile-bg); border-color:var(--tile-border); box-shadow:none; }
-
-.dock .app:active .app-icon{ background:var(--home-fg); color:var(--bg); border-color:var(--home-fg); }
 
 .app-icon.has-custom-image{ overflow:hidden; }
 
@@ -184,8 +180,6 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="off"] .app-icon.has-custo
 .icon-library-actions{ display:flex; gap:6px; margin-top:8px; }
 
 .icon-library-btn{ flex:1 1 0; min-width:0; padding:7px 6px; border-radius:9px; font-size:calc(11px * var(--island-font-size-scale)); color:var(--fg-soft); background:var(--bubble-bg); border:1px solid var(--track); }
-
-.icon-library-btn:active{ background:var(--fg); color:var(--bg); }
 
 .icon-library-btn[hidden]{ display:none; }
 
@@ -355,9 +349,6 @@ html.lq-lens .home .dock::before{
 }
 
 .app-icon.is-liquid.has-custom-image img{ position:relative; z-index:0; border-radius:inherit; }
-
-.app:active .app-icon.is-liquid,
-.dock .app:active .app-icon.is-liquid{ background:var(--lq-bg); color:#fff; }
 
 /* 图标圆角：由「图标调节 › 圆角」拉条控制（%，相对图标边长），对所有图标主题生效 */
 .home .app-icon,

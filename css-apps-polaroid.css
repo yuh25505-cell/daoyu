@@ -24,8 +24,6 @@
   box-shadow:0 3px 12px rgba(0,0,0,.28); transition:opacity .2s ease;
 }
 
-.polaroid-photo:active{ opacity:.82; }
-
 .polaroid-photo{
   position:relative; flex:none; display:grid; place-items:center; width:100%; aspect-ratio:1 / 1; overflow:hidden;
   border-radius:0; background:transparent; color:#8a8883; border:0; padding:0; margin:0; font:inherit; transition:opacity .2s ease;

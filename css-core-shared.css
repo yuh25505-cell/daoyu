@@ -28,8 +28,6 @@
 
 .ph-btn{ flex:none; width:38px; height:38px; display:grid; place-items:center; border-radius:50%; color:var(--fg); }
 
-.ph-btn:active{ background: var(--bubble-bg); }
-
 .ph-btn svg{ width:21px; height:21px; display:block; }
 
 .ph-title{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:max-content; max-width:calc(100% - 140px); margin:0; text-align:center; font-size:calc(17px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }

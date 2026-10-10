@@ -96,6 +96,7 @@ html,body{ height:100%; margin:0; -webkit-tap-highlight-color: transparent; -web
 
 body{
   background: var(--bg); color: var(--fg);
+  font-weight: var(--island-fw-400); /* 全局默认字重：未单独声明字重的文字都跟随「字重」拉条 */
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
@@ -109,6 +110,12 @@ html[data-scaled] body{
   width:calc(100vw / var(--island-scale)); height:calc(100dvh / var(--island-scale));
   transform:scale(var(--island-scale)); transform-origin:0 0;
 }
+
+/* 浏览器默认的加粗标签（<strong>/<b>/表头/小标题）原本固定 700，不会随字重拉条变化；这里统一接入变量。
+ * 特异性最低，任何带 class 的单独字重声明仍然优先。 */
+strong,b,th,h4,h5,h6{ font-weight:var(--island-fw-700); }
+
+select,optgroup,option{ font:inherit; }
 
 button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; -webkit-tap-highlight-color: transparent; }
 
@@ -212,7 +219,7 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 /* 字标 */
 .boot-word{
   display:flex; margin-top:40px; margin-right:-.5em;
-  font-size:27px; font-weight:300; line-height:1; letter-spacing:.5em; color:var(--home-fg);
+  font-size:27px; font-weight:var(--island-fw-300); line-height:1; letter-spacing:.5em; color:var(--home-fg);
 }
 
 .boot-word span{
@@ -224,7 +231,7 @@ html[data-theme="dark"] .boot-scene--night{ display:block; }
 .boot-word span:nth-child(2){ animation-delay:1.42s; }
 
 .boot-sub{
-  margin-top:13px; margin-right:-.3em; font-size:13px; font-style:italic; font-weight:400;
+  margin-top:13px; margin-right:-.3em; font-size:13px; font-style:italic; font-weight:var(--island-fw-400);
   letter-spacing:.3em; color:var(--home-soft);
   opacity:0; animation:bootFadeUp .9s 1.6s ease-out forwards;
 }
