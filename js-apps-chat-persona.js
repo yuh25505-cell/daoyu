@@ -326,22 +326,24 @@ function saveUserPersonaEdit(){
 function deleteUserPersona(){
   if (!editingUserPersonaId) return;
   if (State.userPersonas.length <= 1) { toast('至少保留一个角色'); return; }
-  if (!window.confirm('确定删除这个角色吗？删除后不可恢复。')) return;
-  var wasActive = State.settings.activeUserPersonaId === editingUserPersonaId;
-  for (var i = 0; i < State.userPersonas.length; i++) {
-    if (State.userPersonas[i].id === editingUserPersonaId) {
-      State.userPersonas.splice(i, 1); break;
+  islandConfirm('确定删除这个角色吗？删除后不可恢复。', {title:'删除角色', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    var wasActive = State.settings.activeUserPersonaId === editingUserPersonaId;
+    for (var i = 0; i < State.userPersonas.length; i++) {
+      if (State.userPersonas[i].id === editingUserPersonaId) {
+        State.userPersonas.splice(i, 1); break;
+      }
     }
-  }
-  if (wasActive) {
-    State.settings.activeUserPersonaId = State.userPersonas[0].id;
-    saveSettings();
-  }
-  saveUserPersonas();
-  renderUserPersonas(); renderMeCard();
-  if (currentName) renderMessages();
-  closeUserSheet();
-  toast('已删除');
+    if (wasActive) {
+      State.settings.activeUserPersonaId = State.userPersonas[0].id;
+      saveSettings();
+    }
+    saveUserPersonas();
+    renderUserPersonas(); renderMeCard();
+    if (currentName) renderMessages();
+    closeUserSheet();
+    toast('已删除');
+  });
 }
 
 function setUserPersonaActive(){

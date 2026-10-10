@@ -344,20 +344,21 @@ function importSelectedPartialBackupFiles(fileList){
 
     var labels = entries.map(function(entry){ return BACKUP_PART_META[entry.part].label; });
     var uniqueLabels = Array.from(new Set(labels));
-    var ok = window.confirm(
+    return islandConfirm(
       '将导入 ' + entries.length + ' 个分项备份：' + uniqueLabels.join('、') +
-      '。这些模块会覆盖当前对应数据，未选模块不会改变。完成后软件会自动重启。是否继续？'
-    );
-    if (!ok) return;
-
-    return entries.reduce(function(chain, entry){
-      return chain.then(function(){
-        return applyPartialBackup(entry.part, entry.data).then(function(saved){
-          if (!saved) throw new Error(BACKUP_PART_META[entry.part].label + '写入失败');
+      '。这些模块会覆盖当前对应数据，未选模块不会改变。完成后软件会自动重启。是否继续？',
+      {title:'导入分项备份', confirmText:'导入'}
+    ).then(function(ok){
+      if (!ok) return;
+      return entries.reduce(function(chain, entry){
+        return chain.then(function(){
+          return applyPartialBackup(entry.part, entry.data).then(function(saved){
+            if (!saved) throw new Error(BACKUP_PART_META[entry.part].label + '写入失败');
+          });
         });
+      }, Promise.resolve()).then(function(){
+        location.reload();
       });
-    }, Promise.resolve()).then(function(){
-      location.reload();
     });
   }).catch(function(err){
     console.error('[岛屿] 批量分项备份导入失败：', err);
@@ -496,14 +497,15 @@ function importPartialBackupFile(part, file){
     try { raw = JSON.parse(String(reader.result || '')); } catch(e) { toast('备份文件无法读取：JSON 格式错误'); return; }
     var data;
     try { data = normalizePartialBackup(raw, part); } catch(e) { toast(e.message || '分项备份文件无效'); return; }
-    var ok = window.confirm('导入“' + meta.label + '”会覆盖当前对应数据，其他数据不会改变。完成后软件会自动重启。是否继续？');
-    if (!ok) return;
-    applyPartialBackup(part, data).then(function(saved){
-      if (!saved) throw new Error('本机存储写入失败');
-      location.reload();
-    }).catch(function(err){
-      console.error('[岛屿] 分项备份导入失败：', err);
-      toast(meta.label + '导入失败：' + (err && err.message ? err.message : '本机存储写入失败'));
+    islandConfirm('导入“' + meta.label + '”会覆盖当前对应数据，其他数据不会改变。完成后软件会自动重启。是否继续？', {title:'导入分项备份', confirmText:'导入'}).then(function(ok){
+      if (!ok) return;
+      applyPartialBackup(part, data).then(function(saved){
+        if (!saved) throw new Error('本机存储写入失败');
+        location.reload();
+      }).catch(function(err){
+        console.error('[岛屿] 分项备份导入失败：', err);
+        toast(meta.label + '导入失败：' + (err && err.message ? err.message : '本机存储写入失败'));
+      });
     });
   };
   reader.onerror = function(){ toast('备份文件读取失败'); };
@@ -519,14 +521,15 @@ function importBackupFile(file){
     try { raw = JSON.parse(String(reader.result || '')); } catch(e) { toast('备份文件无法读取：JSON 格式错误'); return; }
     var data;
     try { data = normalizeImportedBackup(raw); } catch(e) { toast(e.message || '备份文件无效'); return; }
-    var ok = window.confirm('导入完整备份会覆盖当前岛屿的本地数据，并在完成后重启软件。是否继续？');
-    if (!ok) return;
-    IslandDB.replaceAll(buildBackupRows(data)).then(function(saved){
-      if (!saved) throw new Error('本机存储写入失败');
-      location.reload();
-    }).catch(function(err){
-      console.error('[岛屿] 备份导入失败：', err);
-      toast('备份导入失败：' + (err && err.message ? err.message : '本机存储写入失败'));
+    islandConfirm('导入完整备份会覆盖当前岛屿的本地数据，并在完成后重启软件。是否继续？', {title:'导入完整备份', confirmText:'导入'}).then(function(ok){
+      if (!ok) return;
+      IslandDB.replaceAll(buildBackupRows(data)).then(function(saved){
+        if (!saved) throw new Error('本机存储写入失败');
+        location.reload();
+      }).catch(function(err){
+        console.error('[岛屿] 备份导入失败：', err);
+        toast('备份导入失败：' + (err && err.message ? err.message : '本机存储写入失败'));
+      });
     });
   };
   reader.onerror = function(){ toast('备份文件读取失败'); };
@@ -536,16 +539,17 @@ function importBackupFile(file){
 
 /* ---------- 清空整个岛屿的数据 ---------- */
 function wipeAllIslandData(){
-  var ok = window.confirm('确定要清空整个岛屿的数据吗？\n\n聊天、通讯录、世界书、表情包、记忆、字体和所有设置都会被删除，且无法恢复。\n建议先用上方“完整备份 → 导出”保存一份。');
-  if (!ok) return;
-  /* 先冻结所有写入，防止待保存的内容（含退出时的兜底保存）把数据又写回去 */
-  try { clearTimeout(settingsSaveTimer); settingsSaveTimer = 0; } catch(e) {}
-  islandStateHydrated = false;
-  IslandDB.wipeAll().then(function(done){
-    if (!done) throw new Error('本机存储清空失败');
-    location.reload();
-  }).catch(function(err){
-    console.error('[岛屿] 清空数据失败：', err);
-    toast('清空失败：' + (err && err.message ? err.message : '本机存储错误'));
+  islandConfirm('确定要清空整个岛屿的数据吗？\n\n聊天、通讯录、世界书、表情包、记忆、字体和所有设置都会被删除，且无法恢复。\n建议先用上方“完整备份 → 导出”保存一份。', {title:'清空岛屿数据', confirmText:'清空', danger:true}).then(function(ok){
+    if (!ok) return;
+    /* 先冻结所有写入，防止待保存的内容（含退出时的兜底保存）把数据又写回去 */
+    try { clearTimeout(settingsSaveTimer); settingsSaveTimer = 0; } catch(e) {}
+    islandStateHydrated = false;
+    IslandDB.wipeAll().then(function(done){
+      if (!done) throw new Error('本机存储清空失败');
+      location.reload();
+    }).catch(function(err){
+      console.error('[岛屿] 清空数据失败：', err);
+      toast('清空失败：' + (err && err.message ? err.message : '本机存储错误'));
+    });
   });
 }

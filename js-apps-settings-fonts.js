@@ -127,10 +127,12 @@ function deleteFont(id){
   var cfg = getFontConfig();
   var hit = cfg.items.find(function(item){ return item && item.id === id; });
   if (!hit) return;
-  if (!window.confirm('确定要删除字体“' + fontLabel(hit) + '”吗？')) return;
-  cfg.items = cfg.items.filter(function(item){ return item && item.id !== id; });
-  if (cfg.activeId === id) cfg.activeId = '';
-  saveFontConfig().then(function(){ applyFontPreference(); renderFontLibrary(); toast('字体已删除'); });
+  islandConfirm('确定要删除字体“' + fontLabel(hit) + '”吗？', {title:'删除字体', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    cfg.items = cfg.items.filter(function(item){ return item && item.id !== id; });
+    if (cfg.activeId === id) cfg.activeId = '';
+    saveFontConfig().then(function(){ applyFontPreference(); renderFontLibrary(); toast('字体已删除'); });
+  });
 }
 
 function resetFont(){

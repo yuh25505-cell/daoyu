@@ -601,22 +601,24 @@ function editVectorMemoryEntry(id){
   if(!currentName||!id) return;
   var mem=normalizeChatMemory(currentName), item=mem.vector.entries.find(function(row){return row.id===id;});
   if(!item) return;
-  var value=window.prompt('编辑向量记忆内容', item.text);
-  if(value==null) return;
-  value=String(value).trim();
-  if(!value) return;
-  item.text=value.slice(0,6000); item.embedding=[]; item.updatedAt=Date.now(); mem.vector.updatedAt=Date.now();
-  var job=isVectorEmbeddingReady()?callVectorEmbedding(item.text).then(function(rows){item.embedding=rows[0]||[];}):Promise.resolve();
-  job.then(function(){return saveMemoryState();}).then(function(){renderVectorMemoryPage();toast(isVectorEmbeddingReady()?'已更新并重新向量化':'已更新，等待向量化');});
+  islandPrompt('', {title:'编辑向量记忆', defaultValue:item.text, multiline:true, maxLength:6000, confirmText:'保存'}).then(function(value){
+    if(value==null) return;
+    value=String(value).trim();
+    if(!value) return;
+    item.text=value.slice(0,6000); item.embedding=[]; item.updatedAt=Date.now(); mem.vector.updatedAt=Date.now();
+    var job=isVectorEmbeddingReady()?callVectorEmbedding(item.text).then(function(rows){item.embedding=rows[0]||[];}):Promise.resolve();
+    job.then(function(){return saveMemoryState();}).then(function(){renderVectorMemoryPage();toast(isVectorEmbeddingReady()?'已更新并重新向量化':'已更新，等待向量化');});
+  });
 }
 
 function addManualVectorMemory(){
   if(!currentName) return;
-  var value=window.prompt('添加一条向量记忆\\n它会独立存放在当前 Char 的记忆库中，并参与语义检索。','');
-  if(value==null) return;
-  value=String(value).trim();
-  if(!value) return;
-  addVectorMemoryEntry(currentName,value,'manual','').then(function(){renderVectorMemoryPage();renderMemoryPage();toast(isVectorEmbeddingReady()?'已添加向量记忆':'已添加，当前尚未向量化');});
+  islandPrompt('它会独立存放在当前 Char 的记忆库中，并参与语义检索。', {title:'添加向量记忆', multiline:true, placeholder:'写下想让 Char 长期记住的内容', maxLength:6000, confirmText:'添加'}).then(function(value){
+    if(value==null) return;
+    value=String(value).trim();
+    if(!value) return;
+    addVectorMemoryEntry(currentName,value,'manual','').then(function(){renderVectorMemoryPage();renderMemoryPage();toast(isVectorEmbeddingReady()?'已添加向量记忆':'已添加，当前尚未向量化');});
+  });
 }
 
 function getVectorModeLabel(mode){
@@ -1288,28 +1290,30 @@ function deleteSelectedChatMemorySummaries(){
   var m = normalizeChatMemory(currentName);
   var ids = Object.keys(memorySelectedSummaryIds).filter(function(id){ return memorySelectedSummaryIds[id]; });
   if (!ids.length) { toast('请先选择要删除的总结记录'); return; }
-  if (!window.confirm('确定删除已选择的 ' + ids.length + ' 条总结记录吗？聊天原文不会被删除。')) return;
-  var idSet = {};
-  ids.forEach(function(id){ idSet[id] = true; });
-  m.summaries = m.summaries.filter(function(item){ return !idSet[item.id]; });
+  islandConfirm('确定删除已选择的 ' + ids.length + ' 条总结记录吗？聊天原文不会被删除。', {title:'删除总结记录', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    var idSet = {};
+    ids.forEach(function(id){ idSet[id] = true; });
+    m.summaries = m.summaries.filter(function(item){ return !idSet[item.id]; });
 
-  if (m.summaries.length) {
-    m.summaries.sort(function(a,b){ return (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0); });
-    var latest = m.summaries[m.summaries.length - 1];
-    m.summary = latest.text;
-    m.summarizedThrough = Math.max(0, Number(latest.end) || 0);
-    m.summaryCount = m.summaries.length;
-    m.updatedAt = Number(latest.createdAt) || Date.now();
-  } else {
-    m.summary = '';
-    m.summarizedThrough = 0;
-    m.summaryCount = 0;
-    m.updatedAt = 0;
-  }
-  memorySelectedSummaryIds = {};
-  saveMemoryState().then(function(){
-    renderMemoryPage();
-    toast(m.summaries.length ? '已删除所选总结记录' : '已删除全部总结记录');
+    if (m.summaries.length) {
+      m.summaries.sort(function(a,b){ return (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0); });
+      var latest = m.summaries[m.summaries.length - 1];
+      m.summary = latest.text;
+      m.summarizedThrough = Math.max(0, Number(latest.end) || 0);
+      m.summaryCount = m.summaries.length;
+      m.updatedAt = Number(latest.createdAt) || Date.now();
+    } else {
+      m.summary = '';
+      m.summarizedThrough = 0;
+      m.summaryCount = 0;
+      m.updatedAt = 0;
+    }
+    memorySelectedSummaryIds = {};
+    saveMemoryState().then(function(){
+      renderMemoryPage();
+      toast(m.summaries.length ? '已删除所选总结记录' : '已删除全部总结记录');
+    });
   });
 }
 
@@ -1345,16 +1349,17 @@ function saveMemorySummaryAsPreset(){
   var cfg = getMemorySettings();
   var value = String(pmMemorySummaryPrompt ? pmMemorySummaryPrompt.value : '').trim();
   if (!value) { toast('总结提示词不能为空'); return; }
-  var name = window.prompt('给这个总结预设起个名字', '新预设');
-  if (name === null) return;
-  name = String(name).trim().slice(0, 40);
-  if (!name) { toast('预设名称不能为空'); return; }
-  var preset = { id:genId('mem_'), name:name, prompt:value, builtin:false, updatedAt:Date.now() };
-  cfg.summaryPresets = Array.isArray(cfg.summaryPresets) ? cfg.summaryPresets : [];
-  cfg.summaryPresets.unshift(preset);
-  cfg.activeSummaryPresetId = preset.id;
-  cfg.summaryPrompt = value;
-  saveSettings().then(function(){ renderMemoryPage(); toast('已添加总结预设“' + preset.name + '”'); });
+  islandPrompt('给这个总结预设起个名字', {title:'保存总结预设', defaultValue:'新预设', maxLength:40, confirmText:'保存'}).then(function(name){
+    if (name === null) return;
+    name = String(name).trim().slice(0, 40);
+    if (!name) { toast('预设名称不能为空'); return; }
+    var preset = { id:genId('mem_'), name:name, prompt:value, builtin:false, updatedAt:Date.now() };
+    cfg.summaryPresets = Array.isArray(cfg.summaryPresets) ? cfg.summaryPresets : [];
+    cfg.summaryPresets.unshift(preset);
+    cfg.activeSummaryPresetId = preset.id;
+    cfg.summaryPrompt = value;
+    saveSettings().then(function(){ renderMemoryPage(); toast('已添加总结预设“' + preset.name + '”'); });
+  });
 }
 
 function deleteMemorySummaryPreset(id){
@@ -1363,13 +1368,15 @@ function deleteMemorySummaryPreset(id){
   var index = -1, hit = null;
   for (var i = 0; i < presets.length; i++) if (presets[i].id === id) { index = i; hit = presets[i]; break; }
   if (index < 0 || !hit) return;
-  if (!window.confirm('删除总结预设“' + hit.name + '”？')) return;
-  presets.splice(index, 1);
-  if (cfg.activeSummaryPresetId === id) {
-    cfg.activeSummaryPresetId = 'default';
-    cfg.summaryPrompt = DEFAULT_MEMORY_SUMMARY_PROMPT;
-  }
-  saveSettings().then(function(){ renderMemoryPage(); toast('已删除总结预设'); });
+  islandConfirm('删除总结预设“' + hit.name + '”？', {title:'删除总结预设', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    presets.splice(index, 1);
+    if (cfg.activeSummaryPresetId === id) {
+      cfg.activeSummaryPresetId = 'default';
+      cfg.summaryPrompt = DEFAULT_MEMORY_SUMMARY_PROMPT;
+    }
+    saveSettings().then(function(){ renderMemoryPage(); toast('已删除总结预设'); });
+  });
 }
 
 function getMemorySummarySearchQuery(){
@@ -1479,15 +1486,17 @@ function deleteSelectedVectorMemories(){
   if(!currentName) return;
   var ids=Object.keys(vectorMemorySelectedIds).filter(function(id){ return vectorMemorySelectedIds[id]; });
   if(!ids.length){ toast('请先选择要删除的向量记忆'); return; }
-  if(!window.confirm('确定删除已选择的 ' + ids.length + ' 条向量记忆吗？')) return;
-  var idSet={}; ids.forEach(function(id){ idSet[id]=true; });
-  var m=normalizeChatMemory(currentName);
-  var before=m.vector.entries.length;
-  m.vector.entries=m.vector.entries.filter(function(item){ return !idSet[item.id]; });
-  if(m.vector.entries.length===before) return;
-  vectorMemorySelectedIds=Object.create(null);
-  m.vector.updatedAt=Date.now();
-  saveMemoryState().then(function(){ renderVectorMemoryPage(); renderMemoryPage(); toast('已删除所选向量记忆'); });
+  islandConfirm('确定删除已选择的 ' + ids.length + ' 条向量记忆吗？', {title:'删除向量记忆', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    var idSet={}; ids.forEach(function(id){ idSet[id]=true; });
+    var m=normalizeChatMemory(currentName);
+    var before=m.vector.entries.length;
+    m.vector.entries=m.vector.entries.filter(function(item){ return !idSet[item.id]; });
+    if(m.vector.entries.length===before) return;
+    vectorMemorySelectedIds=Object.create(null);
+    m.vector.updatedAt=Date.now();
+    saveMemoryState().then(function(){ renderVectorMemoryPage(); renderMemoryPage(); toast('已删除所选向量记忆'); });
+  });
 }
 
 
@@ -1618,12 +1627,14 @@ function applyMemoryClearSelection(){
   var clearSummary=!!(pmMemoryClearSummary&&pmMemoryClearSummary.checked), clearImportant=!!(pmMemoryClearImportant&&pmMemoryClearImportant.checked), clearVector=!!(pmMemoryClearVector&&pmMemoryClearVector.checked);
   if(!clearSummary&&!clearImportant&&!clearVector){ toast('请至少选择一个记忆模块'); return; }
   var labels=[]; if(clearSummary) labels.push('短期总结'); if(clearImportant) labels.push('重要记忆'); if(clearVector) labels.push('向量记忆');
-  if(!window.confirm('确定清空：'+labels.join('、')+'？此操作不可恢复。')) return;
-  var m=normalizeChatMemory(currentName);
-  if(clearSummary){ m.summary=''; m.summarizedThrough=0; m.summaryCount=0; m.updatedAt=0; m.summaries=[]; }
-  if(clearImportant){ m.importantMemories=[]; importantMemorySelectedIds=Object.create(null); }
-  if(clearVector){ m.vector={version:1,entries:[]}; vectorMemorySelectedIds=Object.create(null); }
-  saveMemoryState().then(function(){ closeMemoryClearModal(); renderMemoryPage(); renderVectorMemoryPage(); renderImportantMemoryPage(); toast('已清空所选记忆'); });
+  islandConfirm('确定清空：'+labels.join('、')+'？此操作不可恢复。', {title:'清空记忆', confirmText:'清空', danger:true}).then(function(ok){
+    if (!ok) return;
+    var m=normalizeChatMemory(currentName);
+    if(clearSummary){ m.summary=''; m.summarizedThrough=0; m.summaryCount=0; m.updatedAt=0; m.summaries=[]; }
+    if(clearImportant){ m.importantMemories=[]; importantMemorySelectedIds=Object.create(null); }
+    if(clearVector){ m.vector={version:1,entries:[]}; vectorMemorySelectedIds=Object.create(null); }
+    saveMemoryState().then(function(){ closeMemoryClearModal(); renderMemoryPage(); renderVectorMemoryPage(); renderImportantMemoryPage(); toast('已清空所选记忆'); });
+  });
 }
 
 
@@ -1687,49 +1698,54 @@ function deleteSelectedImportantMemories(){
   if (!currentName) return;
   var ids = Object.keys(importantMemorySelectedIds).filter(function(id){ return importantMemorySelectedIds[id]; });
   if (!ids.length) { toast('请先选择要删除的重要记忆'); return; }
-  if (!window.confirm('确定删除已选择的 ' + ids.length + ' 条重要记忆吗？')) return;
-  var idSet = {};
-  ids.forEach(function(id){ idSet[id] = true; });
-  var m = normalizeChatMemory(currentName);
-  var before = m.importantMemories.length;
-  m.importantMemories = m.importantMemories.filter(function(item){ return !idSet[item.id]; });
-  if (m.importantMemories.length === before) return;
-  importantMemorySelectedIds = Object.create(null);
-  saveMemoryState().then(function(){
-    renderMemoryPage();
-    renderImportantMemoryPage();
-    toast('已删除所选重要记忆');
+  islandConfirm('确定删除已选择的 ' + ids.length + ' 条重要记忆吗？', {title:'删除重要记忆', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    var idSet = {};
+    ids.forEach(function(id){ idSet[id] = true; });
+    var m = normalizeChatMemory(currentName);
+    var before = m.importantMemories.length;
+    m.importantMemories = m.importantMemories.filter(function(item){ return !idSet[item.id]; });
+    if (m.importantMemories.length === before) return;
+    importantMemorySelectedIds = Object.create(null);
+    saveMemoryState().then(function(){
+      renderMemoryPage();
+      renderImportantMemoryPage();
+      toast('已删除所选重要记忆');
+    });
   });
 }
 
 function addCustomImportantMemory(){
   if (!currentName) return;
-  var text = window.prompt('请输入要长期保留的重要记忆内容（可输入多行）', '');
-  if (text === null) return;
-  text = String(text).trim();
-  if (!text) { toast('重要记忆内容不能为空'); return; }
-  if (text.length > 1000) text = text.slice(0, 1000);
-  var defaultStamp=new Date().toLocaleString('sv-SE',{hour12:false}).replace('T',' ');
-  var stamp = window.prompt('请输入这条记忆的时间戳（YYYY-MM-DD HH:mm），留空使用当前时间', defaultStamp);
-  if (stamp === null) return;
-  stamp=String(stamp).trim();
-  var memoryAt=Date.parse(stamp.replace(' ','T'));
-  if (!Number.isFinite(memoryAt)) memoryAt=Date.now();
-  var m = normalizeChatMemory(currentName);
-  var key = normalizeImportantMemoryText(text).toLowerCase();
-  var duplicate = (m.importantMemories || []).some(function(item){ return normalizeImportantMemoryText(item.text).toLowerCase() === key; });
-  if (duplicate) { toast('这条重要记忆已经存在'); return; }
-  m.importantMemories.push({
-    id: genId('important_custom_'),
-    text: text,
-    createdAt: Date.now(),
-    memoryAt: memoryAt,
-    sourceSummaryId: ''
-  });
-  saveMemoryState().then(function(){
-    renderMemoryPage();
-    renderImportantMemoryPage();
-    toast('已添加自定义重要记忆');
+  var chatName = currentName;
+  islandPrompt('', {title:'添加重要记忆', multiline:true, placeholder:'请输入要长期保留的重要记忆内容', maxLength:1000, confirmText:'下一步'}).then(function(text){
+    if (text === null) return;
+    text = String(text).trim();
+    if (!text) { toast('重要记忆内容不能为空'); return; }
+    if (text.length > 1000) text = text.slice(0, 1000);
+    var defaultStamp=new Date().toLocaleString('sv-SE',{hour12:false}).replace('T',' ');
+    islandPrompt('格式：YYYY-MM-DD HH:mm，留空则使用当前时间。', {title:'这条记忆发生的时间', defaultValue:defaultStamp, confirmText:'添加'}).then(function(stamp){
+      if (stamp === null) return;
+      stamp=String(stamp).trim();
+      var memoryAt=Date.parse(stamp.replace(' ','T'));
+      if (!Number.isFinite(memoryAt)) memoryAt=Date.now();
+      var m = normalizeChatMemory(chatName);
+      var key = normalizeImportantMemoryText(text).toLowerCase();
+      var duplicate = (m.importantMemories || []).some(function(item){ return normalizeImportantMemoryText(item.text).toLowerCase() === key; });
+      if (duplicate) { toast('这条重要记忆已经存在'); return; }
+      m.importantMemories.push({
+        id: genId('important_custom_'),
+        text: text,
+        createdAt: Date.now(),
+        memoryAt: memoryAt,
+        sourceSummaryId: ''
+      });
+      saveMemoryState().then(function(){
+        renderMemoryPage();
+        renderImportantMemoryPage();
+        toast('已添加自定义重要记忆');
+      });
+    });
   });
 }
 

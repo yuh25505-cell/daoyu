@@ -191,6 +191,19 @@ public class IslandNativePlugin extends Plugin {
         call.resolve(result(true, getNotificationState()));
     }
 
+    /**
+     * 前端取走最近一次通知点击携带的链接（取走即清空）。
+     * 点击通知不再重新加载页面，而是由前端读到链接后直接切到对应聊天。
+     */
+    @PluginMethod
+    public void consumeDeepLink(PluginCall call) {
+        JSObject result = new JSObject();
+        String url = MainActivity.pendingDeepLink;
+        MainActivity.pendingDeepLink = null;
+        result.put("url", url == null ? "" : url);
+        call.resolve(result);
+    }
+
     // ---- Save exported files (backups) into the phone's Download/${appName} folder ----
 
     @PluginMethod
@@ -412,12 +425,21 @@ public class IslandNativePlugin extends Plugin {
 const mainActivityJava = `package ${appId};
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     public static final String EXTRA_DEEP_LINK = "island_deep_link";
+
+    /**
+     * 最近一次通知点击带来的链接。
+     * 点击通知时不能再用 webView.loadUrl() 重载页面（会让正在运行的岛屿整页刷新、
+     * 打断正在进行的聊天 / AI 请求）；改为先存放在这里，再通知前端调用
+     * IslandNative.consumeDeepLink() 取走，由前端直接切换到对应聊天。
+     */
+    public static volatile String pendingDeepLink = null;
 
     @Override
     public void load() {
@@ -426,31 +448,47 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        openDeepLink(intent);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // 冷启动：被通知拉起时把链接放进待处理，页面加载完成后由前端取走。
+        // savedInstanceState != null 只是系统重建（如旋转），不应重复打开。
+        if (savedInstanceState == null) rememberDeepLink(getIntent());
     }
 
-    private void openDeepLink(Intent intent) {
-        if (intent == null || getBridge() == null) return;
+    @Override
+    public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (rememberDeepLink(intent)) notifyWebDeepLink();
+    }
+
+    private boolean rememberDeepLink(Intent intent) {
+        if (intent == null) return false;
 
         String url = intent.getStringExtra(EXTRA_DEEP_LINK);
-        if (url == null || url.isEmpty()) return;
+        if (url == null || url.isEmpty()) return false;
 
         try {
             android.net.Uri uri = android.net.Uri.parse(url);
             if (!"https".equalsIgnoreCase(uri.getScheme()) ||
                 !"localhost".equalsIgnoreCase(uri.getHost())) {
-                return;
+                return false;
             }
         } catch (Exception ignored) {
-            return;
+            return false;
         }
 
-        WebView webView = getBridge().getWebView();
-        if (webView == null) return;
+        pendingDeepLink = url;
+        intent.removeExtra(EXTRA_DEEP_LINK);
+        return true;
+    }
 
-        webView.postDelayed(() -> webView.loadUrl(url), 120);
+    private void notifyWebDeepLink() {
+        if (getBridge() == null) return;
+        final WebView webView = getBridge().getWebView();
+        if (webView == null) return;
+        webView.post(() -> webView.evaluateJavascript(
+            "try{window.dispatchEvent(new Event('island-native-deeplink'));}catch(e){}", null));
     }
 }
 `;

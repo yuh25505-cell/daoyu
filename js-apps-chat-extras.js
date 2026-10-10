@@ -499,15 +499,18 @@ function saveCurrentCharacterLanguage(id){
   // 仅在确实存在从其他语言模式切换的场景触发；切回简体中文不会弹窗。
   var switchedToNonSimplifiedChinese = lang.id !== 'zh-CN' && previousLang.id !== lang.id;
   if (switchedToNonSimplifiedChinese && getCharSplitPromptEnabled(persona)) {
-    var shouldDisableSplit = window.confirm(
+    islandConfirm(
       '当前角色已切换为“' + lang.name + '（' + lang.native + '）”。\n\n' +
       '“中文断句拆分提示词”主要用于简体中文回复，当前语言下可能影响自然的断句方式。\n\n' +
-      '是否立即关闭“中文断句拆分提示词”？'
-    );
-    if (shouldDisableSplit) {
+      '是否立即关闭“中文断句拆分提示词”？',
+      {title:'关闭断句拆分提示词？', confirmText:'立即关闭', cancelText:'暂不关闭'}
+    ).then(function(shouldDisableSplit){
+      if (!shouldDisableSplit) return;
       persona.splitPromptEnabled = false;
       persona.disableSplitPromptForNonChinese = true;
-    }
+      savePersonas();
+      renderCharLanguageModal();
+    });
   }
 
   savePersonas();

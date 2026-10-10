@@ -758,8 +758,9 @@ function bindChatEvents(){
       if (!btn) return;
       var id = btn.getAttribute('data-memory-summary-delete') || '';
       if (!id) return;
-      if (!window.confirm('确定删除这条已总结的记忆记录吗？聊天原文不会被删除。')) return;
-      deleteChatMemorySummary(id);
+      islandConfirm('确定删除这条已总结的记忆记录吗？聊天原文不会被删除。', {title:'删除总结记录', confirmText:'删除', danger:true}).then(function(ok){
+        if (ok) deleteChatMemorySummary(id);
+      });
     });
     pmMemorySummaryHistory.addEventListener('change', function(e){
       var selectInput = e.target.closest('[data-memory-summary-select]');
@@ -806,7 +807,9 @@ function bindChatEvents(){
       if (!btn) return;
       var id = btn.getAttribute('data-important-memory-delete') || '';
       if (!id) return;
-      if (window.confirm('确定删除这条重要记忆吗？')) deleteImportantMemory(id);
+      islandConfirm('确定删除这条重要记忆吗？', {title:'删除重要记忆', confirmText:'删除', danger:true}).then(function(ok){
+        if (ok) deleteImportantMemory(id);
+      });
     });
     pmMemoryImportantList.addEventListener('change', function(e){
       var input = e.target.closest('[data-important-memory-select]');

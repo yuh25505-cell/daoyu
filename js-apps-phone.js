@@ -591,9 +591,9 @@ function bindPhoneEvents(){
   if (phoneRecentDelete) phoneRecentDelete.addEventListener('click', function(){
     var selected = getPhoneRecentSelectedSessionIds();
     if (!selected.length) return;
-    if (window.confirm('确定删除已选择的 ' + selected.length + ' 条通话记录？\n删除后会同时移除对应的完整通话内容，且无法恢复。')) {
-      deletePhoneCallSessions(selected);
-    }
+    islandConfirm('确定删除已选择的 ' + selected.length + ' 条通话记录？\n删除后会同时移除对应的完整通话内容，且无法恢复。', {title:'删除通话记录', confirmText:'删除', danger:true}).then(function(ok){
+      if (ok) deletePhoneCallSessions(selected);
+    });
   });
   if (phoneRecentList) phoneRecentList.addEventListener('click', function(e){
     if (phoneRecentManageMode) {

@@ -385,22 +385,23 @@ function updateActivePresetFromForm(){
 function saveCurrentAsPreset(){
   var c = currentApiFormData();
   if (!c.baseUrl || !c.apiKey || !c.model) { setApiStatus('err', '请先填写 Base URL、API Key 和模型，再保存预设。'); return; }
-  var name = window.prompt('给这个 API 预设起个名字', '新预设');
-  if (name === null) return;
-  name = String(name).trim().slice(0, 40);
-  if (!name) { toast('预设名称不能为空'); return; }
-  var presets = State.settings.apiPresets || (State.settings.apiPresets = []);
-  var preset = normalizeApiPreset(Object.assign({}, c, { id: genId('api_'), name: name, updatedAt: Date.now() }), presets.length);
-  presets.unshift(preset);
-  State.settings.activeApiPresetId = preset.id;
-  State.settings.api = {
-    enabled: c.enabled, baseUrl: c.baseUrl, apiKey: c.apiKey, model: c.model,
-    temperature: c.temperature, maxTokens: c.maxTokens
-  };
-  rememberQuickPresetKey();
-  renderSavedPresets();
-  updateSavedPresetButton();
-  saveSettings().then(function(){ refreshApiState(); setApiStatus('ok', '✓ 已保存预设“' + preset.name + '”，现在它就是当前聊天 API。'); toast('预设已保存'); });
+  islandPrompt('给这个 API 预设起个名字', {title:'保存 API 预设', defaultValue:'新预设', maxLength:40, confirmText:'保存'}).then(function(name){
+    if (name === null) return;
+    name = String(name).trim().slice(0, 40);
+    if (!name) { toast('预设名称不能为空'); return; }
+    var presets = State.settings.apiPresets || (State.settings.apiPresets = []);
+    var preset = normalizeApiPreset(Object.assign({}, c, { id: genId('api_'), name: name, updatedAt: Date.now() }), presets.length);
+    presets.unshift(preset);
+    State.settings.activeApiPresetId = preset.id;
+    State.settings.api = {
+      enabled: c.enabled, baseUrl: c.baseUrl, apiKey: c.apiKey, model: c.model,
+      temperature: c.temperature, maxTokens: c.maxTokens
+    };
+    rememberQuickPresetKey();
+    renderSavedPresets();
+    updateSavedPresetButton();
+    saveSettings().then(function(){ refreshApiState(); setApiStatus('ok', '✓ 已保存预设“' + preset.name + '”，现在它就是当前聊天 API。'); toast('预设已保存'); });
+  });
 }
 
 function updateSavedPresetButton(){
@@ -419,12 +420,14 @@ function deleteSavedPreset(id){
   var index = -1, hit = null;
   for (var i = 0; i < presets.length; i++) if (presets[i].id === id) { index = i; hit = presets[i]; break; }
   if (index < 0 || !hit) return;
-  if (!window.confirm('删除预设“' + hit.name + '”？')) return;
-  presets.splice(index, 1);
-  if (State.settings.activeApiPresetId === id) State.settings.activeApiPresetId = '';
-  renderSavedPresets();
-  updateSavedPresetButton();
-  saveSettings().then(function(){ refreshApiState(); toast('已删除预设'); });
+  islandConfirm('删除预设“' + hit.name + '”？', {title:'删除 API 预设', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    presets.splice(index, 1);
+    if (State.settings.activeApiPresetId === id) State.settings.activeApiPresetId = '';
+    renderSavedPresets();
+    updateSavedPresetButton();
+    saveSettings().then(function(){ refreshApiState(); toast('已删除预设'); });
+  });
 }
 
 function testConnection(){
@@ -618,15 +621,16 @@ function updateSecondaryActivePresetFromForm(){
 function saveSecondaryCurrentAsPreset(){
   var c = currentSecondaryApiFormData();
   if (!c.baseUrl || !c.apiKey || !c.model) { setSecondaryApiStatus('err','请先填写 Base URL、API Key 和模型，再保存预设。'); return; }
-  var name = window.prompt('给这个副API预设起个名字','新预设');
-  if (name === null) return;
-  name = String(name).trim().slice(0,40);
-  if (!name) { toast('预设名称不能为空'); return; }
-  var presets = State.settings.secondaryApiPresets || (State.settings.secondaryApiPresets=[]);
-  var preset = normalizeSecondaryApiPreset(Object.assign({},c,{id:genId('subapi_'),name:name,updatedAt:Date.now()}),presets.length);
-  presets.unshift(preset); State.settings.activeSecondaryApiPresetId=preset.id;
-  State.settings.secondaryApi={enabled:c.enabled,baseUrl:c.baseUrl,apiKey:c.apiKey,model:c.model,temperature:c.temperature,maxTokens:c.maxTokens};
-  rememberSecondaryQuickPresetKey(); renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){refreshSecondaryApiState();setSecondaryApiStatus('ok','✓ 已保存副API预设“'+preset.name+'”，现在它就是当前选中的副API预设。');toast('副API预设已保存');});
+  islandPrompt('给这个副 API 预设起个名字', {title:'保存副 API 预设', defaultValue:'新预设', maxLength:40, confirmText:'保存'}).then(function(name){
+    if (name === null) return;
+    name = String(name).trim().slice(0,40);
+    if (!name) { toast('预设名称不能为空'); return; }
+    var presets = State.settings.secondaryApiPresets || (State.settings.secondaryApiPresets=[]);
+    var preset = normalizeSecondaryApiPreset(Object.assign({},c,{id:genId('subapi_'),name:name,updatedAt:Date.now()}),presets.length);
+    presets.unshift(preset); State.settings.activeSecondaryApiPresetId=preset.id;
+    State.settings.secondaryApi={enabled:c.enabled,baseUrl:c.baseUrl,apiKey:c.apiKey,model:c.model,temperature:c.temperature,maxTokens:c.maxTokens};
+    rememberSecondaryQuickPresetKey(); renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){refreshSecondaryApiState();setSecondaryApiStatus('ok','✓ 已保存副API预设“'+preset.name+'”，现在它就是当前选中的副API预设。');toast('副API预设已保存');});
+  });
 }
 
 function updateSecondarySavedPresetButton(){
@@ -640,10 +644,12 @@ function deleteSecondarySavedPreset(id){
   var index=-1; for(var i=0;i<presets.length;i++) if(presets[i].id===id){index=i;break;}
   if(index<0) return;
   var name=presets[index].name||'预设';
-  if(!window.confirm('删除副API预设“'+name+'”？')) return;
-  presets.splice(index,1);
-  if(State.settings.activeSecondaryApiPresetId===id){State.settings.activeSecondaryApiPresetId='';}
-  renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){refreshSecondaryApiState();toast('已删除副API预设');});
+  islandConfirm('删除副API预设“'+name+'”？', {title:'删除副 API 预设', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    presets.splice(index,1);
+    if(State.settings.activeSecondaryApiPresetId===id){State.settings.activeSecondaryApiPresetId='';}
+    renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){refreshSecondaryApiState();toast('已删除副API预设');});
+  });
 }
 
 function testSecondaryConnection(){

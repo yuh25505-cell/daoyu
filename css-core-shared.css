@@ -114,3 +114,38 @@ html[data-theme="dark"] .wallpaper[data-dim-dark="off"]{ filter:none; }
 .chat-appearance-view .theme-option .theme-option-main,.settings-panel[data-panel="appearance"] .theme-option .theme-option-main{flex:1 1 auto}
 
 .vector-memory-setting-grid .api-input{width:100%;padding:10px 11px;border-radius:11px;}
+
+
+/* ---------- 岛屿专属确认弹窗（替代系统 window.confirm）---------- */
+.island-dialog{ position:fixed; inset:0; z-index:3000; display:none; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
+.island-dialog.is-open{ display:flex; }
+.island-dialog-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.38); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; transition:opacity .18s ease; }
+.island-dialog.is-show .island-dialog-backdrop{ opacity:1; }
+.island-dialog-panel{
+  position:relative; width:min(310px,100%); box-sizing:border-box; padding:22px 18px 16px;
+  border-radius:22px; background:var(--bg); color:var(--fg); border:1px solid var(--card-bd);
+  text-align:center; opacity:0; transform:scale(.94) translateY(6px);
+  transition:opacity .18s ease, transform .22s cubic-bezier(.22,1,.36,1);
+}
+.island-dialog.is-show .island-dialog-panel{ opacity:1; transform:none; }
+.island-dialog-title{ margin:0; padding:0 6px; font-size:calc(17px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.01em; color:var(--fg); }
+.island-dialog-message{
+  margin:10px 0 0; padding:0 4px; max-height:46vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  font-size:calc(14px * var(--island-font-size-scale)); line-height:1.65; color:var(--fg-soft);
+  white-space:pre-line; word-break:break-word; text-wrap:pretty;
+}
+.island-dialog-title[hidden] + .island-dialog-message{ margin-top:4px; color:var(--fg); }
+.island-dialog-input{ display:block; width:100%; box-sizing:border-box; margin-top:14px; padding:11px 12px; border-radius:12px; border:1px solid var(--card-bd); background:var(--bubble-bg); color:var(--fg); font-size:calc(15px * var(--island-font-size-scale)); line-height:1.5; text-align:left; outline:none; -webkit-user-select:text; user-select:text; }
+.island-dialog-input[hidden]{ display:none; }
+.island-dialog-input:focus{ border-color:var(--fg-faint); }
+textarea.island-dialog-input{ min-height:104px; max-height:34vh; resize:none; line-height:1.6; }
+.island-dialog-message[hidden]{ display:none; }
+.island-dialog-actions{ display:flex; gap:10px; margin-top:20px; }
+.island-dialog-btn{
+  flex:1 1 0; min-width:0; min-height:44px; padding:0 10px; border-radius:13px;
+  font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-600);
+  border:1px solid var(--card-bd); touch-action:manipulation;
+}
+.island-dialog-btn.is-cancel{ background:var(--bubble-bg); color:var(--fg-soft); }
+.island-dialog-btn.is-confirm{ background:var(--fg); color:var(--bg); border-color:var(--fg); }
+.island-dialog-btn.is-confirm.is-danger{ background:var(--err); color:#fff; border-color:var(--err); }

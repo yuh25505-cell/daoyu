@@ -555,12 +555,14 @@ async function importWorldbookFromFile(file){
 function deleteWorldbook(worldbookId){
   var book=getWorldbookById(worldbookId);
   if(!book) return;
-  if(!window.confirm('确定删除世界书“'+(book.name || '未命名世界')+'”吗？\n其中的所有条目也会一起删除。')) return;
-  State.worldbooks=(State.worldbooks || []).filter(function(item){ return item && item.id!==worldbookId; });
-  saveWorldbooks();
-  if(activeWorldbookId===worldbookId){ activeWorldbookId=''; showWorldbookListView(); }
-  renderWorldbooks();
-  toast('已删除世界书');
+  islandConfirm('确定删除世界书“'+(book.name || '未命名世界')+'”吗？\n其中的所有条目也会一起删除。', {title:'删除世界书', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    State.worldbooks=(State.worldbooks || []).filter(function(item){ return item && item.id!==worldbookId; });
+    saveWorldbooks();
+    if(activeWorldbookId===worldbookId){ activeWorldbookId=''; showWorldbookListView(); }
+    renderWorldbooks();
+    toast('已删除世界书');
+  });
 }
 
 
@@ -570,12 +572,14 @@ function deleteWorldbookEntry(entryId){
   var entries=getWorldbookEntries(book);
   var entry=entries.find(function(item){ return item.id===entryId; });
   if(!entry) return;
-  if(!window.confirm('确定删除条目“'+(entry.name || '未命名条目')+'”吗？删除后不可恢复。')) return;
-  book.entries=entries.filter(function(item){ return item.id!==entryId; });
-  saveWorldbook(book);
-  renderWorldbooks();
-  renderWorldbookDetail(book);
-  toast('已删除世界书条目');
+  islandConfirm('确定删除条目“'+(entry.name || '未命名条目')+'”吗？删除后不可恢复。', {title:'删除条目', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    book.entries=entries.filter(function(item){ return item.id!==entryId; });
+    saveWorldbook(book);
+    renderWorldbooks();
+    renderWorldbookDetail(book);
+    toast('已删除世界书条目');
+  });
 }
 
 

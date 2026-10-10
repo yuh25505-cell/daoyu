@@ -122,17 +122,21 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
   const data = event.notification && event.notification.data ? event.notification.data : {};
   const url = data.url || './';
+  let name = data.name || '';
+  if (!name) { try { name = new URL(url, self.location.href).searchParams.get('name') || ''; } catch (_) {} }
   event.waitUntil((async () => {
     const list = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const client of list) {
+    // 岛屿已经在运行：只把窗口带到前台，并告诉页面打开哪个聊天。
+    // 不再 client.navigate(url)——那会让整个页面重新加载，打断正在进行的聊天 / AI 请求。
+    const target = list.find(c => c.visibilityState === 'visible') || list[0];
+    if (target) {
+      try { if ('focus' in target) await target.focus(); } catch (_) {}
       try {
-        if ('focus' in client) {
-          await client.focus();
-          if ('navigate' in client && url) await client.navigate(url);
-          return;
-        }
+        target.postMessage({ type: 'island-open-chat', name, url });
+        return;
       } catch (_) {}
     }
+    // 软件没有在运行：才需要新开窗口（冷启动，页面会从 ?island=chat&name=… 读取并打开聊天）
     if (clients.openWindow) await clients.openWindow(url);
   })());
 });

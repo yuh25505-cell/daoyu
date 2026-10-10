@@ -111,9 +111,9 @@
     input.setAttribute('data-import-part', 'settings');
 
     // Our own confirmation was already accepted; let the app's generic prompt pass through once.
-    var originalConfirm = window.confirm;
-    window.confirm = function () { window.confirm = originalConfirm; return true; };
-    setTimeout(function () { if (window.confirm !== originalConfirm) window.confirm = originalConfirm; }, 5000);
+    var originalConfirm = window.islandConfirm;
+    window.islandConfirm = function () { window.islandConfirm = originalConfirm; return Promise.resolve(true); };
+    setTimeout(function () { if (window.islandConfirm !== originalConfirm) window.islandConfirm = originalConfirm; }, 5000);
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
@@ -126,9 +126,10 @@
       try { raw = JSON.parse(String(reader.result || '')); } catch (e) { toast('备份文件无法读取：JSON 格式错误'); return; }
       var values;
       try { values = extractImportedApiSettings(raw); } catch (e) { toast((e && e.message) || 'API 备份文件无效'); return; }
-      var ok = window.confirm('将导入 API 设置（主 API、副 API、语音转文字、向量记忆与重排 API 及其预设），覆盖当前对应配置，其他数据不会改变。完成后软件会自动重启。是否继续？');
-      if (!ok) return;
-      try { applyThroughAppImporter(values); } catch (e) { toast('API 设置导入失败：' + ((e && e.message) || e)); }
+      islandConfirm('将导入 API 设置（主 API、副 API、语音转文字、向量记忆与重排 API 及其预设），覆盖当前对应配置，其他数据不会改变。完成后软件会自动重启。是否继续？', {title:'导入 API 设置', confirmText:'导入'}).then(function(ok){
+        if (!ok) return;
+        try { applyThroughAppImporter(values); } catch (e) { toast('API 设置导入失败：' + ((e && e.message) || e)); }
+      });
     };
     reader.readAsText(file);
   }

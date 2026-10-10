@@ -555,35 +555,45 @@ function deleteMessageAt(index, options){
   index = Number(index);
   if (!Number.isInteger(index) || index < 0 || index >= list.length || !list[index]) return false;
   var removed = list[index];
-  if (!(options && options.skipConfirm)) {
-    var label = messageCopyText(removed) || '这条消息';
-    if (label.length > 40) label = label.slice(0, 40) + '…';
-    if (!window.confirm('删除这条消息？\n' + label)) return false;
+  var chatName = currentName;
+  function doDelete(){
+    /* 确认框是异步的：按对象重新定位，避免等待期间下标变化删错消息 */
+    var at = list.indexOf(removed);
+    if (at < 0) return false;
+    list.splice(at, 1);
+    saveMessages(chatName);
+    updateChatPreviewAfterMessageMutation(chatName);
+    renderChats(); saveChats();
+    voiceTranscriptOpen = Object.create(null);
+    if (currentName === chatName) renderMessages(false);
+    toast('已删除');
+    return true;
   }
-  list.splice(index, 1);
-  saveMessages(currentName);
-  updateChatPreviewAfterMessageMutation(currentName);
-  renderChats(); saveChats();
-  voiceTranscriptOpen = Object.create(null);
-  renderMessages(false);
-  toast('已删除');
-  return true;
+  if (options && options.skipConfirm) return doDelete();
+  var label = messageCopyText(removed) || '这条消息';
+  if (label.length > 40) label = label.slice(0, 40) + '…';
+  islandConfirm('删除这条消息？\n' + label, {title:'删除消息', confirmText:'删除', danger:true}).then(function(ok){
+    if (ok) doDelete();
+  });
+  return false;
 }
 
 function deleteSelectedMessages(){
   pruneMessageSelection();
   var indices = Object.keys(selectedMessageIndices).filter(function(key){ return selectedMessageIndices[key]; }).map(Number).sort(function(a,b){ return b-a; });
   if (!indices.length) { toast('请先选择消息'); return; }
-  if (!window.confirm('删除已选 ' + indices.length + ' 条消息？')) return;
-  var list = MESSAGES[currentName] || [];
-  indices.forEach(function(index){ if (list[index]) list.splice(index, 1); });
-  saveMessages(currentName);
-  updateChatPreviewAfterMessageMutation(currentName);
-  renderChats(); saveChats();
-  voiceTranscriptOpen = Object.create(null);
-  clearMessageSelection();
-  renderMessages(false);
-  toast('已删除 ' + indices.length + ' 条消息');
+  islandConfirm('删除已选 ' + indices.length + ' 条消息？', {title:'删除消息', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    var list = MESSAGES[currentName] || [];
+    indices.forEach(function(index){ if (list[index]) list.splice(index, 1); });
+    saveMessages(currentName);
+    updateChatPreviewAfterMessageMutation(currentName);
+    renderChats(); saveChats();
+    voiceTranscriptOpen = Object.create(null);
+    clearMessageSelection();
+    renderMessages(false);
+    toast('已删除 ' + indices.length + ' 条消息');
+  });
 }
 
 function updateMessageSelectionChrome(){

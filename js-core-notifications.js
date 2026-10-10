@@ -245,11 +245,48 @@ function startProactiveScheduler(){
   setTimeout(function(){ runProactiveMessage(false); }, 3500);
 }
 
+/* 点击系统通知后直接切到对应聊天——全程不重新加载页面：
+ *  · 网页 / PWA：Service Worker 只聚焦已打开的窗口并 postMessage 过来；
+ *  · 安卓 APK：原生把通知链接暂存，再触发 island-native-deeplink，由这里取走；
+ *  · 软件完全未运行时（冷启动）才会带着 ?island=chat&name=… 打开，处理后立刻把参数清掉，
+ *    避免之后每次回到前台都重复弹出这个聊天。 */
+function openNotificationTarget(name){
+  name = String(name || '');
+  if (!name) return;
+  setTimeout(function(){ try { openPM(name); } catch(e){} }, 80);
+}
+
+function consumeNativeDeepLink(){
+  var b = islandNativePlugin;
+  if (!b || typeof b.consumeDeepLink !== 'function') return;
+  try {
+    b.consumeDeepLink({}).then(function(res){
+      var url = res && res.url;
+      if (!url) return;
+      var name = '';
+      try { name = new URL(url).searchParams.get('name') || ''; } catch(e) {}
+      openNotificationTarget(name);
+    }).catch(function(){});
+  } catch(e){}
+}
+
 function handleNotificationDeepLink(){
   try {
-    var q=new URLSearchParams(location.search);
-    if (q.get('island') !== 'chat') return;
-    var name=q.get('name');
-    if (name) setTimeout(function(){ openPM(name); }, 250);
+    var q = new URLSearchParams(location.search);
+    if (q.get('island') === 'chat') {
+      var name = q.get('name');
+      try { history.replaceState(null, '', location.pathname + location.hash); } catch(e){}
+      openNotificationTarget(name);
+    }
   } catch(e){}
+  consumeNativeDeepLink();
+}
+
+window.addEventListener('island-native-deeplink', consumeNativeDeepLink);
+
+if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.addEventListener) {
+  navigator.serviceWorker.addEventListener('message', function(e){
+    var d = e && e.data;
+    if (d && d.type === 'island-open-chat') openNotificationTarget(d.name);
+  });
 }

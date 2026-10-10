@@ -101,16 +101,18 @@ function moveSelectedStickers(targetGroupId){
 function deleteSelectedStickers(){
   var count = selectedStickerCount();
   if (!count) { toast('请先选择表情包'); return; }
-  if (!window.confirm('确定删除已选择的 ' + count + ' 个表情包吗？')) return;
-  var st = getStickerState();
-  var group = activeStickerGroup();
-  if (!group) return;
-  group.stickers = group.stickers.filter(function(item){ return !stickerSelectedIds[item.id]; });
-  st.activeGroupId = group.id;
-  saveStickers().then(function(){
-    clearStickerSelection();
-    renderStickerPanelInto();
-    toast('已删除 ' + count + ' 个表情包');
+  islandConfirm('确定删除已选择的 ' + count + ' 个表情包吗？', {title:'删除表情包', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    var st = getStickerState();
+    var group = activeStickerGroup();
+    if (!group) return;
+    group.stickers = group.stickers.filter(function(item){ return !stickerSelectedIds[item.id]; });
+    st.activeGroupId = group.id;
+    saveStickers().then(function(){
+      clearStickerSelection();
+      renderStickerPanelInto();
+      toast('已删除 ' + count + ' 个表情包');
+    });
   });
 }
 
@@ -370,10 +372,12 @@ function deleteStickerGroup(id){
   var group = st.groups.find(function(g){ return g.id === id; });
   if (!group) return;
   if (group.name === '默认') { toast('默认分组不能删除'); return; }
-  if (!window.confirm('确定删除分组“' + group.name + '”吗？其中的表情包也会删除。')) return;
-  st.groups = st.groups.filter(function(g){ return g.id !== id; });
-  if (st.activeGroupId === id) st.activeGroupId = st.groups[0].id;
-  saveStickers().then(function(){ renderStickerPanelInto(); toast('分组已删除'); });
+  islandConfirm('确定删除分组“' + group.name + '”吗？其中的表情包也会删除。', {title:'删除分组', confirmText:'删除', danger:true}).then(function(ok){
+    if (!ok) return;
+    st.groups = st.groups.filter(function(g){ return g.id !== id; });
+    if (st.activeGroupId === id) st.activeGroupId = st.groups[0].id;
+    saveStickers().then(function(){ renderStickerPanelInto(); toast('分组已删除'); });
+  });
 }
 
 function renderStickerPanelInto(){
