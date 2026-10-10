@@ -97,7 +97,10 @@ var IslandDB = (function(){
     });
   }
 
+  var _wiping = false;
+
   function set(key, value){
+    if (_wiping) return Promise.resolve(false);
     var snapshot = cloneValue(value);
     return enqueue(function(){
       return open().then(function(db){
@@ -140,6 +143,7 @@ var IslandDB = (function(){
   }
 
   function remove(key){
+    if (_wiping) return Promise.resolve(false);
     return enqueue(function(){
       return open().then(function(db){
         return new Promise(function(resolve, reject){
@@ -194,8 +198,14 @@ var IslandDB = (function(){
     });
   }
 
+  /* 清空全部数据：先冻结后续写入，再清库；调用方随后应 reload */
+  function wipeAll(){
+    _wiping = true;
+    return clear().catch(function(err){ _wiping = false; throw err; });
+  }
+
   function flush(){ return _writeTail.catch(function(){ return undefined; }); }
   function isPersistent(){ return _persistent; }
 
-  return { open:open, get:get, set:set, remove:remove, clear:clear, replaceAll:replaceAll, list:list, flush:flush, isPersistent:isPersistent };
+  return { open:open, get:get, set:set, remove:remove, clear:clear, wipeAll:wipeAll, replaceAll:replaceAll, list:list, flush:flush, isPersistent:isPersistent };
 })();

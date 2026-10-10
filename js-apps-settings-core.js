@@ -263,6 +263,16 @@ function bindSettingsAppearanceEvents(){
   if (refreshStorage) refreshStorage.addEventListener('click', renderIslandStorage);
   var clearIslandCache = $('clearIslandCache');
   if (clearIslandCache) clearIslandCache.addEventListener('click', clearEmptyIslandData);
+  /* 分别备份：可折叠 / 展开（默认折叠） */
+  var backupFoldBtn = $('backupPartFoldBtn');
+  var backupFoldBody = $('backupPartFoldBody');
+  if (backupFoldBtn && backupFoldBody) backupFoldBtn.addEventListener('click', function(){
+    var open = backupFoldBtn.getAttribute('aria-expanded') !== 'true';
+    backupFoldBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    backupFoldBody.hidden = !open;
+  });
+  var wipeIslandBtn = $('wipeIslandBtn');
+  if (wipeIslandBtn) wipeIslandBtn.addEventListener('click', function(){ wipeAllIslandData(); });
   var exportBackupBtn = $('exportBackupBtn');
   if (exportBackupBtn) exportBackupBtn.addEventListener('click', downloadBackup);
   var importBackupBtn = $('importBackupBtn');

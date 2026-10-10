@@ -57,6 +57,15 @@
 
 .backup-subtitle{padding-top:20px;}
 
+.backup-fold-head{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.backup-fold-chev{width:18px;height:18px;flex:none;color:var(--fg-faint);transition:transform .22s cubic-bezier(.3,.8,.3,1)}
+.backup-fold-head[aria-expanded="true"] .backup-fold-chev{transform:rotate(180deg)}
+.backup-fold-body[hidden]{display:none}
+
+.backup-danger-card{margin-top:2px}
+.backup-action-btn.danger{color:#d64545;border-color:rgba(214,69,69,.45);background:transparent}
+.backup-action-btn.danger:active{background:rgba(214,69,69,.12)}
+
 .backup-part-menu{margin:0 12px 0;border:1px solid var(--track);border-radius:14px;overflow:hidden;background:var(--card-bg);}
 
 .backup-part-item{position:relative;display:flex;align-items:center;gap:14px;padding:14px 15px;min-height:66px;}
@@ -241,7 +250,10 @@ textarea.api-input{ resize:none; min-height:84px; padding:12px 14px; font-family
 
 .appearance-row{position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:58px;padding:12px 16px;text-align:left}
 
-.appearance-row:active{background:var(--bubble-bg)}
+.appearance-row:not([role="switch"]):active{background:var(--bubble-bg)}
+
+/* 开关行按下时不再整行变色（只让开关自身播放切换动画） */
+.appearance-row[role="switch"],.theme-option{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 
 .appearance-copy{flex:1 1 auto;min-width:0}
 
@@ -442,7 +454,7 @@ textarea.api-input{ resize:none; min-height:84px; padding:12px 14px; font-family
 
 .theme-option + .theme-option::before{ content:""; position:absolute; top:0; left:72px; right:0; height:1px; background:var(--track); }
 
-.theme-option:active{ background:var(--bubble-bg); }
+.theme-option:active{ background:transparent; }
 
 .theme-option-main{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
 

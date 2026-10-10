@@ -1336,8 +1336,8 @@
 <button class="backup-action-btn primary" id="exportBackupBtn" type="button">导出</button>
 </div>
 </div>
-<div class="settings-section-title backup-subtitle">分别备份</div>
-
+<button aria-controls="backupPartFoldBody" aria-expanded="false" class="settings-section-title backup-subtitle backup-fold-head" id="backupPartFoldBtn" type="button"><span>分别备份</span><svg aria-hidden="true" class="backup-fold-chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg></button>
+<div class="backup-fold-body" hidden="" id="backupPartFoldBody">
 <div class="backup-batch-toolbar">
 <div class="backup-batch-selection"><span id="backupPartSelectionCount">已选 0 / 9 项</span><button class="backup-batch-link" id="backupPartSelectAllBtn" type="button">全选</button></div>
 <div class="backup-batch-actions">
@@ -1425,6 +1425,17 @@
 </label>
 <div class="backup-part-copy"><strong>表情包</strong><span>表情包分组与本地表情数据</span></div>
 <div class="backup-part-actions"><button class="backup-action-btn js-backup-import" data-backup-part="stickers" type="button">导入</button><button class="backup-action-btn js-backup-export" data-backup-part="stickers" type="button">导出</button></div>
+</div>
+</div>
+</div>
+<div class="settings-section-title backup-subtitle">危险操作</div>
+<div class="backup-full-card backup-danger-card">
+<div class="backup-full-copy">
+<strong>清空岛屿数据</strong>
+<span>删除聊天、通讯录、设置等全部本地数据，不可恢复</span>
+</div>
+<div class="backup-full-actions">
+<button class="backup-action-btn danger" id="wipeIslandBtn" type="button">清空</button>
 </div>
 </div>
 <input accept="application/json,.json" hidden="" id="backupFileInput" type="file"/>

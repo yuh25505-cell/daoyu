@@ -532,3 +532,20 @@ function importBackupFile(file){
   reader.onerror = function(){ toast('备份文件读取失败'); };
   reader.readAsText(file);
 }
+
+
+/* ---------- 清空整个岛屿的数据 ---------- */
+function wipeAllIslandData(){
+  var ok = window.confirm('确定要清空整个岛屿的数据吗？\n\n聊天、通讯录、世界书、表情包、记忆、字体和所有设置都会被删除，且无法恢复。\n建议先用上方“完整备份 → 导出”保存一份。');
+  if (!ok) return;
+  /* 先冻结所有写入，防止待保存的内容（含退出时的兜底保存）把数据又写回去 */
+  try { clearTimeout(settingsSaveTimer); settingsSaveTimer = 0; } catch(e) {}
+  islandStateHydrated = false;
+  IslandDB.wipeAll().then(function(done){
+    if (!done) throw new Error('本机存储清空失败');
+    location.reload();
+  }).catch(function(err){
+    console.error('[岛屿] 清空数据失败：', err);
+    toast('清空失败：' + (err && err.message ? err.message : '本机存储错误'));
+  });
+}
