@@ -60,6 +60,7 @@ const APP_SHELL = [
   './js-apps-clock.js',
   './js-apps-browser.js',
   './js-main.js',
+  './js-core-swipeback.js',
   './keep-alive.js',
   './icon-180.png',
   './icon-192.png',
