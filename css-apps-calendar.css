@@ -17,6 +17,16 @@
   backdrop-filter:blur(16px) saturate(.65); -webkit-backdrop-filter:blur(16px) saturate(.65);
 }
 
+/* 背景样式「毛玻璃」：默认样式保持不变，只有选了毛玻璃才生效。
+ * --cal-glass-blur（模糊度，px）与 --cal-glass-k（= 1 − 透明度）由 applyCalendarWidgetStyle 写在 .home 上；
+ * 白色底的实际不透明度 = 主题基准 × k：透明度 0% 最实，100% 完全通透，只剩模糊和边缘高光。
+ * 描边用 inset 阴影而不是 border，避免改变内部排版尺寸。 */
+.home[data-cal-bg="glass"] .cal-widget{
+  background:rgba(255,255,255,calc(var(--cal-glass-base,.72) * var(--cal-glass-k,.6)));
+  backdrop-filter:blur(var(--cal-glass-blur,20px)) saturate(1.6); -webkit-backdrop-filter:blur(var(--cal-glass-blur,20px)) saturate(1.6);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,var(--cal-glass-edge,.5)), inset 0 1px 0 rgba(255,255,255,calc(var(--cal-glass-edge,.5) + .1));
+}
+
 /* 左半边：正方形图片，圆角 10px */
 .cal-photo{
   position:relative; align-self:center; justify-self:start; box-sizing:border-box;
@@ -67,3 +77,14 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .cal-photo-img{ filt
 .widget-card-state{ flex:1 1 auto; min-width:0; font-size:calc(11px * var(--island-font-size-scale)); color:var(--fg-faint); }
 
 .widget-card-actions .icon-library-btn{ flex:none; padding:7px 14px; }
+
+/* 设置 · 日历背景样式（默认 / 毛玻璃）及毛玻璃的两条拉条 */
+.cal-style-controls{ padding-top:2px; }
+
+.widget-chips.is-two{ grid-template-columns:repeat(2,1fr); }
+
+.cal-glass-controls[hidden]{ display:none; }
+
+.cal-glass-controls{ display:grid; margin-top:2px; }
+
+.cal-glass-row.dock-control-row{ grid-template-columns:56px minmax(0,1fr) 48px; min-height:48px; padding:10px 2px; }

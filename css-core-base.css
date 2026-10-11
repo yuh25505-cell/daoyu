@@ -32,6 +32,7 @@
   --home-surface:rgba(255,255,255,.66); --home-surface-soft:rgba(16,16,16,.035);
   --home-border:rgba(16,16,16,.10); --home-border-strong:rgba(16,16,16,.17);
   --tile-bg:#ffffff; --tile-border:rgba(16,16,16,.16); --tile-fg:#101010;
+  --cal-glass-base:.72; --cal-glass-edge:.55;   /* 日历毛玻璃：白色底的最大不透明度 / 边缘高光 */
   --ok:#16a34a; --err:#dc2626; --warn:#d97706;
 }
 
@@ -60,6 +61,7 @@ html[data-theme="dark"]{
   --widget-surface:#131315; --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
   --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);
   --tile-bg:#0a0a0a; --tile-border:rgba(255,255,255,.18); --tile-fg:#f5f5f5;
+  --cal-glass-base:.20; --cal-glass-edge:.20;
   --ok:#22c55e; --err:#ef4444; --warn:#f59e0b;
 }
 
@@ -87,6 +89,7 @@ html:not([data-theme]){
     --widget-surface:#131315; --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
     --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);
     --tile-bg:#0a0a0a; --tile-border:rgba(255,255,255,.18); --tile-fg:#f5f5f5;
+  --cal-glass-base:.20; --cal-glass-edge:.20;
   }
 }
 

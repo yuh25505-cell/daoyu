@@ -40,6 +40,7 @@
 .section-count{font-size:calc(8px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); letter-spacing:.12em; color:rgba(255,255,255,.18);}
 
 /* 主屏幕：4 列 × 6 行网格。日历占 4×2、音乐占 2×2，其余格子由应用图标按顺序自动填入。
+ * 所有组件 / 图标块都只声明“占几列几行”，不再写死在第几行：关掉任意组件后，后面的内容会自动向上补位。
  * 行高 --home-row-h 由 js（syncHomeGridRows）按图标实际高度写入，所以改图标大小 / 关闭标签后整张网格会一起缩放。 */
 .home-grid{
   display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:repeat(6,var(--home-row-h,80px));
@@ -48,9 +49,9 @@
 
 .home-grid > .app,.home-app-block > .app{ align-self:start; }
 
-/* 备忘录 / 天气 / 时钟 / 设置：占网格左下 2×2（第 5–6 行、第 1–2 列），内部栅格与外层列宽、行高、间距完全对齐 */
+/* 备忘录 / 天气 / 时钟 / 设置：占 2×2（默认在左下），内部栅格与外层列宽、行高、间距完全对齐；行位置由网格自动排布 */
 .home-app-block{
-  grid-column:1 / span 2; grid-row:5 / span 2; min-width:0;
+  grid-column:1 / span 2; grid-row:span 2; min-width:0;
   display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,var(--home-row-h,80px));
   gap:var(--home-gap-y,16px) 8px;
 }

@@ -91,3 +91,10 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .vinyl-label-img{ fi
   .vinyl-disc{ animation-duration:20s; }
   .vinyl-arm{ transition:none; }
 }
+
+/* 背景样式「毛玻璃」：默认样式不变，选了毛玻璃才生效。变量由 applyWidgetGlassStyle 写在 .home 上，规则与日历一致。 */
+.home[data-music-bg="glass"] .music-widget{
+  background:rgba(255,255,255,calc(var(--cal-glass-base,.72) * var(--music-glass-k,.6)));
+  backdrop-filter:blur(var(--music-glass-blur,20px)) saturate(1.6); -webkit-backdrop-filter:blur(var(--music-glass-blur,20px)) saturate(1.6);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,var(--cal-glass-edge,.5)), inset 0 1px 0 rgba(255,255,255,calc(var(--cal-glass-edge,.5) + .1));
+}

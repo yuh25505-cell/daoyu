@@ -410,6 +410,13 @@ function bindSettingsAppearanceEvents(){
       btn.addEventListener('click', function(e){ e.stopPropagation(); setWidgetSize(key, btn.dataset.widgetSize); });
     });
   });
+  Object.keys(GLASS_WIDGETS).forEach(function(key){
+    $$('#' + key + 'BgChips [data-bg-style]').forEach(function(btn){
+      btn.addEventListener('click', function(e){ e.stopPropagation(); setWidgetBgStyle(key, btn.dataset.bgStyle); });
+    });
+    bindSmoothRange($(key + 'GlassBlurRange'), function(v){ setWidgetGlassSetting(key, 'blur', v); }, function(){ scheduleSettingsSave(200); });
+    bindSmoothRange($(key + 'GlassTransparencyRange'), function(v){ setWidgetGlassSetting(key, 'transparency', v); }, function(){ scheduleSettingsSave(200); });
+  });
   $$('.js-chat-appearance-back').forEach(function(btn){ btn.addEventListener('click', closeChatAppearance); });
   $$('.chat-theme-option').forEach(function(btn){
     btn.addEventListener('click', function(){ setChatAppearance(btn.dataset.chatAppearanceChoice); });

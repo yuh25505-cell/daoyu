@@ -1,9 +1,13 @@
 /* 岛屿 · 拍立得 · 桌面「拍立得」小组件（2×2：叠放的两张相纸，上面一张的照片可导入本地图片）
- * 与 js-apps-polaroid.js 对应。占主屏幕网格右下 2×2（第 5–6 行、第 3–4 列）。 */
+ * 与 js-apps-polaroid.js 对应。占主屏幕网格 2×2（默认在右下，第 3–4 列），行位置由网格自动排布，上方组件关闭后会自动上移。 */
 
-.home-polaroid-widget{ display:block; grid-column:3 / span 2; grid-row:5 / span 2; min-width:0; min-height:0; }
+.home-polaroid-widget{ display:block; grid-column:3 / span 2; grid-row:span 2; min-width:0; min-height:0; }
 
 .home[data-widget-polaroid="off"] .home-polaroid-widget{ display:none; }
+
+/* 关掉拍立得后，右下角不再留空：备忘录 / 天气 / 时钟 / 设置 的 2×2 外框取消（display:contents），
+ * 4 个图标直接并入主网格，跟在前面的图标后面依次补位；再打开拍立得，外框恢复，回到原来的位置。 */
+.home[data-widget-polaroid="off"] .home-app-block{ display:contents; }
 
 .polaroid-widget{
   position:relative; box-sizing:border-box; width:100%; height:100%; overflow:hidden;
@@ -17,11 +21,11 @@
   border-radius:4px; background:#fff;
 }
 
-.polaroid-back{ transform:rotate(5deg) translate(3%,-1%); background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.polaroid-back{ transform:rotate(5deg) translate(3%,-1%); background:#fff; box-shadow:none; }
 
 .polaroid-card{
   position:relative; display:flex; flex-direction:column; justify-content:flex-start; align-items:stretch; padding:4% 4% 0; transform:rotate(-4deg);
-  box-shadow:0 3px 12px rgba(0,0,0,.28); transition:opacity .2s ease;
+  box-shadow:none; transition:opacity .2s ease;
 }
 
 .polaroid-photo{
@@ -50,4 +54,11 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .polaroid-img{ filte
   text-align:center; color:#6f6d69; caret-color:#6f6d69; user-select:text; -webkit-user-select:text;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Noto Sans Symbols 2","Noto Sans Kannada","Microsoft YaHei",sans-serif;
   font-size:calc(11px * var(--island-font-size-scale)); line-height:1; letter-spacing:0;
+}
+
+/* 背景样式「毛玻璃」：磨砂的是相纸后面的整块组件底板，两张相纸本身仍是白色。 */
+.home[data-polaroid-bg="glass"] .polaroid-widget{
+  background:rgba(255,255,255,calc(var(--cal-glass-base,.72) * var(--polaroid-glass-k,.6)));
+  backdrop-filter:blur(var(--polaroid-glass-blur,20px)) saturate(1.6); -webkit-backdrop-filter:blur(var(--polaroid-glass-blur,20px)) saturate(1.6);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,var(--cal-glass-edge,.5)), inset 0 1px 0 rgba(255,255,255,calc(var(--cal-glass-edge,.5) + .1));
 }

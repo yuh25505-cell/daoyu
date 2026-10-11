@@ -11,16 +11,24 @@ function tick(){
 
 /* 主屏幕 4×6 网格：行高 = 一个应用图标格（图标 + 名称）的实际高度。
  * 日历（4×2）、音乐（2×2）按网格跨行，高度因此自动跟随图标大小 / 名称开关 / 字号。 */
+/* 组件（日历 4×2 / 音乐 2×2 / 拍立得 2×2）占两行，高度 = 2×行高 + 行距。
+ * 关闭图标名称后一个图标格只剩图标本身（约 58px），两行只有 ~130px，日历月历、音乐控制栏会被挤扁、裁掉。
+ * 因此行高设一个下限，保证两行高度不低于 WIDGET_MIN_H；开着名称时行高本来就更高，不受影响。 */
+var WIDGET_MIN_H = 156;
+
 function syncHomeGridRows(){
   var home = $('home');
   var grid = $('homeGrid');
   var app = grid && grid.querySelector('.app');
   if (!home || !app) return;
-  var rowH = app.offsetHeight;
-  if (!rowH) return;
+  var rowMeasured = app.offsetHeight;
+  if (!rowMeasured) return;
+  var rowFor = function(g){ return Math.max(rowMeasured, Math.ceil((WIDGET_MIN_H - g) / 2)); };
+  var rowH = rowMeasured;
   /* 主屏幕不再上下滚动：先按默认行距量，若 6 行放不进可用高度（小屏手机），就把行距收紧到刚好放下。 */
   home.style.removeProperty('--home-gap-y');
   var gap = parseFloat(getComputedStyle(grid).rowGap) || 0;
+  rowH = rowFor(gap);
   var body = grid.parentElement;
   if (body) {
     var cs = getComputedStyle(body);
@@ -28,6 +36,7 @@ function syncHomeGridRows(){
     if (avail > 0 && rowH * 6 + gap * 5 > avail) {
       gap = Math.max(4, Math.floor((avail - rowH * 6) / 5));
       home.style.setProperty('--home-gap-y', gap + 'px');
+      rowH = rowFor(gap); /* 行距收紧后，两行高度会变小，行高相应补回去 */
     }
   }
   home.style.setProperty('--home-row-h', rowH + 'px');
@@ -235,6 +244,7 @@ function applyHomeAppearance(){
     home.setAttribute('data-widget-calendar', a.widgets.calendar && a.widgets.calendar.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-music', a.widgets.music && a.widgets.music.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-polaroid', a.widgets.polaroid && a.widgets.polaroid.enabled ? 'on' : 'off');
+    applyCalendarWidgetStyle(a);
   }
   var dock = document.querySelector('.dock');
   if (dock) {
@@ -316,6 +326,7 @@ function renderHomeAppearanceOptions(){
   if (dimIconLock) { dimIconLock.classList.toggle('is-on', a.dimDarkIconLocked); dimIconLock.setAttribute('aria-pressed', a.dimDarkIconLocked ? 'true' : 'false'); dimIconLock.textContent = a.dimDarkIconLocked ? '已锁定' : '锁定'; }
   var wallpaperState = $('wallpaperState');
   if (wallpaperState) wallpaperState.textContent = a.wallpaperData ? '已使用本地图片' : '未选择本地图片';
+  renderCalendarStyleControls(a);
   $$('.widget-card').forEach(function(card){
     var key = card.dataset.widgetCard;
     var cfg = a.widgets[key] || {enabled:false,size:'medium'};
@@ -726,6 +737,87 @@ function setHomeIconLabels(on){
   a.iconLabels = !!on;
   queueHomeAppearanceApply();
 }
+
+
+/* ---------- 组件背景：默认 / 毛玻璃（日历 / 音乐 / 拍立得通用）---------- */
+/* 每个组件各有一套：属性 data-<前缀>-bg 决定用不用毛玻璃，变量 --<前缀>-glass-blur / --<前缀>-glass-k 决定模糊与透明。
+ * 控件 id：<key>BgChips（样式按钮）、<key>GlassControls（拉条容器）、<key>GlassBlurRange/Value、<key>GlassTransparencyRange/Value。 */
+var GLASS_WIDGETS = { calendar: 'cal', music: 'music', polaroid: 'polaroid' };
+
+function widgetGlassConfig(a, key){
+  var c = a && a.widgets && a.widgets[key];
+  return {
+    style: c && c.bgStyle === 'glass' ? 'glass' : 'default',
+    blur: c && Number.isFinite(Number(c.glassBlur)) ? Number(c.glassBlur) : 20,
+    transparency: c && Number.isFinite(Number(c.glassTransparency)) ? Number(c.glassTransparency) : 40
+  };
+}
+
+function calendarWidgetConfig(a){ return widgetGlassConfig(a, 'calendar'); }
+
+/* 把样式写到桌面（拉条拖动时也走这里，很轻） */
+function applyWidgetGlassStyle(a, key){
+  var home = $('home'); if (!home) return;
+  var p = GLASS_WIDGETS[key]; if (!p) return;
+  var c = widgetGlassConfig(a || normalizeHomeAppearance(), key);
+  if (home.getAttribute('data-' + p + '-bg') !== c.style) home.setAttribute('data-' + p + '-bg', c.style);
+  home.style.setProperty('--' + p + '-glass-blur', c.blur + 'px');
+  home.style.setProperty('--' + p + '-glass-k', String(Math.max(0, Math.min(1, 1 - c.transparency / 100))));
+}
+
+function applyCalendarWidgetStyle(a){
+  a = a || normalizeHomeAppearance();
+  Object.keys(GLASS_WIDGETS).forEach(function(key){ applyWidgetGlassStyle(a, key); });
+}
+
+function renderWidgetGlassSlider(rangeId, valueId, value, max, unit){
+  var range = $(rangeId), valueEl = $(valueId);
+  if (range) {
+    if (document.activeElement !== range) range.value = String(value);
+    range.style.setProperty('--dock-range-pct', (value / max * 100) + '%');
+  }
+  if (valueEl) valueEl.textContent = value + unit;
+}
+var renderCalendarGlassSlider = renderWidgetGlassSlider;
+
+function renderWidgetGlassSliders(a, key){
+  var c = widgetGlassConfig(a, key);
+  renderWidgetGlassSlider(key + 'GlassBlurRange', key + 'GlassBlurValue', c.blur, 40, 'px');
+  renderWidgetGlassSlider(key + 'GlassTransparencyRange', key + 'GlassTransparencyValue', c.transparency, 100, '%');
+}
+
+function renderCalendarStyleControls(a){
+  Object.keys(GLASS_WIDGETS).forEach(function(key){
+    var c = widgetGlassConfig(a, key);
+    $$('#' + key + 'BgChips [data-bg-style]').forEach(function(btn){
+      var on = btn.dataset.bgStyle === c.style;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    var box = $(key + 'GlassControls'); if (box) box.hidden = c.style !== 'glass';
+    renderWidgetGlassSliders(a, key);
+  });
+}
+
+function setWidgetBgStyle(key, style){
+  var a = normalizeHomeAppearance();
+  if (!a.widgets[key]) return;
+  a.widgets[key].bgStyle = style === 'glass' ? 'glass' : 'default';
+  queueHomeAppearanceApply();
+}
+function setCalendarBgStyle(style){ setWidgetBgStyle('calendar', style); }
+
+/* 拉条拖动：只改变量与数值，不整屏重应用；松手后统一存盘 */
+function setWidgetGlassSetting(key, kind, value){
+  var a = State.settings && State.settings.homeAppearance;
+  if (!a || !a.widgets || !a.widgets[key]) return;
+  var n = Number(value); if (!Number.isFinite(n)) return;
+  if (kind === 'blur') a.widgets[key].glassBlur = Math.max(0, Math.min(40, Math.round(n)));
+  else a.widgets[key].glassTransparency = Math.max(0, Math.min(100, Math.round(n)));
+  applyWidgetGlassStyle(a, key);
+  renderWidgetGlassSliders(a, key);
+}
+function setCalendarGlassSetting(kind, value){ setWidgetGlassSetting('calendar', kind, value); }
 
 
 function setWidgetEnabled(key, on){

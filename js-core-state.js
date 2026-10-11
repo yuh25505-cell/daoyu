@@ -34,9 +34,10 @@ var DEFAULT_HOME_APPEARANCE = {
   dockRadius: 5, dockTransparency: 0, dockBlur: 16, dockRadiusLocked: false, dockTransparencyLocked: false, dockBlurLocked: false,
   wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '', polaroidPhoto: '', polaroidCaption: '⌯>ᴗ<⌯ಣ',
   widgets: {
-    calendar: { enabled: true, size: 'large' },
-    music: { enabled: true, size: 'medium' },
-    polaroid: { enabled: true, size: 'medium' }
+    /* bgStyle：default＝原来的深色/浅色卡片（默认）；glass＝毛玻璃。glassBlur 模糊度 0–40px；glassTransparency 透明度 0–100%（越大越透） */
+    calendar: { enabled: true, size: 'large', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
+    music: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
+    polaroid: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 }
   }
 };
 
@@ -338,6 +339,11 @@ function normalizeHomeAppearance(){
     if (src) {
       base.widgets[key].enabled = src.enabled !== false;
       base.widgets[key].size = ['small','medium','large'].indexOf(src.size) >= 0 ? src.size : base.widgets[key].size;
+      /* 三个组件都支持“默认 / 毛玻璃”背景：旧存档没有这些字段，沿用默认值 */
+      var gw = base.widgets[key];
+      gw.bgStyle = src.bgStyle === 'glass' ? 'glass' : 'default';
+      gw.glassBlur = sliderNum(src.glassBlur, 0, 40, gw.glassBlur);
+      gw.glassTransparency = sliderNum(src.glassTransparency, 0, 100, gw.glassTransparency);
     }
   });
   base.widgets.calendar.enabled = widgets.calendar ? widgets.calendar.enabled !== false : true;
