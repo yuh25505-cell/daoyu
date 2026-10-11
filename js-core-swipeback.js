@@ -196,7 +196,7 @@
    * 页面全部关闭后把多余的记录退掉，回到桌面时再按返回才会真正退出。
    * ==================================================================== */
   var guard = false, ignorePop = false, syncQueued = false;
-  var nativeMode = false;   /* APK 内：改用 Capacitor 原生返回键事件，不再用历史记录哨兵 */
+  var nativeMode = false;   /* APK 内：由原生 MainActivity 接管返回键，不再用历史记录哨兵 */
 
   function anythingOpen(){ return !!(getTopLayer() || getModal() || panelOpen()); }
 
@@ -231,35 +231,25 @@
     syncHistory();                /* 还有页面开着就重新压入哨兵 */
   });
 
-  /* APK（Capacitor）：安卓 WebView 会跳过没有用户操作时压入的历史记录，系统返回会直接退出应用，
-   * 所以改为监听原生 backButton 事件，自己决定“退一层”还是“退出”。 */
-  function registerNativeBack(){
+  /* APK（Capacitor）：返回键由原生 MainActivity 拦截，再调用下面的 IslandSwipeBack.handleBack()。
+   * 返回 true = 前端已处理（关了弹窗 / 退了一层 / 语音通话中被拦下）；
+   * 返回 false = 已在桌面，原生侧自己把应用退到后台。
+   * 安卓 WebView 不认“没有用户操作时压入的历史记录”，所以 APK 里不再使用历史记录哨兵。 */
+  function detectNative(){
     var C = window.Capacitor;
-    if (!C || typeof C.isNativePlatform !== 'function' || !C.isNativePlatform()) return;
-    function appCall(method){
-      try {
-        var A = (C.Plugins && C.Plugins.App) || (typeof C.registerPlugin === 'function' ? C.registerPlugin('App') : null);
-        if (A && typeof A[method] === 'function') return A[method]();
-        if (typeof C.nativePromise === 'function') return C.nativePromise('App', method, {});
-      } catch(_) {}
-    }
-    function onBack(){
-      try {
-        if (anythingOpen()) { systemBack(); return; }
-      } catch(err) { console.error('[岛屿] 返回键处理失败：', err); }
-      appCall('exitApp');   /* 已在桌面：和原来一样退出 */
-    }
+    try { nativeMode = !!(C && typeof C.isNativePlatform === 'function' && C.isNativePlatform()); } catch(_) { nativeMode = false; }
+  }
+
+  function handleBack(){
     try {
-      if (typeof C.addListener === 'function') { C.addListener('App', 'backButton', onBack); nativeMode = true; }
-      else {
-        var A = (C.Plugins && C.Plugins.App) || (typeof C.registerPlugin === 'function' ? C.registerPlugin('App') : null);
-        if (A && typeof A.addListener === 'function') { A.addListener('backButton', onBack); nativeMode = true; }
-      }
-    } catch(err) { console.error('[岛屿] 注册原生返回键失败：', err); }
+      if (!anythingOpen()) return false;
+      systemBack();
+      return true;
+    } catch(err) { console.error('[岛屿] 返回键处理失败：', err); return false; }
   }
 
   function start(){
-    registerNativeBack();
+    detectNative();
     if (!window.MutationObserver) return;
     new MutationObserver(queueSync).observe(document.body, { attributes:true, subtree:true, attributeFilter:['class', 'hidden'] });
     queueSync();
@@ -267,5 +257,5 @@
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 
   /* 供其他脚本或调试使用 */
-  window.IslandSwipeBack = { back:systemBack };
+  window.IslandSwipeBack = { back:systemBack, handleBack:handleBack };
 })();

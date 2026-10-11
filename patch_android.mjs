@@ -428,6 +428,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.webkit.WebView;
 
+import androidx.activity.OnBackPressedCallback;
+
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -453,6 +455,29 @@ public class MainActivity extends BridgeActivity {
         // 冷启动：被通知拉起时把链接放进待处理，页面加载完成后由前端取走。
         // savedInstanceState != null 只是系统重建（如旋转），不应重复打开。
         if (savedInstanceState == null) rememberDeepLink(getIntent());
+
+        // 返回键 / 返回手势（全面屏手势、三键导航都走这里）：
+        // 先问前端有没有可以退的一层（弹窗、页面、子页面），有就由前端处理；
+        // 前端说已经在桌面了，才把应用退到后台。回调在 super.onCreate 之后添加，优先于默认处理。
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleIslandBack();
+            }
+        });
+    }
+
+    private void handleIslandBack() {
+        final WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+        if (webView == null) {
+            moveTaskToBack(true);
+            return;
+        }
+        webView.evaluateJavascript(
+            "(function(){try{return !!(window.IslandSwipeBack&&window.IslandSwipeBack.handleBack());}catch(e){return false;}})()",
+            value -> {
+                if (!"true".equals(value)) moveTaskToBack(true);
+            });
     }
 
     @Override
