@@ -59,6 +59,7 @@ const APP_SHELL = [
   './js-apps-weather.js',
   './js-apps-clock.js',
   './js-apps-browser.js',
+  './js-core-systembars.js',
   './js-main.js',
   './js-core-swipeback.js',
   './keep-alive.js',

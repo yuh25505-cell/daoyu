@@ -204,6 +204,25 @@ public class IslandNativePlugin extends Plugin {
         call.resolve(result);
     }
 
+    // ---- 系统栏（状态栏 / 导航栏）图标颜色：由前端按"栏下方实际画面"的明暗来决定 ----
+    // 只改图标深浅，不改栏的背景，保持与软件融为一体（安卓原生 WindowInsetsController）。
+    @PluginMethod
+    public void setSystemBarStyle(PluginCall call) {
+        final boolean lightStatus = Boolean.TRUE.equals(call.getBoolean("lightStatusBar", false));
+        final boolean lightNav = Boolean.TRUE.equals(call.getBoolean("lightNavigationBar", lightStatus));
+        MainActivity.lightStatusBar = lightStatus;
+        MainActivity.lightNavigationBar = lightNav;
+        final android.app.Activity activity = getActivity();
+        if (activity == null) {
+            call.resolve();
+            return;
+        }
+        activity.runOnUiThread(() -> {
+            MainActivity.applySystemBars(activity);
+            call.resolve();
+        });
+    }
+
     // ---- Save exported files (backups) into the phone's Download/${appName} folder ----
 
     @PluginMethod
@@ -442,6 +461,44 @@ public class MainActivity extends BridgeActivity {
      * IslandNative.consumeDeepLink() 取走，由前端直接切换到对应聊天。
      */
     public static volatile String pendingDeepLink = null;
+
+    /**
+     * 系统栏图标深浅：true = 栏下方是浅色画面，用深色图标；false = 深色画面，用浅色图标；null = 前端还没告知。
+     * 记在这里是因为系统在回到前台、切换深色模式时可能把图标颜色重置，需要原样再套一次。
+     */
+    public static volatile Boolean lightStatusBar = null;
+    public static volatile Boolean lightNavigationBar = null;
+
+    public static void applySystemBars(final android.app.Activity activity) {
+        if (activity == null) return;
+        Boolean ls = lightStatusBar;
+        Boolean ln = lightNavigationBar;
+        if (ls == null && ln == null) return;
+        android.view.Window window = activity.getWindow();
+        androidx.core.view.WindowInsetsControllerCompat controller =
+            androidx.core.view.WindowCompat.getInsetsController(window, window.getDecorView());
+        if (controller == null) return;
+        if (ls != null) controller.setAppearanceLightStatusBars(ls);
+        if (ln != null) controller.setAppearanceLightNavigationBars(ln);
+    }
+
+    private void reapplySystemBars() {
+        final android.view.View decor = getWindow().getDecorView();
+        decor.post(() -> applySystemBars(this));
+        decor.postDelayed(() -> applySystemBars(this), 300);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        reapplySystemBars();
+    }
+
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        reapplySystemBars();
+    }
 
     @Override
     public void load() {
