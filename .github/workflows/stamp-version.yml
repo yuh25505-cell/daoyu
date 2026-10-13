@@ -1,0 +1,44 @@
+name: Stamp web build version
+
+# 网页版「检查更新」靠线上的 version.json 判断有没有新版本。
+# 每次推送后，这里自动重新计算构建号并提交 version.json / js-core-version.js / sw.js；
+# 如果你已经在本地跑过 `npm run stamp`，内容不变就不会产生新提交。
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - version.json
+      - js-core-version.js
+
+permissions:
+  contents: write
+
+jobs:
+  stamp:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Stamp build version
+        run: node stamp-version.mjs
+
+      - name: Commit stamped files
+        run: |
+          if git diff --quiet -- version.json js-core-version.js sw.js; then
+            echo "Build stamp already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.json js-core-version.js sw.js
+          git commit -m "chore: stamp build version [skip ci]"
+          git push
