@@ -6,6 +6,10 @@
 var IslandDB = (function(){
   var DB_NAME = 'Island', DB_VER = 2, STORE = 'kv', BACKUP_STORE = 'kv_backup';
   var _ready = null, _writeTail = Promise.resolve(), _persistent = false;
+  /* 整库安全快照：和 kv_backup 放在同一个对象库里（键名带前缀，不会和任何数据键冲突），不需要升级数据库版本。
+   * 主库一旦被发现是空的、而快照还在（意外丢失，而不是用户主动清空——主动清空会连快照一起清掉），打开时自动恢复。 */
+  var SNAP_PREFIX = '__snapshot__:', SNAP_SLOTS = ['pre-update', 'daily'];
+  var _recovered = 0;
 
   function storageError(message, cause){
     var err = new Error(message);
@@ -64,12 +68,89 @@ var IslandDB = (function(){
         var db = e.target.result;
         db.onversionchange = function(){ try { db.close(); } catch(err) {} };
         _persistent = true;
-        resolve(db);
+        recoverIfEmpty(db).then(function(){ resolve(db); });
       };
       req.onerror = function(){ fail('本机存储读取失败', req.error); };
       req.onblocked = function(){ fail('本机存储被其他页面占用，请关闭重复打开的岛屿窗口后重试'); };
     });
     return _ready;
+  }
+
+  /* 主库为空但留有安全快照 → 把最新的快照写回主库。任何一步出错都只记录，不影响正常启动。 */
+  function recoverIfEmpty(db){
+    return new Promise(function(done){
+      try {
+        var tx = db.transaction([STORE, BACKUP_STORE], 'readwrite');
+        var store = tx.objectStore(STORE), backup = tx.objectStore(BACKUP_STORE);
+        var countReq = store.count();
+        countReq.onsuccess = function(){
+          if (countReq.result > 0) return;
+          var best = null, pending = SNAP_SLOTS.length;
+          SNAP_SLOTS.forEach(function(slot){
+            var r = backup.get(SNAP_PREFIX + slot);
+            r.onsuccess = function(){
+              var snap = r.result && r.result.value;
+              if (snap && Array.isArray(snap.rows) && snap.rows.length && (!best || snap.savedAt > best.savedAt)) best = snap;
+              if (--pending === 0 && best) {
+                best.rows.forEach(function(row){ if (row && row.key) store.put({ key:row.key, value:row.value, savedAt:Date.now() }); });
+                _recovered = best.rows.length;
+                console.warn('[岛屿] 主数据为空，已从安全快照恢复 ' + best.rows.length + ' 项（快照时间 ' + new Date(best.savedAt).toLocaleString() + '）');
+              }
+            };
+          });
+        };
+        tx.oncomplete = function(){ done(); };
+        tx.onerror = tx.onabort = function(){ console.warn('[岛屿] 安全快照恢复检查失败', tx.error); done(); };
+      } catch(e){ done(); }
+    });
+  }
+
+  /* 给全部主数据拍一张快照（同一个槽位只留最新一张）。体积大时可能因配额失败：失败返回 false，不抛错。 */
+  function snapshot(slot){
+    slot = SNAP_SLOTS.indexOf(slot) >= 0 ? slot : 'daily';
+    return enqueue(function(){
+      return open().then(function(db){
+        return new Promise(function(resolve){
+          try {
+            var tx = db.transaction([STORE, BACKUP_STORE], 'readwrite');
+            var req = tx.objectStore(STORE).getAll();
+            req.onsuccess = function(){
+              var rows = (Array.isArray(req.result) ? req.result : []).filter(function(r){ return r && r.key; })
+                .map(function(r){ return { key:r.key, value:r.value }; });
+              if (!rows.length) return;   /* 空库不拍快照，免得把有用的旧快照盖掉 */
+              tx.objectStore(BACKUP_STORE).put({ key:SNAP_PREFIX + slot, value:{ slot:slot, savedAt:Date.now(), count:rows.length, rows:rows }, savedAt:Date.now() });
+            };
+            tx.oncomplete = function(){ resolve(true); };
+            tx.onerror = tx.onabort = function(){ console.warn('[岛屿] 快照写入失败：', tx.error); resolve(false); };
+          } catch(e){ resolve(false); }
+        });
+      });
+    }).catch(function(){ return false; });
+  }
+
+  function snapshotInfo(){
+    return open().then(function(db){
+      return new Promise(function(resolve){
+        try {
+          var tx = db.transaction(BACKUP_STORE, 'readonly'), store = tx.objectStore(BACKUP_STORE), out = {}, pending = SNAP_SLOTS.length;
+          SNAP_SLOTS.forEach(function(slot){
+            var r = store.get(SNAP_PREFIX + slot);
+            r.onsuccess = function(){ var v = r.result && r.result.value; if (v) out[slot] = { savedAt:v.savedAt, count:v.count }; if (--pending === 0) resolve(out); };
+            r.onerror = function(){ if (--pending === 0) resolve(out); };
+          });
+        } catch(e){ resolve({}); }
+      });
+    }).catch(function(){ return {}; });
+  }
+
+  /* 请求"持久化存储"：浏览器在磁盘紧张时不会自动清掉岛屿的数据。返回 Promise<boolean|null>（null = 浏览器不支持）。 */
+  function requestPersistent(){
+    try {
+      if (!(navigator.storage && navigator.storage.persist)) return Promise.resolve(null);
+      return navigator.storage.persisted().then(function(already){
+        return already ? true : navigator.storage.persist();
+      }).catch(function(){ return null; });
+    } catch(e){ return Promise.resolve(null); }
   }
 
   function get(key){
@@ -207,5 +288,7 @@ var IslandDB = (function(){
   function flush(){ return _writeTail.catch(function(){ return undefined; }); }
   function isPersistent(){ return _persistent; }
 
-  return { open:open, get:get, set:set, remove:remove, clear:clear, wipeAll:wipeAll, replaceAll:replaceAll, list:list, flush:flush, isPersistent:isPersistent };
+  function recoveredCount(){ return _recovered; }
+
+  return { snapshot:snapshot, snapshotInfo:snapshotInfo, requestPersistent:requestPersistent, recoveredCount:recoveredCount, open:open, get:get, set:set, remove:remove, clear:clear, wipeAll:wipeAll, replaceAll:replaceAll, list:list, flush:flush, isPersistent:isPersistent };
 })();

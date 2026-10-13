@@ -64,7 +64,7 @@ function getSystemTheme(){
  * 配合 css-apps-home.css 里 .app-icon.is-liquid 的折射、边缘高光与内发光。 */
 var LIQUID_GLYPHS = {
   '聊天': '<path d="M12 3.2c-5 0-9 3.4-9 7.6 0 2.3 1.2 4.3 3.1 5.7-.1 1.3-.7 2.5-1.6 3.4-.3.3-.1.9.4.9 2-.2 3.7-1 4.7-1.7.8.2 1.6.2 2.4.2 5 0 9-3.4 9-7.6S17 3.2 12 3.2z"/>',
-  '通讯录': '<circle cx="12" cy="7.6" r="4.2"/><path d="M3.8 19.6c0-3.9 3.6-6.6 8.2-6.6s8.2 2.7 8.2 6.6c0 .7-.5 1.2-1.2 1.2H5c-.7 0-1.2-.5-1.2-1.2z"/>',
+  '屿年': '<path d="M2.5999999999999996 17.2A9.4 9.4 0 0 1 21.4 17.2H19.4A7.4 7.4 0 0 0 4.6 17.2Z"/><path d="M5.8 17.2A6.2 6.2 0 0 1 18.2 17.2H16.2A4.2 4.2 0 0 0 7.8 17.2Z"/><path d="M9.0 17.2A3.0 3.0 0 0 1 15.0 17.2Z"/><path d="M19.4 2.6l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85z"/>',
   '相册': '<path fill-rule="evenodd" d="M5.6 3.6h12.8A2.6 2.6 0 0 1 21 6.2v11.6a2.6 2.6 0 0 1-2.6 2.6H5.6A2.6 2.6 0 0 1 3 17.8V6.2a2.6 2.6 0 0 1 2.6-2.6zM9 7.4a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM5.2 18l4.1-4.7 3 3 2.5-2.8L19 18z"/>',
   '日历': '<path fill-rule="evenodd" d="M7.2 2.6c.6 0 1 .4 1 1V5h7.6V3.6c0-.6.4-1 1-1s1 .4 1 1V5h.2A2.8 2.8 0 0 1 21 7.8v10.4a2.8 2.8 0 0 1-2.8 2.8H5.8A2.8 2.8 0 0 1 3 18.2V7.8A2.8 2.8 0 0 1 5.8 5H6.2V3.6c0-.6.4-1 1-1zM6.8 10.8h2.4v2.4H6.8zm4 0h2.4v2.4h-2.4zm4 0h2.4v2.4h-2.4zM6.8 15.2h2.4v2.4H6.8zm4 0h2.4v2.4h-2.4z"/>',
   '备忘录': '<path fill-rule="evenodd" d="M7.4 3h9.2A3.4 3.4 0 0 1 20 6.4v11.2a3.4 3.4 0 0 1-3.4 3.4H7.4A3.4 3.4 0 0 1 4 17.6V6.4A3.4 3.4 0 0 1 7.4 3zM8 7.6h8v1.7H8zm0 3.6h8v1.7H8zm0 3.6h5v1.7H8z"/>',
@@ -72,7 +72,7 @@ var LIQUID_GLYPHS = {
   '时钟': '<path fill-rule="evenodd" d="M12 2.4a9.6 9.6 0 1 0 0 19.2 9.6 9.6 0 0 0 0-19.2zM11 6.4h2v5.4l3.5 2.1-1 1.7-4.5-2.7z"/>',
   '设置': '<g id="lqTeeth"><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(45 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(90 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(135 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(180 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(225 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(270 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(315 12 12)"/></g><path fill-rule="evenodd" d="M12 4.6a7.4 7.4 0 1 0 0 14.8 7.4 7.4 0 0 0 0-14.8zM12 8.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z"/>',
   '电话': '<path transform="rotate(-135 12 12)" d="M3.2 9.4c0-1.2.6-2 1.7-2.5 4.2-1.7 10.7-1.7 14.2 0 1.1.5 1.7 1.3 1.7 2.5v1.3c0 .9-.6 1.5-1.5 1.6l-2.6.3c-.8.1-1.4-.4-1.5-1.2l-.2-1.7c-.1-.5-.4-.8-.9-.9-1.3-.2-2.6-.2-3.9 0-.5.1-.8.4-.9.9l-.2 1.7c-.1.8-.7 1.3-1.5 1.2l-2.6-.3c-.9-.1-1.5-.7-1.5-1.6z"/>',
-  '浏览器': '<path fill-rule="evenodd" d="M12 2.4a9.6 9.6 0 1 0 0 19.2 9.6 9.6 0 0 0 0-19.2zM16.4 7.6l-2.2 6.6-6.6 2.2 2.2-6.6z"/>',
+  '倒数日': '<path d="M2.91 15.83Q4.7 14.34 5.74 13.39Q6.78 12.43 7.49 11.39Q8.21 10.34 8.21 9.35Q8.21 8.6 7.86 8.17Q7.51 7.75 6.82 7.75Q6.12 7.75 5.72 8.27Q5.33 8.8 5.33 9.75H2.3Q2.34 8.19 2.97 7.15Q3.6 6.1 4.64 5.6Q5.68 5.11 6.94 5.11Q9.13 5.11 10.24 6.23Q11.35 7.35 11.35 9.15Q11.35 11.11 10.01 12.79Q8.67 14.47 6.59 16.07H11.55V18.62H2.34V16.29Q2.96 15.79 2.91 15.83ZM17.11 5.09Q18.49 5.09 19.47 5.57Q20.45 6.04 20.96 6.87Q21.46 7.7 21.46 8.72Q21.46 9.94 20.86 10.7Q20.25 11.46 19.44 11.73V11.81Q20.49 12.16 21.09 12.96Q21.7 13.77 21.7 15.04Q21.7 16.18 21.18 17.05Q20.65 17.92 19.65 18.41Q18.65 18.91 17.28 18.91Q15.07 18.91 13.76 17.83Q12.45 16.74 12.38 14.56H15.42Q15.44 15.37 15.88 15.84Q16.32 16.3 17.17 16.3Q17.88 16.3 18.28 15.89Q18.67 15.48 18.67 14.8Q18.67 13.92 18.11 13.52Q17.55 13.13 16.32 13.13H15.74V10.58H16.32Q17.26 10.58 17.84 10.26Q18.41 9.94 18.41 9.11Q18.41 8.45 18.05 8.08Q17.68 7.71 17.04 7.71Q16.34 7.71 16 8.14Q15.66 8.56 15.61 9.18H12.54Q12.61 7.22 13.83 6.15Q15.04 5.09 17.11 5.09Z"/>',
   '世界书': '<path d="M2.8 5.8c3.1-.9 6.2-.6 8.4 1v13c-2.3-1.5-5.4-1.8-8.4-.9z"/><path d="M21.2 5.8c-3.1-.9-6.2-.6-8.4 1v13c2.3-1.5 5.4-1.8 8.4-.9z"/>',
   '音乐': '<ellipse cx="7" cy="17.8" rx="3.1" ry="2.7"/><ellipse cx="17" cy="15.8" rx="3.1" ry="2.7"/><rect x="8.9" y="5.6" width="2" height="12.2"/><rect x="18.9" y="3.6" width="2" height="12.2"/><path d="M8.9 5.2l12-2.6v4l-12 2.6z"/>'
 };
@@ -97,7 +97,7 @@ function setAppIconVisual(iconEl, appName, imageData){
   var liquid = getHomeIconTheme() === 'glass';
   var flat = getHomeIconTheme() === 'borderless';
   /* 主题 / 名称 / 自定义图片都没变就不重建：开关一点就把 12 个玻璃图标（含 SVG、遮罩）全部拆了重建，是卡顿来源之一 */
-  var visKey = (liquid ? 'g' : flat ? 'f' : 'n') + '|' + appName;
+  var visKey = (liquid ? 'g' : 'f') + '|' + appName;
   if (iconEl.__visKey === visKey && iconEl.__visData === (imageData || '') && iconEl.firstChild) return;
   iconEl.__visKey = visKey;
   iconEl.__visData = imageData || '';
@@ -133,17 +133,16 @@ function setAppIconVisual(iconEl, appName, imageData){
     fh.setAttribute('aria-hidden', 'true');
     fh.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor">' + LIQUID_GLYPHS[appName] + '</svg>';
     iconEl.appendChild(fh);
-  } else {
-    var glyph = document.createElement('span');
-    glyph.className = 'app-glyph';
-    glyph.textContent = appName.charAt(0);
-    glyph.setAttribute('aria-hidden', 'true');
-    iconEl.appendChild(glyph);
   }
 }
 
 
+/* 启动时第一次 applyHomeAppearance 用的是默认设置，若此时就画图标，会先闪一下默认主题的底板/边框，
+ * 读到用户真正的主题后再换掉。所以在存档读完之前不画桌面图标，读完后一次画对。 */
+var HOME_ICONS_READY = false;
+
 function renderHomeAppIcons(){
+  if (!HOME_ICONS_READY) return;
   var a = normalizeHomeAppearance();
   $$('.home .app').forEach(function(app){
     var icon = app.querySelector('.app-icon');

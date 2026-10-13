@@ -1,5 +1,7 @@
 const CACHE_VERSION = '__CACHE_VERSION__';
 const CACHE_NAME = `island-${CACHE_VERSION}`;
+// 由 stamp-version.mjs 自动写入：每次发布内容变化，sw.js 的字节也跟着变，浏览器就能发现新版本。
+const BUILD_STAMP = '1.58.0-13acdef2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -13,14 +15,15 @@ const APP_SHELL = [
   './css-apps-phone.css',
   './css-apps-worldbook.css',
   './css-apps-settings.css',
-  './css-apps-browser.css',
+  './css-apps-countdown.css',
   './css-apps-calendar.css',
   './css-apps-clock.css',
-  './css-apps-contacts.css',
+  './css-apps-yunian.css',
   './css-apps-gallery.css',
   './css-apps-notes.css',
   './css-apps-weather.css',
   './jszip.min.js',
+  './js-core-version.js',
   './js-core-util.js',
   './js-core-storage.js',
   './js-core-state.js',
@@ -28,6 +31,7 @@ const APP_SHELL = [
   './js-core-notifications.js',
   './js-core-ai.js',
   './js-core-apps.js',
+  './js-core-update.js',
   './js-apps-home.js',
   './js-apps-chat-language.js',
   './js-apps-chat-extras.js',
@@ -52,13 +56,13 @@ const APP_SHELL = [
   './js-apps-settings-api.js',
   './js-apps-settings-fonts.js',
   './js-apps-settings-backup.js',
-  './js-apps-contacts.js',
+  './js-apps-yunian.js',
   './js-apps-gallery.js',
   './js-apps-calendar.js',
   './js-apps-notes.js',
   './js-apps-weather.js',
   './js-apps-clock.js',
-  './js-apps-browser.js',
+  './js-apps-countdown.js',
   './js-core-systembars.js',
   './js-main.js',
   './js-core-swipeback.js',
@@ -108,6 +112,8 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // 版本文件只走网络、不进缓存：离线时检查更新应当失败，而不是读到旧缓存谎称"已是最新"。
+  if (url.pathname.endsWith('/version.json')) { event.respondWith(fetch(request)); return; }
 
   event.respondWith(
     fetch(request)

@@ -37,6 +37,23 @@ function flushSafetyState(){
 }
 
 
+/* 存档读完后的数据保护：① 申请持久化存储；② 若本次启动是从安全快照自动恢复的，提示一下；
+ * ③ 每 24 小时在空闲时拍一次整库安全快照（更新前还会另拍一张）。 */
+function protectStorageAfterLoad(){
+  try { IslandDB.requestPersistent(); } catch(e) {}
+  try {
+    var n = IslandDB.recoveredCount();
+    if (n > 0) setTimeout(function(){ toast('检测到本地数据异常为空，已从安全快照恢复 ' + n + ' 项'); }, 4200);
+  } catch(e) {}
+  setTimeout(function(){
+    try {
+      var last = Number(localStorage.getItem('island.snapshot.dailyAt') || 0);
+      if (Date.now() - last < 24 * 3600 * 1000) return;
+      IslandDB.snapshot('daily').then(function(ok){ if (ok) { try { localStorage.setItem('island.snapshot.dailyAt', String(Date.now())); } catch(e) {} } });
+    } catch(e) {}
+  }, 15000);
+}
+
 function init(){
   renderPlayIcon();
   applyChatAppearance();
@@ -47,6 +64,8 @@ function init(){
   refreshChangelog(false);
   /* 启动层动画期间尽量别让主线程连续跑太久：每一段重活之间让出一帧，动画不再被"一口气"卡住。 */
   loadState().then(function(){
+    protectStorageAfterLoad();
+    HOME_ICONS_READY = true;
     applyChatAppearance();
     applyThemePreference();
     applyHomeAppearance();
@@ -68,6 +87,7 @@ function init(){
   }).catch(function(err){
     console.error('[岛屿] 数据加载失败：', err);
     State.settings = clone(DEFAULT_SETTINGS);
+    HOME_ICONS_READY = true;
     normalizeApiPresetState();
     normalizeSecondaryApiPresetState();
     normalizeSttState();
@@ -138,6 +158,7 @@ function bindEvents(){
   bindSettingsApiEvents();
   bindChatPersonaEvents();
   bindSafetyEvents();
+  IslandUpdate.bind();
 }
 
 // PWA service worker

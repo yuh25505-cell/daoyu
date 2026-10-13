@@ -108,3 +108,10 @@
 - Replaced “清空当前短期记忆” with “摘取重要记忆”.
 - Added persistent important-memory extraction from short-term summaries, formatted as `具体年月日时间点：重要记忆`.
 - Important memories are injected into the character reply context and can be deleted individually.
+
+## 检查更新与版本号（网页版 / APK）
+
+- 网页版：设置 › 检查更新（或 设置 › 关于 岛屿 里的更新卡片）。读取线上 `version.json`，和本机 `js-core-version.js` 里的构建号对比；有新版本时可一键更新，刷新后会核对是否真的换成新版，没完全生效会弹窗让你再强制刷新。
+- APK：覆盖安装即可，本地数据保留。务必始终用同一个仓库、同一个签名密钥（`ANDROID_KEYSTORE_*` 密钥）打包，否则系统会拒绝覆盖安装。
+- 构建号由 `node stamp-version.mjs`（`npm run stamp`）生成，写入 `version.json`、`js-core-version.js` 和 `sw.js`。**每次改完代码、推送之前先跑一次**；忘了也没关系，推送后 `.github/workflows/stamp-version.yml` 会自动补一个提交，APK 打包流程也会自己先跑一遍。
+- 更新只替换程序文件，不会碰 IndexedDB / localStorage 里的用户数据；更新前会落盘并拍一张整库安全快照，主库意外为空时启动会自动从快照恢复。

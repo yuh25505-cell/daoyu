@@ -23,10 +23,10 @@
 <link href="./css-apps-phone.css" rel="stylesheet"/>
 <link href="./css-apps-worldbook.css" rel="stylesheet"/>
 <link href="./css-apps-settings.css" rel="stylesheet"/>
-<link href="./css-apps-browser.css" rel="stylesheet"/>
+<link href="./css-apps-countdown.css" rel="stylesheet"/>
 <link href="./css-apps-calendar.css" rel="stylesheet"/>
 <link href="./css-apps-clock.css" rel="stylesheet"/>
-<link href="./css-apps-contacts.css" rel="stylesheet"/>
+<link href="./css-apps-yunian.css" rel="stylesheet"/>
 <link href="./css-apps-gallery.css" rel="stylesheet"/>
 <link href="./css-apps-notes.css" rel="stylesheet"/>
 <link href="./css-apps-weather.css" rel="stylesheet"/>
@@ -179,15 +179,15 @@
 <input accept="image/*" aria-hidden="true" hidden="" id="musicCoverInput" type="file"/>
 </div>
 </section>
-<button class="app" data-app="聊天" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">聊</span></span><span class="app-name">聊天</span></button>
-<button class="app" data-app="通讯录" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">通</span></span><span class="app-name">通讯录</span></button>
-<button class="app" data-app="相册" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">相</span></span><span class="app-name">相册</span></button>
-<button class="app" data-app="日历" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">日</span></span><span class="app-name">日历</span></button>
+<button class="app" data-app="聊天" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">聊天</span></button>
+<button class="app" data-app="屿年" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">屿年</span></button>
+<button class="app" data-app="相册" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">相册</span></button>
+<button class="app" data-app="日历" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">日历</span></button>
 <div class="home-app-block">
-<button class="app" data-app="备忘录" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">备</span></span><span class="app-name">备忘录</span></button>
-<button class="app" data-app="天气" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">天</span></span><span class="app-name">天气</span></button>
-<button class="app" data-app="时钟" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">时</span></span><span class="app-name">时钟</span></button>
-<button class="app" data-app="设置" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">设</span></span><span class="app-name">设置</span></button>
+<button class="app" data-app="备忘录" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">备忘录</span></button>
+<button class="app" data-app="天气" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">天气</span></button>
+<button class="app" data-app="时钟" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">时钟</span></button>
+<button class="app" data-app="设置" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">设置</span></button>
 </div>
 <section aria-label="拍立得" class="home-polaroid-widget" id="homePolaroidWidget">
 <div class="polaroid-widget">
@@ -205,10 +205,10 @@
 </div>
 </section>
 <nav class="dock">
-<button class="app" data-app="电话" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">电</span></span><span class="app-name">电话</span></button>
-<button class="app" data-app="浏览器" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">浏</span></span><span class="app-name">浏览器</span></button>
-<button class="app" data-app="世界书" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">书</span></span><span class="app-name">世界书</span></button>
-<button class="app" data-app="音乐" type="button"><span aria-hidden="true" class="app-icon"><span class="app-glyph">音</span></span><span class="app-name">音乐</span></button>
+<button class="app" data-app="电话" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">电话</span></button>
+<button class="app" data-app="倒数日" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">倒数日</span></button>
+<button class="app" data-app="世界书" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">世界书</span></button>
+<button class="app" data-app="音乐" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">音乐</span></button>
 </nav>
 </main>
 <div aria-hidden="true" class="chat-app" data-chat-appearance="mono" id="chatApp">
@@ -1324,6 +1324,12 @@
 <span>关于 岛屿</span>
 <svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
 </button>
+<button class="me-item" id="checkUpdateRow" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"></path><path d="M20 4.5V9h-4.5"></path></svg>
+<span>检查更新</span>
+<i class="me-status" id="updateRowStatus"></i>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
 </div>
 <div class="settings-section-title">数据备份</div>
 <div class="backup-full-card">
@@ -1529,6 +1535,13 @@
 <div class="about-hero">
 <div class="about-mark">M</div>
 <div><strong>岛屿</strong><span>更新日志</span></div>
+</div>
+<div class="update-card" id="updateCard">
+<div class="update-card-head"><strong>检查更新</strong><span id="updateCardVersion"></span></div>
+<div class="update-card-msg" id="updateCardMsg"></div>
+<div class="update-card-data" id="updateCardData"></div>
+<div class="update-card-data" id="updateCardNative" hidden="">安卓 APK 是覆盖安装更新：下载新版安装包直接安装即可，聊天、人设、设置等本地数据会保留，不需要卸载（请使用同一个仓库、同一签名打出来的 APK）。</div>
+<div class="update-card-actions"><button class="api-btn secondary" id="updateCardCheck" type="button">检查更新</button><button class="api-btn secondary" id="updateCardForce" type="button">强制刷新</button></div>
 </div>
 <div class="settings-section-title">每次更新</div>
 <div class="changelog" id="islandChangelog" data-changelog-source="changelog.json"></div>
@@ -1970,6 +1983,7 @@
 <div class="toast" id="toast"></div>
 <script defer="" src="./jszip.min.js"></script>
 <script defer="" src="./han-pinyin-initials.js"></script>
+<script defer="" src="./js-core-version.js"></script>
 <script defer="" src="./js-core-util.js"></script>
 <script defer="" src="./js-core-storage.js"></script>
 <script defer="" src="./js-core-state.js"></script>
@@ -1977,6 +1991,7 @@
 <script defer="" src="./js-core-notifications.js"></script>
 <script defer="" src="./js-core-ai.js"></script>
 <script defer="" src="./js-core-apps.js"></script>
+<script defer="" src="./js-core-update.js"></script>
 <script defer="" src="./js-apps-home.js"></script>
 <script defer="" src="./js-apps-chat-language.js"></script>
 <script defer="" src="./js-apps-chat-extras.js"></script>
@@ -2001,13 +2016,13 @@
 <script defer="" src="./js-apps-settings-api.js"></script>
 <script defer="" src="./js-apps-settings-fonts.js"></script>
 <script defer="" src="./js-apps-settings-backup.js"></script>
-<script defer="" src="./js-apps-contacts.js"></script>
+<script defer="" src="./js-apps-yunian.js"></script>
 <script defer="" src="./js-apps-gallery.js"></script>
 <script defer="" src="./js-apps-calendar.js"></script>
 <script defer="" src="./js-apps-notes.js"></script>
 <script defer="" src="./js-apps-weather.js"></script>
 <script defer="" src="./js-apps-clock.js"></script>
-<script defer="" src="./js-apps-browser.js"></script>
+<script defer="" src="./js-apps-countdown.js"></script>
 <script defer="" src="./js-core-systembars.js"></script>
 <script defer="" src="./js-main.js"></script>
 <script defer="" src="./js-core-swipeback.js"></script>

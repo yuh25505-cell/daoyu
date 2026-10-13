@@ -501,3 +501,23 @@ html[data-theme="dark"] .settings-panel[data-panel="notifications"] .notificatio
 .changelog-day-list{display:grid;gap:10px}
 
 .api-note-card{padding:11px 12px;border-radius:12px;background:var(--bubble-bg);color:var(--fg-faint);font-size:calc(11.5px * var(--island-font-size-scale));line-height:1.55;}
+
+
+/* ===== 检查更新 ===== */
+.me-item .me-status{ flex:none; margin-left:auto; font-style:normal; font-size:calc(12px * var(--island-font-size-scale)); color:var(--fg-faint); }
+.me-item .me-status.is-hot{ color:#e5484d; font-weight:var(--island-fw-650); }
+.me-item:disabled{ opacity:.6; }
+.update-card{ margin:8px 16px 6px; padding:16px; border-radius:16px; background:var(--card-bg); border:1px solid var(--card-bd); display:grid; gap:8px; }
+.update-card-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.update-card-head strong{ font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); }
+.update-card-head span{ font-size:calc(11px * var(--island-font-size-scale)); color:var(--fg-faint); font-variant-numeric:tabular-nums; }
+.update-card-msg{ font-size:calc(13px * var(--island-font-size-scale)); line-height:1.55; color:var(--fg-soft); }
+.update-card-msg:empty{ display:none; }
+.update-card-msg[data-kind="hot"]{ color:#e5484d; font-weight:var(--island-fw-600); }
+.update-card-msg[data-kind="ok"]{ color:var(--fg); }
+.update-card-msg[data-kind="error"]{ color:#e5484d; }
+.update-card-data{ font-size:calc(11.5px * var(--island-font-size-scale)); line-height:1.6; color:var(--fg-faint); white-space:pre-line; }
+.update-card-actions{ display:flex; gap:8px; margin-top:4px; }
+.update-card-actions .api-btn{ padding:11px 12px; border-radius:12px; font-size:calc(13px * var(--island-font-size-scale)); }
+.update-card-actions .api-btn:disabled{ opacity:.55; }
+.update-card-actions .api-btn[hidden]{ display:none; }

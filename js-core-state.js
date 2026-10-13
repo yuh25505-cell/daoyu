@@ -11,7 +11,9 @@ var DEFAULT_STT = {
   enabled: false, baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o-mini-transcribe', language: 'auto', prompt: ''
 };
 
-var HOME_APP_NAMES = ['聊天','通讯录','相册','日历','备忘录','天气','时钟','设置','电话','浏览器','世界书','音乐'];
+/* 旧名称 → 新名称：升级后沿用用户已自定义的桌面图标（本地数据与备份导入都会经过这里）。 */
+var LEGACY_APP_NAMES = { '通讯录': '屿年', '浏览器': '倒数日' };
+var HOME_APP_NAMES = ['聊天','屿年','相册','日历','备忘录','天气','时钟','设置','电话','倒数日','世界书','音乐'];
 
 /* 每个图标主题各自保存一组调节值：切换主题时，数值会换成该主题自己的那一组（与「锁定」无关）。
  * 「锁定」只负责防止上下滑动时误触拉条，不参与主题切换。 */
@@ -322,7 +324,9 @@ function normalizeHomeAppearance(){
   base.iconData = {};
   if (incoming.iconData && typeof incoming.iconData === 'object') {
     Object.keys(incoming.iconData).forEach(function(name){
-      if (HOME_APP_NAMES.indexOf(name) >= 0 && typeof incoming.iconData[name] === 'string') base.iconData[name] = incoming.iconData[name];
+      var target = LEGACY_APP_NAMES[name] || name;
+      if (target !== name && typeof incoming.iconData[target] === 'string') return; /* 新名称已有自定义图标时，以新的为准 */
+      if (HOME_APP_NAMES.indexOf(target) >= 0 && typeof incoming.iconData[name] === 'string') base.iconData[target] = incoming.iconData[name];
     });
   }
   base.wallpaper = 'mono';
