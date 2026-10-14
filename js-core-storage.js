@@ -180,10 +180,20 @@ var IslandDB = (function(){
 
   var _wiping = false;
 
+  /* 同一个 key 在上一次写入还没开始执行前又被保存：只保留最新值，合并成一次事务。
+   * 聊天流式回复、连续发送等场景会在几毫秒内保存同一份数据很多次，原来每次都排一个完整事务。
+   * remove / clear / replaceAll 会清空合并表，保证它们与写入之间的先后顺序不变。 */
+  var _pendingSets = Object.create(null);
+
   function set(key, value){
     if (_wiping) return Promise.resolve(false);
     var snapshot = cloneValue(value);
-    return enqueue(function(){
+    var pending = _pendingSets[key];
+    if (pending) { pending.snapshot = snapshot; return pending.promise; }
+    pending = _pendingSets[key] = { snapshot: snapshot, promise: null };
+    pending.promise = enqueue(function(){
+      if (_pendingSets[key] === pending) delete _pendingSets[key];   /* 开始执行后，新的保存重新排队 */
+      var latest = pending.snapshot;
       return open().then(function(db){
         return new Promise(function(resolve, reject){
           try {
@@ -193,8 +203,9 @@ var IslandDB = (function(){
             var oldReq = store.get(key);
             oldReq.onsuccess = function(){
               var old = oldReq.result;
-              if (old) backup.put({ key:key, value:cloneValue(old.value), savedAt:Date.now() });
-              store.put({ key:key, value:snapshot, savedAt:Date.now() });
+              /* old.value 是刚从 IndexedDB 反序列化出来的独立副本，直接写入备份即可，不需要再深拷贝一次 */
+              if (old) backup.put({ key:key, value:old.value, savedAt:Date.now() });
+              store.put({ key:key, value:latest, savedAt:Date.now() });
             };
             oldReq.onerror = function(){ try { tx.abort(); } catch(e) {} };
             tx.oncomplete = function(){ resolve(true); };
@@ -204,9 +215,11 @@ var IslandDB = (function(){
         });
       });
     });
+    return pending.promise;
   }
 
   function clear(){
+    _pendingSets = Object.create(null);
     return enqueue(function(){
       return open().then(function(db){
         return new Promise(function(resolve, reject){
@@ -224,6 +237,7 @@ var IslandDB = (function(){
   }
 
   function remove(key){
+    _pendingSets = Object.create(null);
     if (_wiping) return Promise.resolve(false);
     return enqueue(function(){
       return open().then(function(db){
@@ -242,6 +256,7 @@ var IslandDB = (function(){
   }
 
   function replaceAll(rows){
+    _pendingSets = Object.create(null);
     rows = Array.isArray(rows) ? rows : [];
     var safeRows = rows.map(function(row){ return { key:String(row.key), value:cloneValue(row.value) }; });
     return enqueue(function(){

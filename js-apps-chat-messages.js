@@ -366,49 +366,46 @@ function renderMessages(enterLast){
   pmScroll.innerHTML = html;
   // 等浏览器完成字体与实际宽度计算后，再判断哪些气泡真的发生了换行。
   // 这样单行短消息不会被强制两端对齐，多行中文才会按 72% 最大宽度进行视觉上的左右对齐。
+  // 性能：先统一清类、再统一读取、最后统一写入，整批只触发一次排版（原来每个气泡都会强制重排一次）。
   requestAnimationFrame(function(){
-    var bubbles = pmScroll.querySelectorAll('.pm-bubble');
-    bubbles.forEach(function(el){
-      el.classList.remove('pm-bubble--multiline','pm-bubble--latin-only');
-      var text = el.textContent || '';
-      var hasCJK = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(text);
-      try {
-        var range = document.createRange();
-        range.selectNodeContents(el);
-        var rects = Array.prototype.slice.call(range.getClientRects()).filter(function(r){ return r.width > 0 && r.height > 0; });
-        var tops = [];
-        rects.forEach(function(r){
-          var top = Math.round(r.top * 10) / 10;
-          if (tops.indexOf(top) === -1) tops.push(top);
-        });
-        if (tops.length > 1) {
-          el.classList.add('pm-bubble--multiline');
-          if (!hasCJK) el.classList.add('pm-bubble--latin-only');
-        }
-      } catch(e) {}
-    });
-
-    var transcripts = pmScroll.querySelectorAll('.pm-voice-transcript, .chat-message__transcript');
-    transcripts.forEach(function(el){
-      el.classList.remove('pm-transcript--multiline','pm-transcript--latin-only');
-      var text = el.textContent || '';
-      var hasCJK = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(text);
-      try {
-        var range = document.createRange();
-        range.selectNodeContents(el);
-        var rects = Array.prototype.slice.call(range.getClientRects()).filter(function(r){ return r.width > 0 && r.height > 0; });
-        var tops = [];
-        rects.forEach(function(r){
-          var top = Math.round(r.top * 10) / 10;
-          if (tops.indexOf(top) === -1) tops.push(top);
-        });
-        if (tops.length > 1) {
-          el.classList.add('pm-transcript--multiline');
-          if (!hasCJK) el.classList.add('pm-transcript--latin-only');
-        }
-      } catch(e) {}
-    });
+    measureWrapClasses(pmScroll.querySelectorAll('.pm-bubble'), 'pm-bubble--multiline', 'pm-bubble--latin-only');
+    measureWrapClasses(pmScroll.querySelectorAll('.pm-voice-transcript, .chat-message__transcript'), 'pm-transcript--multiline', 'pm-transcript--latin-only');
   });
+}
+
+function measureWrapClasses(list, multiCls, latinCls){
+  var n = list.length, i, el, text, range, rects, tops, r, top, k, found;
+  if (!n) return;
+  var result = new Array(n);
+  for (i = 0; i < n; i++) list[i].classList.remove(multiCls, latinCls);
+  try { range = document.createRange(); } catch(e) { return; }
+  for (i = 0; i < n; i++) {
+    el = list[i];
+    text = el.textContent || '';
+    result[i] = 0;
+    /* 很短又没有换行符的文字不可能折行（气泡最大宽度约 72%），不必测量 */
+    if (text.length <= 6 && text.indexOf('\n') < 0) continue;
+    try {
+      range.selectNodeContents(el);
+      rects = range.getClientRects();
+      tops = [];
+      for (k = 0; k < rects.length; k++) {
+        r = rects[k];
+        if (!(r.width > 0 && r.height > 0)) continue;
+        top = Math.round(r.top * 10) / 10;
+        found = false;
+        for (var q = 0; q < tops.length; q++) { if (tops[q] === top) { found = true; break; } }
+        if (!found) tops.push(top);
+        if (tops.length > 1) break;
+      }
+      if (tops.length > 1) result[i] = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(text) ? 1 : 2;
+    } catch(e) {}
+  }
+  for (i = 0; i < n; i++) {
+    if (!result[i]) continue;
+    list[i].classList.add(multiCls);
+    if (result[i] === 2) list[i].classList.add(latinCls);
+  }
 }
 
 var charAvatarTapState = { element:null, time:0, x:0, y:0 };

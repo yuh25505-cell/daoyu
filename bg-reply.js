@@ -209,6 +209,7 @@
   function appForeground() { return document.visibilityState === 'visible'; }
 
   setInterval(function () {
+    if (document.visibilityState !== 'visible') return;   // 后台不测量，避免无谓的样式重算
     var v = chatVisible();
     if (v && !chatWasVisible) lastChatShownAt = Date.now();
     chatWasVisible = v;

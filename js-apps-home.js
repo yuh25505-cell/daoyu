@@ -3,6 +3,7 @@
 'use strict';
 
 function tick(){
+  if (document.hidden) return;   /* 页面在后台时不更新：省电，也避免回到前台前白白重排 */
   var d = new Date();
   var hm = d.getHours() + ':' + pad(d.getMinutes());
   renderCalendarWidget();
@@ -399,7 +400,7 @@ function setDockSetting(kind, value){
   if (!a) return;
   var n = Number(value);
   if (!Number.isFinite(n)) return;
-  if (kind === 'radius') { if (a.dockRadiusLocked) return; a.dockRadius = Math.max(0, Math.min(40, Math.round(n))); scheduleLensUpdate(); }
+  if (kind === 'radius') { if (a.dockRadiusLocked) return; a.dockRadius = Math.max(0, Math.min(40, Math.round(n))); a.dockShapeV2 = true; scheduleLensUpdate(); }
   if (kind === 'transparency') { if (a.dockTransparencyLocked) return; a.dockTransparency = Math.max(0, Math.min(100, Math.round(n))); }
   var dock = document.querySelector('.dock');
   var range = kind === 'radius' ? $('dockRadiusRange') : $('dockTransparencyRange');
@@ -567,7 +568,7 @@ function updateLensFilters(a){
   var dk = document.querySelector('.dock');
   if (dk && dk.offsetWidth > 20) {
     var dw = dk.offsetWidth, dh = dk.offsetHeight;
-    setMap('lqLensDock', dw, dh, a.dockRadius, dh * .30, dh * .22 * f);
+    setMap('lqLensDock', dw, dh, Math.min(a.dockRadius, dh / 2), dh * .30, dh * .22 * f);
   }
 }
 

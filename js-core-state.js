@@ -35,7 +35,7 @@ var DEFAULT_HOME_APPEARANCE = {
   iconTheme: 'default', iconRadius: 26, iconBlur: 0, iconClarity: 100, iconLens: 100, iconDepth: 100, iconLensLocked: false, iconDepthLocked: false, glyphBlur: 0, glyphClarity: 79, glyphBlurLocked: false, glyphClarityLocked: false, iconRadiusLocked: false, iconBlurLocked: false, iconClarityLocked: false, islandScale: 100, labelSize: 11, labelColor: '#ffffff', dockNoBackground: false, iconLabels: true, iconBorder: 'transparent', dimDarkWallpaper: true,
   iconData: {},
   dimDarkWallpaperAmount: 42, dimDarkIconAmount: 42, dimDarkWallpaperLocked: false, dimDarkIconLocked: false,
-  dockRadius: 5, dockTransparency: 0, dockBlur: 16, dockRadiusLocked: false, dockTransparencyLocked: false, dockBlurLocked: false,
+  dockRadius: 40, dockTransparency: 0, dockBlur: 16, dockRadiusLocked: false, dockTransparencyLocked: false, dockBlurLocked: false,
   wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '', polaroidPhoto: '', polaroidCaption: '⌯>ᴗ<⌯ಣ',
   widgets: {
     /* bgStyle：default＝原来的深色/浅色卡片（默认）；glass＝毛玻璃。glassBlur 模糊度 0–40px；glassTransparency 透明度 0–100%（越大越透） */
@@ -320,6 +320,9 @@ function normalizeHomeAppearance(){
   base.dimDarkWallpaperLocked = incoming.dimDarkWallpaperLocked === true;
   base.dimDarkIconLocked = incoming.dimDarkIconLocked === true;
   base.dockRadius = Number.isFinite(Number(incoming.dockRadius)) ? Math.max(0, Math.min(40, Number(incoming.dockRadius))) : base.dockRadius;
+  /* Dock 改成胶囊形：旧默认值 5px 且用户从没动过圆角拉条的，一并升级成全圆角（40 ≥ Dock 高度的一半，等于完整胶囊）。 */
+  base.dockShapeV2 = incoming.dockShapeV2 === true;
+  if (!base.dockShapeV2 && Number(incoming.dockRadius) === 5) base.dockRadius = 40;
   base.dockTransparency = Number.isFinite(Number(incoming.dockTransparency)) ? Math.max(0, Math.min(100, Number(incoming.dockTransparency))) : base.dockTransparency;
   base.dockRadiusLocked = incoming.dockRadiusLocked === true;
   base.dockTransparencyLocked = incoming.dockTransparencyLocked === true;
