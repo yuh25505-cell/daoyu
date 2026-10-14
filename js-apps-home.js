@@ -272,6 +272,9 @@ function applyHomeAppearance(){
     home.setAttribute('data-widget-calendar', a.widgets.calendar && a.widgets.calendar.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-music', a.widgets.music && a.widgets.music.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-polaroid', a.widgets.polaroid && a.widgets.polaroid.enabled ? 'on' : 'off');
+    var mctl = a.widgets.music && a.widgets.music.controlColor;
+    mctl = (mctl === 'black' || mctl === 'white') ? mctl : 'auto';
+    if (home.getAttribute('data-music-ctl') !== mctl) home.setAttribute('data-music-ctl', mctl);
     var paper = a.widgets.polaroid && a.widgets.polaroid.paper === 'black' ? 'black' : 'white';
     if (home.getAttribute('data-polaroid-paper') !== paper) home.setAttribute('data-polaroid-paper', paper);
     applyCalendarWidgetStyle(a);
@@ -782,7 +785,7 @@ var GLASS_WIDGETS = { calendar: 'cal', music: 'music', polaroid: 'polaroid' };
 function widgetGlassConfig(a, key){
   var c = a && a.widgets && a.widgets[key];
   return {
-    style: c && c.bgStyle === 'glass' ? 'glass' : 'default',
+    style: c && ['glass','black','white'].indexOf(c.bgStyle) >= 0 ? c.bgStyle : 'default',
     blur: c && Number.isFinite(Number(c.glassBlur)) ? Number(c.glassBlur) : 20,
     transparency: c && Number.isFinite(Number(c.glassTransparency)) ? Number(c.glassTransparency) : 40
   };
@@ -821,6 +824,23 @@ function renderWidgetGlassSliders(a, key){
   renderWidgetGlassSlider(key + 'GlassTransparencyRange', key + 'GlassTransparencyValue', c.transparency, 100, '%');
 }
 
+function renderMusicControlColor(a){
+  var v = a && a.widgets && a.widgets.music && a.widgets.music.controlColor;
+  v = (v === 'black' || v === 'white') ? v : 'auto';
+  $$('#musicCtlChips [data-ctl]').forEach(function(btn){
+    var on = btn.dataset.ctl === v;
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+}
+
+function setMusicControlColor(value){
+  var a = normalizeHomeAppearance();
+  if (!a.widgets.music) return;
+  a.widgets.music.controlColor = (value === 'black' || value === 'white') ? value : 'auto';
+  queueHomeAppearanceApply();
+}
+
 function renderPolaroidPaperControls(a){
   var paper = a && a.widgets && a.widgets.polaroid && a.widgets.polaroid.paper === 'black' ? 'black' : 'white';
   $$('#polaroidPaperChips [data-paper]').forEach(function(btn){
@@ -839,6 +859,7 @@ function setPolaroidPaper(value){
 
 function renderCalendarStyleControls(a){
   renderPolaroidPaperControls(a);
+  renderMusicControlColor(a);
   Object.keys(GLASS_WIDGETS).forEach(function(key){
     var c = widgetGlassConfig(a, key);
     $$('#' + key + 'BgChips [data-bg-style]').forEach(function(btn){
@@ -854,7 +875,8 @@ function renderCalendarStyleControls(a){
 function setWidgetBgStyle(key, style){
   var a = normalizeHomeAppearance();
   if (!a.widgets[key]) return;
-  a.widgets[key].bgStyle = style === 'glass' ? 'glass' : 'default';
+  var allowed = key === 'calendar' ? ['glass','black','white'] : ['glass'];
+  a.widgets[key].bgStyle = allowed.indexOf(style) >= 0 ? style : 'default';
   queueHomeAppearanceApply();
 }
 function setCalendarBgStyle(style){ setWidgetBgStyle('calendar', style); }

@@ -66,7 +66,7 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .vinyl-label-img{ fi
 
 .music-controls{ flex:none; display:flex; align-items:center; justify-content:space-between; margin-top:4px; padding:0 2px; }
 
-.m-btn{ width:26px; height:26px; flex:none; display:grid; place-items:center; border-radius:50%; color:var(--home-fg); }
+.m-btn{ width:26px; height:26px; flex:none; display:grid; place-items:center; border-radius:50%; color:var(--music-ctl,var(--home-fg)); }
 
 .m-btn svg{ width:15px; height:15px; display:block; }
 
@@ -74,7 +74,11 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .vinyl-label-img{ fi
 
 .m-like.is-on svg path{ fill:currentColor; }
 
-.m-play{ width:30px; height:30px; background:var(--home-fg); color:var(--bg); box-shadow:none; }
+.m-play{ width:30px; height:30px; background:var(--music-ctl,var(--home-fg)); color:var(--music-ctl-inv,var(--bg)); box-shadow:none; }
+
+/* 按钮颜色：默认跟随主题；选「黑」「白」后，喜欢 / 上一首 / 播放 / 下一首 / 列表一起变色（已喜欢的红心仍保持红色） */
+.home[data-music-ctl="black"]{ --music-ctl:#111111; --music-ctl-inv:#ffffff; }
+.home[data-music-ctl="white"]{ --music-ctl:#ffffff; --music-ctl-inv:#111111; }
 
 .m-play svg{ width:13px; height:13px; }
 

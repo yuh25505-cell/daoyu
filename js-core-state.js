@@ -40,7 +40,7 @@ var DEFAULT_HOME_APPEARANCE = {
   widgets: {
     /* bgStyle：default＝原来的深色/浅色卡片（默认）；glass＝毛玻璃。glassBlur 模糊度 0–40px；glassTransparency 透明度 0–100%（越大越透） */
     calendar: { enabled: true, size: 'large', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
-    music: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
+    music: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40, controlColor: 'auto' },
     polaroid: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40, paper: 'white' }
   }
 };
@@ -350,7 +350,9 @@ function normalizeHomeAppearance(){
       base.widgets[key].size = ['small','medium','large'].indexOf(src.size) >= 0 ? src.size : base.widgets[key].size;
       /* 三个组件都支持“默认 / 毛玻璃”背景：旧存档没有这些字段，沿用默认值 */
       var gw = base.widgets[key];
-      gw.bgStyle = src.bgStyle === 'glass' ? 'glass' : 'default';
+      /* 日历背景多两个实色：black / white（无描边）；音乐、拍立得仍只有 default / glass */
+      var okStyles = key === 'calendar' ? ['default','glass','black','white'] : ['default','glass'];
+      gw.bgStyle = okStyles.indexOf(src.bgStyle) >= 0 ? src.bgStyle : 'default';
       gw.glassBlur = sliderNum(src.glassBlur, 0, 40, gw.glassBlur);
       gw.glassTransparency = sliderNum(src.glassTransparency, 0, 100, gw.glassTransparency);
     }
@@ -358,6 +360,8 @@ function normalizeHomeAppearance(){
   base.widgets.calendar.enabled = widgets.calendar ? widgets.calendar.enabled !== false : true;
   base.widgets.music.enabled = widgets.music ? widgets.music.enabled !== false : true;
   base.widgets.polaroid.enabled = widgets.polaroid ? widgets.polaroid.enabled !== false : true;
+  /* 音乐按钮颜色：auto＝跟随主题（原来的样子）/ black / white */
+  base.widgets.music.controlColor = widgets.music && ['black','white'].indexOf(widgets.music.controlColor) >= 0 ? widgets.music.controlColor : 'auto';
   /* 相纸颜色：白（默认）/ 黑；旧存档没有这个字段，一律按白色 */
   base.widgets.polaroid.paper = widgets.polaroid && widgets.polaroid.paper === 'black' ? 'black' : 'white';
   State.settings.homeAppearance = base;
