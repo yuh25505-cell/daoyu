@@ -151,6 +151,34 @@ function afterPaint(fn){
   requestAnimationFrame(function(){ setTimeout(fn, 0); });
 }
 
+/* ---------- 启动动画时间线 ----------
+ * 启动层在约 2.45s 开始淡出、3.15s 结束。这段「淡出窗口」里主线程不能被重活占住，否则就是进入主屏幕前最后一秒的卡顿。
+ * bootElapsedMs()：启动动画已经播放了多久（读不到时退回页面运行时间）。
+ * runOutsideBootFade(fn)：落在淡出窗口里就等窗口结束再执行，否则立刻执行。 */
+var BOOT_FADE_FROM = 2100, BOOT_FADE_TO = 3300;
+
+function bootElapsedMs(){
+  try {
+    var list = document.getAnimations ? document.getAnimations() : [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].animationName === 'bootLeave') { var t = list[i].currentTime; return t == null ? 0 : Number(t); }
+    }
+  } catch(e) {}
+  return (window.performance && performance.now) ? performance.now() : 99999;
+}
+
+function bootFadeWaitMs(){
+  /* 页面运行超过 4 秒，启动动画必定结束：直接返回，避免平时（如拖拉条）反复读取动画列表 */
+  if (window.performance && performance.now && performance.now() > 4000) return 0;
+  var e = bootElapsedMs();
+  return (e >= BOOT_FADE_FROM && e < BOOT_FADE_TO) ? (BOOT_FADE_TO - e + 30) : 0;
+}
+
+function runOutsideBootFade(fn){
+  var wait = bootFadeWaitMs();
+  if (wait > 0) setTimeout(fn, wait); else fn();
+}
+
 function whenIdle(fn, timeout){
   if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(function(){ fn(); }, { timeout: timeout || 1200 });
   else setTimeout(fn, 60);

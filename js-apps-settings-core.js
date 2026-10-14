@@ -410,6 +410,9 @@ function bindSettingsAppearanceEvents(){
       btn.addEventListener('click', function(e){ e.stopPropagation(); setWidgetSize(key, btn.dataset.widgetSize); });
     });
   });
+  $$('#polaroidPaperChips [data-paper]').forEach(function(btn){
+    btn.addEventListener('click', function(e){ e.stopPropagation(); setPolaroidPaper(btn.dataset.paper); });
+  });
   Object.keys(GLASS_WIDGETS).forEach(function(key){
     $$('#' + key + 'BgChips [data-bg-style]').forEach(function(btn){
       btn.addEventListener('click', function(e){ e.stopPropagation(); setWidgetBgStyle(key, btn.dataset.bgStyle); });

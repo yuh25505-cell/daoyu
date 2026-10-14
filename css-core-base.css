@@ -139,7 +139,12 @@ h1,h2,h3,p{ margin:0; font-weight:inherit; }
   background:var(--bg); color:var(--home-fg);
   font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Songti SC","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC",Georgia,serif;
   animation:bootLeave .7s 2.45s cubic-bezier(.4,0,.2,1) forwards;
+  will-change:opacity;   /* 淡出只在合成器线程上做，不触发下面主屏幕重绘 */
 }
+
+/* 淡出前定格循环动画（脚本在约 2.2s 加上 is-calm） */
+.boot.is-calm .s-mist, .boot.is-calm .s-rip, .boot.is-calm .gl, .boot.is-calm .s-star,
+.boot.is-calm .s-bird, .boot.is-calm .boot-status i{ animation-play-state:paused; }
 
 html[data-theme="dark"] .boot{
   --b-ring:rgba(255,255,255,.4);

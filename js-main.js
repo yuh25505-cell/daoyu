@@ -4,6 +4,8 @@
 
 /* 启动层由 CSS 动画自行淡出（约 3.15s），这里只做兜底移除，避免异常情况下遮挡界面。 */
 setTimeout(function(){ var boot = $('boot'); if (boot) boot.style.display = 'none'; }, 3500);
+/* 淡出前先让启动画面里循环播放的小动画（雾气、星光、飞鸟、涟漪）定格：这些是主线程动画，定格后淡出更顺。 */
+setTimeout(function(){ var boot = $('boot'); if (boot) boot.classList.add('is-calm'); }, 2200);
 
 function bindSafetyEvents(){
 
@@ -61,7 +63,8 @@ function init(){
   applyHomeAppearance();
   applyFontPreference();
   bindEvents();
-  refreshChangelog(false);
+  /* 更新日志同步不急：等启动动画结束再拉取并重绘，免得和动画抢主线程 */
+  setTimeout(function(){ refreshChangelog(false); }, 3400);
   /* 启动层动画期间尽量别让主线程连续跑太久：每一段重活之间让出一帧，动画不再被"一口气"卡住。 */
   loadState().then(function(){
     protectStorageAfterLoad();
@@ -71,6 +74,9 @@ function init(){
     applyHomeAppearance();
     applyFontPreference();
     return yieldToPaint();
+  }).then(function(){
+    /* 主屏幕要用的内容已经画好；其余 App 的列表、API 状态等要等启动层淡出结束后再处理（它们此刻看不见） */
+    return new Promise(function(resolve){ runOutsideBootFade(resolve); });
   }).then(function(){
     renderAll();
     return yieldToPaint();
@@ -164,8 +170,11 @@ function bindEvents(){
 // PWA service worker
 if ('serviceWorker' in navigator) {
 window.addEventListener('load', function () {
-  navigator.serviceWorker.register('./sw.js').catch(function (err) {
-    console.warn('[Island PWA] Service worker registration failed:', err);
-  });
+  /* 注册并预缓存 60 多个文件很吃网络和 CPU：等启动动画播完再做 */
+  setTimeout(function () {
+    navigator.serviceWorker.register('./sw.js').catch(function (err) {
+      console.warn('[Island PWA] Service worker registration failed:', err);
+    });
+  }, 3800);
 });
 }

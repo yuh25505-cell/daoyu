@@ -272,6 +272,8 @@ function applyHomeAppearance(){
     home.setAttribute('data-widget-calendar', a.widgets.calendar && a.widgets.calendar.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-music', a.widgets.music && a.widgets.music.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-polaroid', a.widgets.polaroid && a.widgets.polaroid.enabled ? 'on' : 'off');
+    var paper = a.widgets.polaroid && a.widgets.polaroid.paper === 'black' ? 'black' : 'white';
+    if (home.getAttribute('data-polaroid-paper') !== paper) home.setAttribute('data-polaroid-paper', paper);
     applyCalendarWidgetStyle(a);
   }
   var dock = document.querySelector('.dock');
@@ -528,6 +530,9 @@ var _lensRaf = 0, _lensTimer = 0, _lensLast = 0, _lensKeys = {};
  * ② 折射 / 圆角拉条拖动时最多每 90ms 重建一次，松手后补一次最终值。 */
 function scheduleLensUpdate(){
   if (_lensRaf || _lensTimer) return;
+  /* 折射贴图要逐像素画 + 编码，别落在启动层淡出的那一秒里：等淡出结束再生成 */
+  var fadeWait = bootFadeWaitMs();
+  if (fadeWait > 0) { _lensTimer = setTimeout(function(){ _lensTimer = 0; scheduleLensUpdate(); }, fadeWait); return; }
   var run = function(){
     _lensRaf = requestAnimationFrame(function(){
       _lensRaf = 0;
@@ -816,7 +821,24 @@ function renderWidgetGlassSliders(a, key){
   renderWidgetGlassSlider(key + 'GlassTransparencyRange', key + 'GlassTransparencyValue', c.transparency, 100, '%');
 }
 
+function renderPolaroidPaperControls(a){
+  var paper = a && a.widgets && a.widgets.polaroid && a.widgets.polaroid.paper === 'black' ? 'black' : 'white';
+  $$('#polaroidPaperChips [data-paper]').forEach(function(btn){
+    var on = btn.dataset.paper === paper;
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+}
+
+function setPolaroidPaper(value){
+  var a = normalizeHomeAppearance();
+  if (!a.widgets.polaroid) return;
+  a.widgets.polaroid.paper = value === 'black' ? 'black' : 'white';
+  queueHomeAppearanceApply();
+}
+
 function renderCalendarStyleControls(a){
+  renderPolaroidPaperControls(a);
   Object.keys(GLASS_WIDGETS).forEach(function(key){
     var c = widgetGlassConfig(a, key);
     $$('#' + key + 'BgChips [data-bg-style]').forEach(function(btn){

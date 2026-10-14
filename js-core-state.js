@@ -41,7 +41,7 @@ var DEFAULT_HOME_APPEARANCE = {
     /* bgStyle：default＝原来的深色/浅色卡片（默认）；glass＝毛玻璃。glassBlur 模糊度 0–40px；glassTransparency 透明度 0–100%（越大越透） */
     calendar: { enabled: true, size: 'large', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
     music: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
-    polaroid: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 }
+    polaroid: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40, paper: 'white' }
   }
 };
 
@@ -358,6 +358,8 @@ function normalizeHomeAppearance(){
   base.widgets.calendar.enabled = widgets.calendar ? widgets.calendar.enabled !== false : true;
   base.widgets.music.enabled = widgets.music ? widgets.music.enabled !== false : true;
   base.widgets.polaroid.enabled = widgets.polaroid ? widgets.polaroid.enabled !== false : true;
+  /* 相纸颜色：白（默认）/ 黑；旧存档没有这个字段，一律按白色 */
+  base.widgets.polaroid.paper = widgets.polaroid && widgets.polaroid.paper === 'black' ? 'black' : 'white';
   State.settings.homeAppearance = base;
   return base;
 }
