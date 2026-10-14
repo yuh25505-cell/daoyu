@@ -17,20 +17,22 @@ var HOME_APP_NAMES = ['聊天','屿年','相册','日历','备忘录','天气','
 
 /* 每个图标主题各自保存一组调节值：切换主题时，数值会换成该主题自己的那一组（与「锁定」无关）。
  * 「锁定」只负责防止上下滑动时误触拉条，不参与主题切换。 */
-var ICON_THEMES = ['glass','borderless'];
+var ICON_THEMES = ['default','glass','borderless'];
 var ICON_SLIDER_RANGES = { iconRadius:[0,50], iconBlur:[0,30], iconClarity:[0,100], iconLens:[0,100], iconDepth:[0,100], glyphBlur:[0,20], glyphClarity:[0,100] };
 var ICON_THEME_DEFAULTS = {
+  'default':  {},
   glass:      { iconRadius: 26, iconBlur: 0, iconClarity: 100, iconLens: 100, iconDepth: 100, glyphBlur: 0, glyphClarity: 79 },
   borderless: { iconRadius: 9 }
 };
 /* 该主题下哪些拉条是它「专属」的（其余主题里不显示，也不保存） */
 var ICON_THEME_KEYS = {
+  'default': [],
   glass: ['iconRadius','iconBlur','iconClarity','iconLens','iconDepth','glyphBlur','glyphClarity'],
   borderless: ['iconRadius']
 };
 
 var DEFAULT_HOME_APPEARANCE = {
-  iconTheme: 'glass', iconRadius: 26, iconBlur: 0, iconClarity: 100, iconLens: 100, iconDepth: 100, iconLensLocked: false, iconDepthLocked: false, glyphBlur: 0, glyphClarity: 79, glyphBlurLocked: false, glyphClarityLocked: false, iconRadiusLocked: false, iconBlurLocked: false, iconClarityLocked: false, islandScale: 100, labelSize: 11, labelColor: '#ffffff', dockNoBackground: false, iconLabels: true, iconBorder: 'transparent', dimDarkWallpaper: true,
+  iconTheme: 'default', iconRadius: 26, iconBlur: 0, iconClarity: 100, iconLens: 100, iconDepth: 100, iconLensLocked: false, iconDepthLocked: false, glyphBlur: 0, glyphClarity: 79, glyphBlurLocked: false, glyphClarityLocked: false, iconRadiusLocked: false, iconBlurLocked: false, iconClarityLocked: false, islandScale: 100, labelSize: 11, labelColor: '#ffffff', dockNoBackground: false, iconLabels: true, iconBorder: 'transparent', dimDarkWallpaper: true,
   iconData: {},
   dimDarkWallpaperAmount: 42, dimDarkIconAmount: 42, dimDarkWallpaperLocked: false, dimDarkIconLocked: false,
   dockRadius: 5, dockTransparency: 0, dockBlur: 16, dockRadiusLocked: false, dockTransparencyLocked: false, dockBlurLocked: false,
@@ -277,7 +279,7 @@ function normalizeHomeAppearance(){
   var incoming = (State.settings && State.settings.homeAppearance) || {};
   var base = clone(DEFAULT_HOME_APPEARANCE);
   /* 「文字」主题已删除：旧存档里的 mono 一律迁移为液态玻璃。 */
-  base.iconTheme = ICON_THEMES.indexOf(incoming.iconTheme) >= 0 ? incoming.iconTheme : 'glass';
+  base.iconTheme = ICON_THEMES.indexOf(incoming.iconTheme) >= 0 ? incoming.iconTheme : 'default';
   var sliderNum = function(v, lo, hi, def){ return (v !== '' && v !== null && v !== undefined && Number.isFinite(Number(v))) ? Math.max(lo, Math.min(hi, Math.round(Number(v)))) : def; };
   var inTP = incoming.themeParams && typeof incoming.themeParams === 'object' ? incoming.themeParams : null;
   var themeParams = {};

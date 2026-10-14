@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(root, 'dist');
 const files = ['index.html', 'manifest.webmanifest', 'sw.js'];
-const dirs = ['assets'];
+const dirs = ['assets', 'icons'];
 const changelogPath = path.join(root, 'changelog.json');
 
 function escapeHtml(value) {

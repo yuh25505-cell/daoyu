@@ -89,23 +89,51 @@ function ensureLiquidDefs(){
 
 function getHomeIconTheme(){
   var t = State.settings && State.settings.homeAppearance && State.settings.homeAppearance.iconTheme;
-  return ['glass','borderless'].indexOf(t) >= 0 ? t : 'glass';
+  return ['default','glass','borderless'].indexOf(t) >= 0 ? t : 'default';
 }
+
+/* ---------- 「默认」图标主题：12 张透明 PNG，作为本地静态资源随网页 / APK 一起打包（见 icons/ 目录）----------
+ * 图标自带圆角与底色，不再叠加玻璃底板或圆角裁切；用户自定义上传的图片优先级仍然更高。 */
+var DEFAULT_ICON_FILES = {
+  '聊天': 'icons/chat.png',
+  '屿年': 'icons/yunian.png',
+  '相册': 'icons/photos.png',
+  '日历': 'icons/calendar.png',
+  '备忘录': 'icons/notes.png',
+  '天气': 'icons/weather.png',
+  '时钟': 'icons/clock.png',
+  '设置': 'icons/settings.png',
+  '电话': 'icons/phone.png',
+  '倒数日': 'icons/countdowndays.png',
+  '世界书': 'icons/worldbook.png',
+  '音乐': 'icons/music.png'
+};
 
 function setAppIconVisual(iconEl, appName, imageData){
   if (!iconEl) return;
-  var liquid = getHomeIconTheme() === 'glass';
-  var flat = getHomeIconTheme() === 'borderless';
+  var theme = getHomeIconTheme();
+  var liquid = theme === 'glass';
+  var flat = theme === 'borderless';
+  var builtin = theme === 'default' && !imageData && !!DEFAULT_ICON_FILES[appName];
   /* 主题 / 名称 / 自定义图片都没变就不重建：开关一点就把 12 个玻璃图标（含 SVG、遮罩）全部拆了重建，是卡顿来源之一 */
-  var visKey = (liquid ? 'g' : 'f') + '|' + appName;
+  var visKey = theme + '|' + appName;
   if (iconEl.__visKey === visKey && iconEl.__visData === (imageData || '') && iconEl.firstChild) return;
   iconEl.__visKey = visKey;
   iconEl.__visData = imageData || '';
   iconEl.classList.toggle('has-custom-image', !!imageData);
   iconEl.classList.toggle('is-flat', flat && !imageData);
   iconEl.classList.toggle('is-liquid', liquid);
+  iconEl.classList.toggle('is-default-icon', builtin);
   iconEl.innerHTML = '';
-  if (imageData) {
+  if (builtin) {
+    var dimg = document.createElement('img');
+    dimg.src = DEFAULT_ICON_FILES[appName];
+    dimg.alt = '';
+    dimg.decoding = 'async';
+    dimg.draggable = false;
+    dimg.setAttribute('aria-hidden', 'true');
+    iconEl.appendChild(dimg);
+  } else if (imageData) {
     var img = document.createElement('img');
     img.src = imageData;
     img.alt = '';
@@ -285,6 +313,8 @@ function renderHomeAppearanceOptions(){
   });
   renderHomeSliders(a);
   /* 主题专属的拉条分组：只显示当前主题对应的那一组（默认折叠，展开状态不写入存档） */
+  /* 「默认」主题的 PNG 自带圆角，圆角拉条无意义：该主题下隐藏整段「图标调节」 */
+  $$('[data-icon-hide-in]').forEach(function(el){ el.classList.toggle('is-theme-hidden', el.getAttribute('data-icon-hide-in') === a.iconTheme); });
   $$('[data-icon-group]').forEach(function(g){ g.hidden = g.getAttribute('data-icon-group') !== a.iconTheme; });
   var dimWallpaper = $('dimDarkWallpaperToggle');
   if (dimWallpaper) { dimWallpaper.classList.toggle('is-on', a.dimDarkWallpaper); dimWallpaper.setAttribute('aria-checked', a.dimDarkWallpaper ? 'true' : 'false'); }
@@ -355,7 +385,7 @@ function queueHomeAppearanceApply(){
 
 function setHomeIconOption(kind, value){
   var a = normalizeHomeAppearance();
-  if (kind === 'theme' && ['glass','borderless'].indexOf(value) >= 0) {
+  if (kind === 'theme' && ['default','glass','borderless'].indexOf(value) >= 0) {
     /* 切换主题：数值换成该主题自己的一组（applyHomeAppearance → normalize 会读 themeParams）。
      * 与「锁定」无关——锁定只是防误触拉条，不会让数值卡在上一个主题。 */
     a.iconTheme = value;

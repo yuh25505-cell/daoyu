@@ -1,7 +1,7 @@
 const CACHE_VERSION = '__CACHE_VERSION__';
 const CACHE_NAME = `island-${CACHE_VERSION}`;
 // 由 stamp-version.mjs 自动写入：每次发布内容变化，sw.js 的字节也跟着变，浏览器就能发现新版本。
-const BUILD_STAMP = '1.58.0-13acdef2';
+const BUILD_STAMP = '1.59.0-eecab2f5';
 const APP_SHELL = [
   './',
   './index.html',
@@ -69,7 +69,19 @@ const APP_SHELL = [
   './keep-alive.js',
   './icon-180.png',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './icons/chat.png',
+  './icons/yunian.png',
+  './icons/photos.png',
+  './icons/calendar.png',
+  './icons/notes.png',
+  './icons/weather.png',
+  './icons/clock.png',
+  './icons/settings.png',
+  './icons/phone.png',
+  './icons/countdowndays.png',
+  './icons/worldbook.png',
+  './icons/music.png'
 ];
 
 // Inside the Android APK (Capacitor serves the bundle from https://localhost) the
