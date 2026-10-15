@@ -7,7 +7,7 @@
 
 .settings-app.is-open{ display:block; }
 
-.settings-shell{ display:flex; flex-direction:column; width:100%; max-width:520px; height:100%; margin:0 auto; padding-top: env(safe-area-inset-top, 0px); }
+.settings-shell{ display:flex; flex-direction:column; width:100%; max-width:520px; height:100%; margin:0 auto; padding-top: var(--island-sat); }
 
 .settings-body{ position:relative; flex:1 1 auto; min-height:0; }
 
@@ -210,7 +210,7 @@ textarea.api-input{ resize:none; min-height:84px; padding:12px 14px; font-family
 
 .model-search input::-webkit-search-cancel-button{ display:none; }
 
-.model-list{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
+.model-list{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom: calc(var(--island-sab) + 16px); }
 
 .model-list::-webkit-scrollbar{ display:none; }
 

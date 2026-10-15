@@ -117,7 +117,7 @@
     if (e.state !== 'ready') return null;
     var iw = e.img.naturalWidth, ih = e.img.naturalHeight;
     if (!iw || !ih) return null;
-    var W = window.innerWidth, H = window.innerHeight;
+    var W = window.innerWidth, H = (window.IslandViewport && window.IslandViewport.height()) || window.innerHeight;
     var r = el.getBoundingClientRect();
     if (!r.width || !r.height) return null;
     var pos = (cs.backgroundPosition || '50% 50%').split(/\s+/);
@@ -228,7 +228,7 @@
     var ins = insets();
     var topH = Math.max(ins.top, 24);
     var botH = Math.max(ins.bottom, 20);
-    var W = window.innerWidth, H = window.innerHeight;
+    var W = window.innerWidth, H = (window.IslandViewport && window.IslandViewport.height()) || window.innerHeight;
     var xs = [W * 0.2, W * 0.5, W * 0.8];
     var top = average(xs.map(function (x) { return colorAt(x, topH / 2, 'top', topH); }));
     var bottom = average(xs.map(function (x) { return colorAt(x, H - botH / 2, 'bottom', botH); }));
@@ -265,7 +265,8 @@
 
     /* 网页 / PWA：theme-color 跟随状态栏下方的真实颜色，浏览器会据此自动选黑 / 白图标。 */
     var hex = toHex(res.top);
-    if (hex !== last.hex) {
+    /* iOS 主屏幕 App 不写 theme-color（会给状态栏单独上色），状态栏保持透明 */
+    if (hex !== last.hex && !document.documentElement.hasAttribute('data-vh-fix')) {
       last.hex = hex;
       var meta = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', hex);

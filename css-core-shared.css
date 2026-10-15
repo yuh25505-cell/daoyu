@@ -34,7 +34,7 @@
 
 .ph-actions{ flex:none; display:flex; align-items:center; margin-left:auto; }
 
-.panel-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:12px; }
+.panel-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:calc(var(--island-sab) + 12px); }
 
 .panel-scroll::-webkit-scrollbar{ display:none; }
 
@@ -64,7 +64,7 @@
   position:fixed; left:50%; bottom:0; z-index:71;
   width:100%; max-width:520px; max-height:calc(88vh / var(--island-scale,1)); overflow-y:auto; scrollbar-width:none;
   transform: translateX(-50%);
-  padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 22px);
+  padding: 10px 20px calc(var(--island-sab) + 22px);
   border-radius: 28px 28px 0 0;
   background: var(--bg); border-top:1px solid var(--card-bd);
   box-shadow: 0 -12px 40px rgba(0,0,0,.18);

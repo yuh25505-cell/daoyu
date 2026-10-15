@@ -133,6 +133,9 @@
     var layer = getTopLayer();
     if (!layer || layer.block || !layer.el) return;
     drag = { x0:t.clientX, y0:t.clientY, t0:Date.now(), layer:layer, el:layer.el, active:false, w:Math.max(window.innerWidth, 1), dx:0 };
+    /* 手指一落到边缘就先提升图层并画好阴影：等到开始拖动才做，iOS 会在第一帧重绘整层，表现为“闪一下” */
+    layer.el.style.willChange = 'translate';
+    layer.el.style.boxShadow = '-10px 0 28px rgba(0,0,0,.18)';
   }, { passive:true });
 
   document.addEventListener('touchmove', function(e){
@@ -140,12 +143,10 @@
     var t = e.touches[0];
     var dx = t.clientX - drag.x0, dy = t.clientY - drag.y0;
     if (!drag.active) {
-      if (Math.abs(dy) > START_MOVE && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }   /* 竖向滚动，放行 */
+      if (Math.abs(dy) > START_MOVE && Math.abs(dy) > Math.abs(dx)) { resetEl(drag.el); drag = null; return; }   /* 竖向滚动，放行 */
       if (dx > START_MOVE && dx > Math.abs(dy) * 1.2) {
         drag.active = true;
         drag.el.style.transition = 'none';
-        drag.el.style.willChange = 'translate';
-        drag.el.style.boxShadow = '-10px 0 28px rgba(0,0,0,.18)';
         try { if (typeof releaseInputFocus === 'function') releaseInputFocus(); } catch(_) {}
       } else return;
     }
@@ -168,7 +169,7 @@
   document.addEventListener('touchend', function(){
     if (!drag) return;
     var d = drag; drag = null;
-    if (!d.active) return;
+    if (!d.active) { resetEl(d.el); return; }
     var dt = Math.max(Date.now() - d.t0, 1);
     var commit = d.dx > d.w * COMMIT_RATIO || (d.dx / dt > COMMIT_VELOCITY && d.dx > 40);
     var el = d.el;
@@ -196,7 +197,7 @@
    * 页面全部关闭后把多余的记录退掉，回到桌面时再按返回才会真正退出。
    * ==================================================================== */
   var guard = false, ignorePop = false, syncQueued = false;
-  var nativeMode = false;   /* APK 内：由原生 MainActivity 接管返回键，不再用历史记录哨兵 */
+  var nativeMode = false;   /* APK 内 / iOS 主屏幕 App：不使用历史记录哨兵 */
 
   function anythingOpen(){ return !!(getTopLayer() || getModal() || panelOpen()); }
 
@@ -238,6 +239,10 @@
   function detectNative(){
     var C = window.Capacitor;
     try { nativeMode = !!(C && typeof C.isNativePlatform === 'function' && C.isNativePlatform()); } catch(_) { nativeMode = false; }
+    /* iOS 主屏幕 App：一旦压入历史记录，系统自己的“边缘右滑返回”（带页面快照动画）会和这里的跟手滑动同时触发，
+     * 画面就会闪、卡、关两次。主屏幕 App 本来就没有返回键，只剩这套自己的手势，所以不压历史哨兵，让系统手势无事可做。
+     * （html[data-vh-fix] 由 js-core-viewport.js 在 iOS 主屏幕 App 中打上） */
+    if (!nativeMode && (document.documentElement.hasAttribute('data-ios') && document.documentElement.hasAttribute('data-standalone'))) nativeMode = true;
   }
 
   function handleBack(){

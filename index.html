@@ -13,6 +13,8 @@
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="岛屿" name="application-name"/>
 <meta content="岛屿" name="apple-mobile-web-app-title"/>
+<!-- iOS 主屏幕 App 视口修正：必须同步、尽早执行，赶在首次绘制前写好 --app-h（详见 js-core-viewport.js） -->
+<script src="./js-core-viewport.js"></script>
 <!-- 样式按 App 拆分：加载顺序即层叠顺序，请勿随意调换（core → home → music → chat → phone → worldbook → settings → 占位 App） -->
 <link href="./css-core-base.css" rel="stylesheet"/>
 <link href="./css-core-shared.css" rel="stylesheet"/>

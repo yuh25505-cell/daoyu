@@ -5,7 +5,7 @@
 .home{
   position:relative; z-index:1; display:flex; flex-direction:column; width:100%;
   max-width:520px; height:calc(100vh / var(--island-scale,1)); height:calc(100dvh / var(--island-scale,1)); margin:0 auto; color:#f7f7f7;
-  padding-top:env(safe-area-inset-top,0px); padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--island-bottom-lift,10px));
+  padding-top:var(--island-sat); padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--island-bottom-lift,10px));
 }
 
 .home-body{

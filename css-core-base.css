@@ -5,6 +5,8 @@
 :root{
   --island-font-size-scale:1;
   --island-scale:1;            /* 屏幕比例（全局缩放），由 js 写入 */
+  --island-sab:calc(env(safe-area-inset-bottom, 0px) + var(--island-bottom-lift, 10px) - 10px); /* 子页面/半屏弹窗/列表尾部用的「底部安全距离」：随底栏抬高量一起增大；抬高量为默认 10px 时等于 env(safe-area-inset-bottom) */
+  --island-sat:env(safe-area-inset-top, 0px);   /* 顶部让开状态栏的距离：iOS 主屏幕 App 里由脚本量出的 --app-sat 接管 */
   --island-bottom-lift:10px;   /* 所有界面的底栏统一上移的距离 */
   --island-fw-300:300; --island-fw-400:400; --island-fw-500:500; --island-fw-520:520; --island-fw-550:550;
   --island-fw-600:600; --island-fw-650:650; --island-fw-680:680; --island-fw-700:700; --island-fw-720:720;
@@ -112,6 +114,43 @@ html[data-scaled] body{
   position:fixed; left:0; top:0; height:auto;
   width:calc(100vw / var(--island-scale)); height:calc(100dvh / var(--island-scale));
   transform:scale(var(--island-scale)); transform-origin:0 0;
+}
+
+/* ===== iOS 主屏幕 App（PWA）视口修正 =====
+ * js-core-viewport.js 只在「iOS + 已添加到主屏幕」时给 <html> 打 data-vh-fix，并写入 --app-h（整屏高度）、--app-sat（状态栏高度）。
+ * html 比视口高出一个状态栏，脚本把文档滚到底；<body> 绝对定位、整屏高，随之上移，正好铺满整个屏幕：
+ * 顶部在状态栏下透出页面内容，底部贴到屏幕底边。body 带 transform，是壁纸 / 各 App / 弹层等 fixed 层的参照。
+ * 内容用 --island-sat 让开状态栏。浏览器标签页、安卓、APK 没有 data-vh-fix，下面的规则完全不生效。 */
+html[data-ios][data-standalone]{ overscroll-behavior:none; }
+html[data-vh-fix]{
+  height:var(--app-h); overflow:hidden; background:var(--wallpaper-bg);
+  --island-sat:max(env(safe-area-inset-top, 0px), var(--app-sat, 0px));
+}
+html[data-vh-fix] body{
+  position:absolute; left:0; top:0; width:100%; height:var(--app-h);
+  transform:translateZ(0); overflow:hidden; background:transparent;
+}
+html[data-vh-fix][data-scaled] body{
+  width:calc(100vw / var(--island-scale)); height:calc(var(--app-h) / var(--island-scale));
+  transform:scale(var(--island-scale)); transform-origin:0 0;
+}
+html[data-vh-fix] .home{ height:100%; min-height:0; }
+/* 壁纸的纯色底交给 html（见上），这里透明，避免系统从顶部的纯色固定层取色去垫状态栏。 */
+html[data-vh-fix] .wallpaper{ position:absolute; background-color:transparent !important; }
+
+/* iOS 主屏幕 App：状态栏 + 页面顶栏合成一整块，没有色差、没有分割。
+ * 各页面顶栏（聊天 / 电话 / 世界书 / 位置 / 语音通话 / 转发记录）原本自带底色，和页面底色不一样，
+ * 与状态栏区域之间会出现一道色差分割。这里让顶栏整条（状态栏 + 52px 标题栏）完全透明，
+ * 状态栏的时间 / 信号 / 电量直接叠在页面本身的背景上，上下是同一块背景。
+ * 写成 html[data-vh-fix] body 前缀，特异性高于 html.pm-open .pm-head 等原规则。 */
+html[data-vh-fix] body .pm-head,
+html[data-vh-fix] body .pm-voice-call-head,
+html[data-vh-fix] body .pm-location-map-head,
+html[data-vh-fix] body .phone-head,
+html[data-vh-fix] body .pm-forward-record-head,
+html[data-vh-fix] body .worldbook-head{
+  background:transparent; background-image:none;
+  -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:none;
 }
 
 /* 浏览器默认的加粗标签（<strong>/<b>/表头/小标题）原本固定 700，不会随字重拉条变化；这里统一接入变量。
