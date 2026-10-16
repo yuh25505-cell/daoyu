@@ -302,12 +302,15 @@ function handleCallNotificationAction(name, action){
     else markPendingCallHandled(name, 'declined');
     return;
   }
-  if (voiceCallState.active) { try { openPM(name); } catch(e) {} return; }
+  if (voiceCallState.active) { try { if (currentName !== name || !(pmView && pmView.classList.contains('is-open'))) openPM(name); } catch(e) {} return; }
   var tries = 0;
-  setTimeout(function(){ try { if (currentName !== name) openPM(name); } catch(e) {} }, 60);
   (function waitIncoming(){
+    /* 来电状态还在（应用一直在后台运行）：直接接听，接听里会先把该聊天打开再进入通话界面 */
     if (voiceCallState.incoming && voiceCallState.name === name) { acceptIncomingVoiceCall(); return; }
-    if (++tries < 12) { setTimeout(waitIncoming, 180); return; }
+    /* 来电状态没有了（例如软件被系统杀掉后重新启动）：先打开该聊天，聊天页会根据未处理的来电记录重新显示来电，随后接听 */
+    if (tries === 0) { try { openPM(name); } catch(e) {} }
+    /* 冷启动时聊天记录是异步载入的，多等一会儿 */
+    if (++tries < 25) { setTimeout(waitIncoming, 200); return; }
     toast('这通来电已经结束');
   })();
 }
