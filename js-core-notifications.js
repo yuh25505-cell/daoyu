@@ -84,6 +84,7 @@ function renderNotificationSettings(){
   var ps = $('notificationPermissionState');
   var perm = notificationPermission();
   if (ps) ps.textContent = perm === 'granted' ? '已允许' : perm === 'denied' ? '已拒绝' : perm === 'unsupported' ? '当前环境不支持' : '未授权';
+  if (typeof renderSoundSettings === 'function') renderSoundSettings();
 }
 
 function requestNotificationPermission(){
@@ -124,6 +125,9 @@ function showCharacterNotification(name, text, avatar, opts){
   var data = { island:'chat', name:title, url:notificationUrl(title) };
   /* opts.unique：每条消息使用独立 tag，系统通知逐条堆叠（像微信），而不是互相覆盖 */
   var tagValue = 'island-chat-' + title + (opts && opts.unique ? '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : '');
+  /* 自定义消息铃声：由岛屿自己出声，系统通知就设为静音，避免两个提示音叠在一起；没有导入铃声时照常使用系统通知声音 */
+  var toneClaimed = false;
+  try { if (window.IslandSounds && !(opts && opts.noSound)) toneClaimed = !!IslandSounds.playMessage(); } catch(e) {}
   var nativePromise = getNativeNotificationState();
   return nativePromise.then(function(nativeState){
     var b = islandNativePlugin;
@@ -132,7 +136,8 @@ function showCharacterNotification(name, text, avatar, opts){
         title: title,
         body: body,
         tag: tagValue,
-        url: data.url
+        url: data.url,
+        silent: toneClaimed
       }).then(function(result){
         return !!(result && result.shown !== false);
       }).catch(function(){ return false; });
@@ -142,7 +147,7 @@ function showCharacterNotification(name, text, avatar, opts){
     if (nativeShown) return true;
     try {
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        var n = new Notification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data });
+        var n = new Notification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data, silent:toneClaimed });
         n.onclick = function(){ try { window.focus(); } catch(e){}; try { openPM(title); } catch(e){}; n.close(); };
         return true;
       }
@@ -150,7 +155,7 @@ function showCharacterNotification(name, text, avatar, opts){
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
       return navigator.serviceWorker.ready.then(function(reg){
         if (!reg.showNotification) return false;
-        return reg.showNotification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data }).then(function(){ return true; }).catch(function(){ return false; });
+        return reg.showNotification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data, silent:toneClaimed }).then(function(){ return true; }).catch(function(){ return false; });
       }).catch(function(){ return false; });
     }
     return false;

@@ -43,7 +43,7 @@ function renderCalendarPhoto(){
     img.hidden = !data;
   }
   if (empty) empty.hidden = !!data;
-  var state = $('calendarPhotoState'); if (state) state.textContent = data ? '已使用本地图片' : '未选择图片';
+  var state = $('calendarPhotoState'); if (state) state.textContent = data ? (/^https?:/i.test(data) ? '已使用图床链接' : '已使用本地图片') : '未选择图片';
   var pick = $('calendarPhotoPick'); if (pick) pick.textContent = data ? '更换图片' : '选择图片';
   var clear = $('calendarPhotoClear'); if (clear) clear.hidden = !data;
 }
@@ -63,6 +63,18 @@ function handleCalendarPhotoFile(file){
 }
 
 
+function importCalendarPhotoUrl(){
+  promptImageUrl('日历图片链接').then(function(url){
+    if (!url) return;
+    var a = normalizeHomeAppearance();
+    a.calendarPhoto = url;
+    applyHomeAppearance();
+    saveSettings();
+    toast('已更换日历图片');
+  });
+}
+
+
 function clearCalendarPhoto(){
   var a = normalizeHomeAppearance();
   if (!a.calendarPhoto) return;
@@ -79,6 +91,7 @@ function bindCalendarWidgetEvents(){
   var photoBtn = $('calPhotoBtn'); if (photoBtn) photoBtn.addEventListener('click', openPicker);
   var pick = $('calendarPhotoPick'); if (pick) pick.addEventListener('click', openPicker);
   var clear = $('calendarPhotoClear'); if (clear) clear.addEventListener('click', clearCalendarPhoto);
+  var urlBtn = $('calendarPhotoUrl'); if (urlBtn) urlBtn.addEventListener('click', importCalendarPhotoUrl);
   if (input) input.addEventListener('change', function(){
     handleCalendarPhotoFile(input.files && input.files[0]);
     input.value = '';

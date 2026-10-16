@@ -378,11 +378,15 @@ function bindSettingsAppearanceEvents(){
     wallpaperUploadBtn.addEventListener('click', function(){ wallpaperInput.click(); });
     wallpaperInput.addEventListener('change', function(){ handleWallpaperFile(wallpaperInput.files && wallpaperInput.files[0]); wallpaperInput.value = ''; });
   }
+  var wallpaperUrlBtn = $('wallpaperUrlBtn');
+  if (wallpaperUrlBtn) wallpaperUrlBtn.addEventListener('click', importWallpaperUrl);
   var iconLibrary = $('iconLibrary');
   if (iconLibrary) {
     iconLibrary.addEventListener('click', function(e){
       var upload = e.target.closest ? e.target.closest('[data-icon-upload]') : null;
       var clear = e.target.closest ? e.target.closest('[data-icon-clear]') : null;
+      var urlBtn = e.target.closest ? e.target.closest('[data-icon-url]') : null;
+      if (urlBtn) { importHomeAppIconUrl(urlBtn.getAttribute('data-icon-url')); return; }
       if (upload) {
         var targetName = upload.getAttribute('data-icon-upload');
         var input = null;

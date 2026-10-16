@@ -60,10 +60,8 @@ function getSystemTheme(){
 }
 
 
-/* ---------- 液态玻璃图标主题（glass）----------
- * 与“文字”主题完全分开：不显示文字首字，而是用一套专属的实心 SVG 符号，
- * 配合 css-apps-home.css 里 .app-icon.is-liquid 的折射、边缘高光与内发光。 */
-var LIQUID_GLYPHS = {
+/* ---------- 「无边框」图标主题的实心 SVG 符号 ---------- */
+var FLAT_GLYPHS = {
   '聊天': '<path d="M12 3.2c-5 0-9 3.4-9 7.6 0 2.3 1.2 4.3 3.1 5.7-.1 1.3-.7 2.5-1.6 3.4-.3.3-.1.9.4.9 2-.2 3.7-1 4.7-1.7.8.2 1.6.2 2.4.2 5 0 9-3.4 9-7.6S17 3.2 12 3.2z"/>',
   '屿年': '<path d="M2.5999999999999996 17.2A9.4 9.4 0 0 1 21.4 17.2H19.4A7.4 7.4 0 0 0 4.6 17.2Z"/><path d="M5.8 17.2A6.2 6.2 0 0 1 18.2 17.2H16.2A4.2 4.2 0 0 0 7.8 17.2Z"/><path d="M9.0 17.2A3.0 3.0 0 0 1 15.0 17.2Z"/><path d="M19.4 2.6l.85 2.35 2.35.85-2.35.85-.85 2.35-.85-2.35-2.35-.85 2.35-.85z"/>',
   '相册': '<path fill-rule="evenodd" d="M5.6 3.6h12.8A2.6 2.6 0 0 1 21 6.2v11.6a2.6 2.6 0 0 1-2.6 2.6H5.6A2.6 2.6 0 0 1 3 17.8V6.2a2.6 2.6 0 0 1 2.6-2.6zM9 7.4a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM5.2 18l4.1-4.7 3 3 2.5-2.8L19 18z"/>',
@@ -71,30 +69,20 @@ var LIQUID_GLYPHS = {
   '备忘录': '<path fill-rule="evenodd" d="M7.4 3h9.2A3.4 3.4 0 0 1 20 6.4v11.2a3.4 3.4 0 0 1-3.4 3.4H7.4A3.4 3.4 0 0 1 4 17.6V6.4A3.4 3.4 0 0 1 7.4 3zM8 7.6h8v1.7H8zm0 3.6h8v1.7H8zm0 3.6h5v1.7H8z"/>',
   '天气': '<circle cx="8.2" cy="8.4" r="3.7" opacity=".7"/><path d="M7.6 20a4.3 4.3 0 0 1-.4-8.6 5.6 5.6 0 0 1 10.6 1.4A3.6 3.6 0 0 1 17.4 20z"/>',
   '时钟': '<path fill-rule="evenodd" d="M12 2.4a9.6 9.6 0 1 0 0 19.2 9.6 9.6 0 0 0 0-19.2zM11 6.4h2v5.4l3.5 2.1-1 1.7-4.5-2.7z"/>',
-  '设置': '<g id="lqTeeth"><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(45 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(90 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(135 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(180 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(225 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(270 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(315 12 12)"/></g><path fill-rule="evenodd" d="M12 4.6a7.4 7.4 0 1 0 0 14.8 7.4 7.4 0 0 0 0-14.8zM12 8.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z"/>',
+  '设置': '<g><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(45 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(90 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(135 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(180 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(225 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(270 12 12)"/><rect x="10.1" y="2.4" width="3.8" height="4.6" rx="1.2" transform="rotate(315 12 12)"/></g><path fill-rule="evenodd" d="M12 4.6a7.4 7.4 0 1 0 0 14.8 7.4 7.4 0 0 0 0-14.8zM12 8.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z"/>',
   '电话': '<path transform="rotate(-135 12 12)" d="M3.2 9.4c0-1.2.6-2 1.7-2.5 4.2-1.7 10.7-1.7 14.2 0 1.1.5 1.7 1.3 1.7 2.5v1.3c0 .9-.6 1.5-1.5 1.6l-2.6.3c-.8.1-1.4-.4-1.5-1.2l-.2-1.7c-.1-.5-.4-.8-.9-.9-1.3-.2-2.6-.2-3.9 0-.5.1-.8.4-.9.9l-.2 1.7c-.1.8-.7 1.3-1.5 1.2l-2.6-.3c-.9-.1-1.5-.7-1.5-1.6z"/>',
   '倒数日': '<path d="M2.91 15.83Q4.7 14.34 5.74 13.39Q6.78 12.43 7.49 11.39Q8.21 10.34 8.21 9.35Q8.21 8.6 7.86 8.17Q7.51 7.75 6.82 7.75Q6.12 7.75 5.72 8.27Q5.33 8.8 5.33 9.75H2.3Q2.34 8.19 2.97 7.15Q3.6 6.1 4.64 5.6Q5.68 5.11 6.94 5.11Q9.13 5.11 10.24 6.23Q11.35 7.35 11.35 9.15Q11.35 11.11 10.01 12.79Q8.67 14.47 6.59 16.07H11.55V18.62H2.34V16.29Q2.96 15.79 2.91 15.83ZM17.11 5.09Q18.49 5.09 19.47 5.57Q20.45 6.04 20.96 6.87Q21.46 7.7 21.46 8.72Q21.46 9.94 20.86 10.7Q20.25 11.46 19.44 11.73V11.81Q20.49 12.16 21.09 12.96Q21.7 13.77 21.7 15.04Q21.7 16.18 21.18 17.05Q20.65 17.92 19.65 18.41Q18.65 18.91 17.28 18.91Q15.07 18.91 13.76 17.83Q12.45 16.74 12.38 14.56H15.42Q15.44 15.37 15.88 15.84Q16.32 16.3 17.17 16.3Q17.88 16.3 18.28 15.89Q18.67 15.48 18.67 14.8Q18.67 13.92 18.11 13.52Q17.55 13.13 16.32 13.13H15.74V10.58H16.32Q17.26 10.58 17.84 10.26Q18.41 9.94 18.41 9.11Q18.41 8.45 18.05 8.08Q17.68 7.71 17.04 7.71Q16.34 7.71 16 8.14Q15.66 8.56 15.61 9.18H12.54Q12.61 7.22 13.83 6.15Q15.04 5.09 17.11 5.09Z"/>',
   '世界书': '<path d="M2.8 5.8c3.1-.9 6.2-.6 8.4 1v13c-2.3-1.5-5.4-1.8-8.4-.9z"/><path d="M21.2 5.8c-3.1-.9-6.2-.6-8.4 1v13c2.3-1.5 5.4-1.8 8.4-.9z"/>',
   '音乐': '<ellipse cx="7" cy="17.8" rx="3.1" ry="2.7"/><ellipse cx="17" cy="15.8" rx="3.1" ry="2.7"/><rect x="8.9" y="5.6" width="2" height="12.2"/><rect x="18.9" y="3.6" width="2" height="12.2"/><path d="M8.9 5.2l12-2.6v4l-12 2.6z"/>'
 };
 
-function ensureLiquidDefs(){
-  if (document.getElementById('lqDefs')) return;
-  var holder = document.createElement('div');
-  holder.id = 'lqDefs';
-  holder.setAttribute('aria-hidden', 'true');
-  holder.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
-  holder.innerHTML = '<svg width="0" height="0" focusable="false"><defs><linearGradient id="lqGlyphGrad" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="22"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#f3f6fb"/><stop offset="1" stop-color="#cdd5e2"/></linearGradient><linearGradient id="lqGlyphEdge" gradientUnits="userSpaceOnUse" x1="3" y1="3" x2="21" y2="21"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#ffffff" stop-opacity=".25"/><stop offset=".6" stop-color="#ffffff" stop-opacity=".25"/><stop offset="1" stop-color="#ffffff" stop-opacity=".9"/></linearGradient></defs></svg>';
-  document.body.appendChild(holder);
-}
-
 function getHomeIconTheme(){
   var t = State.settings && State.settings.homeAppearance && State.settings.homeAppearance.iconTheme;
-  return ['default','glass','borderless'].indexOf(t) >= 0 ? t : 'default';
+  return ['default','borderless'].indexOf(t) >= 0 ? t : 'default';
 }
 
 /* ---------- 「默认」图标主题：12 张透明 PNG，作为本地静态资源随网页 / APK 一起打包（见 icons/ 目录）----------
- * 图标自带圆角与底色，不再叠加玻璃底板或圆角裁切；用户自定义上传的图片优先级仍然更高。 */
+ * 图标自带圆角与底色，不再叠加底板或圆角裁切；用户自定义上传的图片优先级仍然更高。 */
 var DEFAULT_ICON_FILES = {
   '聊天': 'icons/chat.png',
   '屿年': 'icons/yunian.png',
@@ -113,17 +101,15 @@ var DEFAULT_ICON_FILES = {
 function setAppIconVisual(iconEl, appName, imageData){
   if (!iconEl) return;
   var theme = getHomeIconTheme();
-  var liquid = theme === 'glass';
   var flat = theme === 'borderless';
   var builtin = theme === 'default' && !imageData && !!DEFAULT_ICON_FILES[appName];
-  /* 主题 / 名称 / 自定义图片都没变就不重建：开关一点就把 12 个玻璃图标（含 SVG、遮罩）全部拆了重建，是卡顿来源之一 */
+  /* 主题 / 名称 / 自定义图片都没变就不重建，避免开关一点就把 12 个图标全部拆了重建 */
   var visKey = theme + '|' + appName;
   if (iconEl.__visKey === visKey && iconEl.__visData === (imageData || '') && iconEl.firstChild) return;
   iconEl.__visKey = visKey;
   iconEl.__visData = imageData || '';
   iconEl.classList.toggle('has-custom-image', !!imageData);
   iconEl.classList.toggle('is-flat', flat && !imageData);
-  iconEl.classList.toggle('is-liquid', liquid);
   iconEl.classList.toggle('is-default-icon', builtin);
   iconEl.innerHTML = '';
   if (builtin) {
@@ -140,27 +126,12 @@ function setAppIconVisual(iconEl, appName, imageData){
     img.alt = '';
     img.setAttribute('aria-hidden', 'true');
     iconEl.appendChild(img);
-  } else if (liquid && LIQUID_GLYPHS[appName]) {
-    ensureLiquidDefs();
-    /* 底板模糊层：Dock/桌面图标自己不再用 backdrop-filter，这样里面的符号才能折射到壁纸 */
-    var glass = document.createElement('span');
-    glass.className = 'lq-glass';
-    glass.setAttribute('aria-hidden', 'true');
-    iconEl.appendChild(glass);
-    var holder = document.createElement('span');
-    holder.className = 'lq-glyph';
-    holder.setAttribute('aria-hidden', 'true');
-    /* 符号本身也是一片液态玻璃：用符号轮廓做遮罩，叠一层模糊壁纸 + 极细边缘 */
-    var maskSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000">' + LIQUID_GLYPHS[appName] + '</svg>';
-    holder.style.setProperty('--lq-mask', 'url("data:image/svg+xml,' + encodeURIComponent(maskSvg) + '")');
-    holder.innerHTML = '<i class="lq-gblur"></i><svg viewBox="0 0 24 24" fill="url(#lqGlyphGrad)">' + LIQUID_GLYPHS[appName] + '</svg>';
-    iconEl.appendChild(holder);
-  } else if (flat && LIQUID_GLYPHS[appName]) {
+  } else if (flat && FLAT_GLYPHS[appName]) {
     /* 无边框：只留一枚实心符号，没有底板、没有边线 */
     var fh = document.createElement('span');
     fh.className = 'flat-glyph';
     fh.setAttribute('aria-hidden', 'true');
-    fh.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor">' + LIQUID_GLYPHS[appName] + '</svg>';
+    fh.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor">' + FLAT_GLYPHS[appName] + '</svg>';
     iconEl.appendChild(fh);
   }
 }
@@ -206,6 +177,11 @@ function renderHomeIconLibrary(){
     upload.type = 'button';
     upload.setAttribute('data-icon-upload', name);
     upload.textContent = '选择';
+    var urlBtn = document.createElement('button');
+    urlBtn.className = 'icon-library-btn';
+    urlBtn.type = 'button';
+    urlBtn.setAttribute('data-icon-url', name);
+    urlBtn.textContent = '链接';
     var clear = document.createElement('button');
     clear.className = 'icon-library-btn';
     clear.type = 'button';
@@ -218,6 +194,7 @@ function renderHomeIconLibrary(){
     input.hidden = true;
     input.setAttribute('data-icon-input', name);
     actions.appendChild(upload);
+    actions.appendChild(urlBtn);
     actions.appendChild(clear);
     item.appendChild(preview);
     item.appendChild(label);
@@ -244,6 +221,19 @@ function handleHomeAppIconFile(appName, file){
   };
   reader.onerror = function(){ toast('读取图片失败'); };
   reader.readAsDataURL(file);
+}
+
+
+function importHomeAppIconUrl(appName){
+  if (HOME_APP_NAMES.indexOf(appName) < 0) return;
+  promptImageUrl(appName + ' 图标链接').then(function(url){
+    if (!url) return;
+    var a = normalizeHomeAppearance();
+    a.iconData[appName] = url;
+    applyHomeAppearance();
+    saveSettings();
+    toast('已更换' + appName + '图标');
+  });
 }
 
 
@@ -287,9 +277,8 @@ function applyHomeAppearance(){
     dock.style.setProperty('--dock-radius', a.dockRadius + 'px');
     dock.style.setProperty('--dock-effective-alpha', String(Math.max(0, Math.min(1, effectiveAlpha))));
   }
-  applyHomeGlassVars(a);
+  applyHomeVars(a);
   renderHomeAppIcons();
-  scheduleLensUpdate();
   renderCalendarPhoto();
   renderMusicCover();
   renderPolaroidPhoto();
@@ -318,10 +307,8 @@ function renderHomeAppearanceOptions(){
     btn.setAttribute('aria-checked', on ? 'true' : 'false');
   });
   renderHomeSliders(a);
-  /* 主题专属的拉条分组：只显示当前主题对应的那一组（默认折叠，展开状态不写入存档） */
   /* 「默认」主题的 PNG 自带圆角，圆角拉条无意义：该主题下隐藏整段「图标调节」 */
   $$('[data-icon-hide-in]').forEach(function(el){ el.classList.toggle('is-theme-hidden', el.getAttribute('data-icon-hide-in') === a.iconTheme); });
-  $$('[data-icon-group]').forEach(function(g){ g.hidden = g.getAttribute('data-icon-group') !== a.iconTheme; });
   var dimWallpaper = $('dimDarkWallpaperToggle');
   if (dimWallpaper) { dimWallpaper.classList.toggle('is-on', a.dimDarkWallpaper); dimWallpaper.setAttribute('aria-checked', a.dimDarkWallpaper ? 'true' : 'false'); }
   var scaleIn = $('islandScaleInput'); if (scaleIn && document.activeElement !== scaleIn) scaleIn.value = String(a.islandScale);
@@ -360,7 +347,7 @@ function renderHomeAppearanceOptions(){
   if (dimWallpaperLock) { dimWallpaperLock.classList.toggle('is-on', a.dimDarkWallpaperLocked); dimWallpaperLock.setAttribute('aria-pressed', a.dimDarkWallpaperLocked ? 'true' : 'false'); dimWallpaperLock.textContent = a.dimDarkWallpaperLocked ? '已锁定' : '锁定'; }
   if (dimIconLock) { dimIconLock.classList.toggle('is-on', a.dimDarkIconLocked); dimIconLock.setAttribute('aria-pressed', a.dimDarkIconLocked ? 'true' : 'false'); dimIconLock.textContent = a.dimDarkIconLocked ? '已锁定' : '锁定'; }
   var wallpaperState = $('wallpaperState');
-  if (wallpaperState) wallpaperState.textContent = a.wallpaperData ? '已使用本地图片' : '未选择本地图片';
+  if (wallpaperState) wallpaperState.textContent = a.wallpaperData ? (/^https?:/i.test(a.wallpaperData) ? '已使用图床链接' : '已使用本地图片') : '未选择本地图片';
   renderCalendarStyleControls(a);
   $$('.widget-card').forEach(function(card){
     var key = card.dataset.widgetCard;
@@ -391,7 +378,7 @@ function queueHomeAppearanceApply(){
 
 function setHomeIconOption(kind, value){
   var a = normalizeHomeAppearance();
-  if (kind === 'theme' && ['default','glass','borderless'].indexOf(value) >= 0) {
+  if (kind === 'theme' && ['default','borderless'].indexOf(value) >= 0) {
     /* 切换主题：数值换成该主题自己的一组（applyHomeAppearance → normalize 会读 themeParams）。
      * 与「锁定」无关——锁定只是防误触拉条，不会让数值卡在上一个主题。 */
     a.iconTheme = value;
@@ -405,7 +392,7 @@ function setDockSetting(kind, value){
   if (!a) return;
   var n = Number(value);
   if (!Number.isFinite(n)) return;
-  if (kind === 'radius') { if (a.dockRadiusLocked) return; a.dockRadius = Math.max(0, Math.min(40, Math.round(n))); a.dockShapeV2 = true; scheduleLensUpdate(); }
+  if (kind === 'radius') { if (a.dockRadiusLocked) return; a.dockRadius = Math.max(0, Math.min(40, Math.round(n))); a.dockShapeV2 = true; }
   if (kind === 'transparency') { if (a.dockTransparencyLocked) return; a.dockTransparency = Math.max(0, Math.min(100, Math.round(n))); }
   var dock = document.querySelector('.dock');
   var range = kind === 'radius' ? $('dockRadiusRange') : $('dockTransparencyRange');
@@ -431,153 +418,21 @@ function setDockLock(kind, on){
 }
 
 
-/* ---------- 拉条自定义调节（图标圆角 / 液态玻璃磨砂与清透 / Dock 模糊度）----------
+/* ---------- 拉条自定义调节（图标圆角 / Dock 模糊度）----------
  * 每条拉条都带「锁定」：锁定后拉条置灰、数值不可再改，设置会随外观一起保存。 */
 var HOME_SLIDERS = {
   iconRadius:  { lockKey: 'iconRadiusLocked',  min: 0, max: 50,  unit: '%' },
-  iconBlur:    { lockKey: 'iconBlurLocked',    min: 0, max: 30,  unit: 'px' },
-  iconClarity: { lockKey: 'iconClarityLocked', min: 0, max: 100, unit: '%' },
-  iconLens:    { lockKey: 'iconLensLocked',    min: 0, max: 100, unit: '%' },
-  iconDepth:   { lockKey: 'iconDepthLocked',   min: 0, max: 100, unit: '%' },
-  glyphBlur:   { lockKey: 'glyphBlurLocked',   min: 0, max: 20,  unit: 'px' },
-  glyphClarity:{ lockKey: 'glyphClarityLocked',min: 0, max: 100, unit: '%' },
   dockBlur:    { lockKey: 'dockBlurLocked',    min: 0, max: 60,  unit: 'px' }
 };
 
-/* 写入全局 CSS 变量：桌面、Dock 与设置里的图标预览共用同一组参数。
- * 清透度 0→100：底板填充从 2 倍（偏奶白）渐变到 0（完全通透），50 为原有观感。 */
-var _glassVarCache = {};
-function applyHomeGlassVars(a){
+/* 写入全局 CSS 变量：桌面、Dock 与设置里的图标预览共用同一组参数。 */
+var _homeVarCache = {};
+function applyHomeVars(a){
   var rootStyle = document.documentElement.style;
   /* 这些变量挂在根节点上，每写一次都会让整棵样式树失效重算：只写真正变化的那几个 */
-  var st = { setProperty: function(k, v){ if (_glassVarCache[k] === v) return; _glassVarCache[k] = v; rootStyle.setProperty(k, v); } };
+  var st = { setProperty: function(k, v){ if (_homeVarCache[k] === v) return; _homeVarCache[k] = v; rootStyle.setProperty(k, v); } };
   st.setProperty('--icon-radius', a.iconRadius + '%');
-  st.setProperty('--lq-blur', a.iconBlur + 'px');
-  st.setProperty('--lq-fill', String(Math.max(0, 2 * (1 - a.iconClarity / 100))));
-  st.setProperty('--lq-gblur', a.glyphBlur + 'px');
-  /* 符号清晰度 0→100：符号本体填充 .12→.92，越高越实、越清楚；越低越像透明玻璃 */
-  st.setProperty('--lq-gfill', String(.12 + .8 * a.glyphClarity / 100));
-  st.setProperty('--lq-gedge', String(.30 + .45 * a.glyphClarity / 100));
-  st.setProperty('--lq-depth', String(a.iconDepth / 60));
   st.setProperty('--dock-blur', a.dockBlur + 'px');
-  scheduleLensUpdate();
-}
-
-/* ---------- 边缘折射（真·液态玻璃的“厚度”）----------
- * 用位移贴图让玻璃边缘附近的壁纸发生弯曲，中间保持清晰，就像一块有厚度的透镜。
- * 位移贴图由 canvas 按「圆角矩形距离场」实时生成；只有基于 Chromium 的内核
- * （Chrome / 安卓 WebView / APK）支持在 backdrop-filter 里使用 SVG 滤镜，
- * iOS Safari 等会自动退回为“模糊 + 高光”的版本。 */
-var LENS_SUPPORTED = (function(){
-  try {
-    var ua = navigator.userAgent || '';
-    return /Chrome\//.test(ua) && !/(CriOS|FxiOS|EdgiOS|iPhone|iPad|iPod)/.test(ua);
-  } catch (e) { return false; }
-})();
-
-/* w,h：目标尺寸(px)；rPx：圆角(px)；band：折射带宽(px)；P：边缘最大位移(px) */
-function buildLensMap(w, h, rPx, band, P){
-  var scaleDown = Math.max(1, Math.max(w, h) / 160);
-  var cw = Math.max(8, Math.round(w / scaleDown)), ch = Math.max(8, Math.round(h / scaleDown));
-  var k = cw / w;
-  var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
-  var ctx = cv.getContext('2d'); if (!ctx) return null;
-  var img = ctx.createImageData(cw, ch), d = img.data;
-  var r = Math.min(rPx * k, cw / 2, ch / 2), bw = Math.max(1, band * k);
-  var hx = cw / 2, hy = ch / 2;
-  /* feDisplacementMap 的 scale 以 bbox 为单位：x 方向 = scale*W*(R-.5)，y 方向 = scale*H*(G-.5) */
-  var S = 2 * P / Math.min(w, h);
-  for (var y = 0; y < ch; y++) {
-    for (var x = 0; x < cw; x++) {
-      var px = x + .5 - hx, py = y + .5 - hy;
-      var qx = Math.abs(px) - (hx - r), qy = Math.abs(py) - (hy - r);
-      var ox, oy, dist;
-      if (qx > 0 && qy > 0) { var l = Math.sqrt(qx*qx + qy*qy) || 1; ox = qx / l * (px < 0 ? -1 : 1); oy = qy / l * (py < 0 ? -1 : 1); dist = r - l; }
-      else if (qx > qy) { ox = px < 0 ? -1 : 1; oy = 0; dist = -qx; }
-      else { ox = 0; oy = py < 0 ? -1 : 1; dist = -qy; }
-      var t = Math.max(0, Math.min(1, 1 - dist / bw));      /* 1=最边缘 → 0=带宽之外 */
-      var m = t * t * (3 - 2 * t); m = m * m;               /* 边缘陡、向内迅速消失 */
-      /* 向内取样：边缘像素显示更靠内侧的壁纸，边缘看起来被“压扁/拉弯”，且不会取到元素外的透明像素 */
-      var vx = -ox * m * (P / w) / (S / 2) * .5, vy = -oy * m * (P / h) / (S / 2) * .5;
-      var i = (y * cw + x) * 4;
-      d[i] = Math.round(127.5 + 127 * vx); d[i+1] = Math.round(127.5 + 127 * vy); d[i+2] = 128; d[i+3] = 255;
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-  return { url: cv.toDataURL('image/png'), scale: S };
-}
-
-function ensureLensFilters(){
-  if (document.getElementById('lqLensIcon')) return;
-  ensureLiquidDefs();
-  var svg = document.querySelector('#lqDefs svg'); if (!svg) return;
-  var NS = 'http://www.w3.org/2000/svg';
-  var mk = function(id){
-    var f = document.createElementNS(NS, 'filter');
-    f.setAttribute('id', id); f.setAttribute('x', '0'); f.setAttribute('y', '0'); f.setAttribute('width', '1'); f.setAttribute('height', '1');
-    f.setAttribute('primitiveUnits', 'objectBoundingBox'); f.setAttribute('color-interpolation-filters', 'sRGB');
-    var im = document.createElementNS(NS, 'feImage');
-    im.setAttribute('id', id + 'Map'); im.setAttribute('x', '0'); im.setAttribute('y', '0'); im.setAttribute('width', '1'); im.setAttribute('height', '1');
-    im.setAttribute('preserveAspectRatio', 'none'); im.setAttribute('result', 'lqmap');
-    var dm = document.createElementNS(NS, 'feDisplacementMap');
-    dm.setAttribute('id', id + 'Disp'); dm.setAttribute('in', 'SourceGraphic'); dm.setAttribute('in2', 'lqmap');
-    dm.setAttribute('xChannelSelector', 'R'); dm.setAttribute('yChannelSelector', 'G'); dm.setAttribute('scale', '0');
-    f.appendChild(im); f.appendChild(dm); svg.querySelector('defs').appendChild(f);
-  };
-  mk('lqLensIcon'); mk('lqLensDock');
-}
-
-var _lensRaf = 0, _lensTimer = 0, _lensLast = 0, _lensKeys = {};
-/* 折射贴图要用 canvas 逐像素生成 + PNG 编码 + 重新解码，很贵：
- * ① 参数没变就不重建（磨砂 / 清透 / 符号等拉条根本不影响贴图，原来也在每帧重建）；
- * ② 折射 / 圆角拉条拖动时最多每 90ms 重建一次，松手后补一次最终值。 */
-function scheduleLensUpdate(){
-  if (_lensRaf || _lensTimer) return;
-  /* 折射贴图要逐像素画 + 编码，别落在启动层淡出的那一秒里：等淡出结束再生成 */
-  var fadeWait = bootFadeWaitMs();
-  if (fadeWait > 0) { _lensTimer = setTimeout(function(){ _lensTimer = 0; scheduleLensUpdate(); }, fadeWait); return; }
-  var run = function(){
-    _lensRaf = requestAnimationFrame(function(){
-      _lensRaf = 0;
-      _lensLast = (window.performance && performance.now) ? performance.now() : Date.now();
-      var a = State.settings && State.settings.homeAppearance;
-      if (a) updateLensFilters(a);
-    });
-  };
-  var now = (window.performance && performance.now) ? performance.now() : Date.now();
-  var wait = 90 - (now - _lensLast);
-  if (wait > 0) _lensTimer = setTimeout(function(){ _lensTimer = 0; run(); }, wait);
-  else run();
-}
-window.addEventListener('resize', function(){ scheduleLensUpdate(); });
-
-function updateLensFilters(a){
-  var root = document.documentElement;
-  var on = LENS_SUPPORTED && a.iconLens > 0 && getHomeIconTheme() === 'glass';
-  root.classList.toggle('lq-lens', on);
-  if (!on) return;
-  ensureLensFilters();
-  var setMap = function(id, w, h, rPx, band, P){
-    var lensKey = [w, h, Math.round(rPx * 100), Math.round(band * 100), Math.round(P * 100)].join('|');
-    if (_lensKeys[id] === lensKey) return;
-    var m = buildLensMap(w, h, rPx, band, P); if (!m) return;
-    _lensKeys[id] = lensKey;
-    var im = document.getElementById(id + 'Map'), dm = document.getElementById(id + 'Disp');
-    if (!im || !dm) return;
-    im.setAttribute('href', m.url); im.setAttributeNS('http://www.w3.org/1999/xlink', 'href', m.url);
-    dm.setAttribute('scale', String(m.scale));
-  };
-  var ic = document.querySelector('.app-icon.is-liquid');
-  var iw = ic && ic.offsetWidth ? ic.offsetWidth : 58;
-  var ih = ic && ic.offsetHeight ? ic.offsetHeight : iw;
-  var f = a.iconLens / 100;
-  var key = [iw, ih, a.iconRadius, a.iconLens].join('|');
-  setMap('lqLensIcon', iw, ih, iw * a.iconRadius / 100, iw * .34, iw * .30 * f);
-  var dk = document.querySelector('.dock');
-  if (dk && dk.offsetWidth > 20) {
-    var dw = dk.offsetWidth, dh = dk.offsetHeight;
-    setMap('lqLensDock', dw, dh, Math.min(a.dockRadius, dh / 2), dh * .30, dh * .22 * f);
-  }
 }
 
 function paintHomeSlider(name, a){
@@ -620,11 +475,12 @@ function setHomeSlider(name, value){
   a[name] = Math.max(d.min, Math.min(d.max, Math.round(n)));
   /* 同步写进当前主题自己的那一组，切换主题时才不会串值 */
   if (!a.themeParams) a.themeParams = {};
-  var tk = a.iconTheme === 'borderless' ? 'borderless' : 'glass';
-  if (!a.themeParams[tk]) a.themeParams[tk] = {};
-  a.themeParams[tk][name] = a[name];
+  if (a.iconTheme === 'borderless' && name === 'iconRadius') {
+    if (!a.themeParams.borderless) a.themeParams.borderless = {};
+    a.themeParams.borderless[name] = a[name];
+  }
   paintHomeSliderLive(name, a);
-  applyHomeGlassVars(a);
+  applyHomeVars(a);
   scheduleSettingsSave(900);
 }
 
@@ -637,25 +493,7 @@ function setHomeSliderLock(name, on){
   scheduleSettingsSave(200);
 }
 
-function setIconGroupOpen(group, open){
-  if (!group) return;
-  var head = group.querySelector('.icon-adj-group-head');
-  var body = group.querySelector('.icon-adj-group-body');
-  group.classList.toggle('is-open', !!open);
-  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if (body) body.hidden = !open;
-}
-
-function bindIconGroups(){
-  $$('[data-icon-group]').forEach(function(group){
-    var head = group.querySelector('.icon-adj-group-head');
-    if (head) head.addEventListener('click', function(){ setIconGroupOpen(group, !group.classList.contains('is-open')); });
-    setIconGroupOpen(group, false); /* 默认折叠 */
-  });
-}
-
 function bindHomeSliders(){
-  bindIconGroups();
   Object.keys(HOME_SLIDERS).forEach(function(name){
     var range = $(name + 'Range');
     if (range) {
@@ -907,6 +745,18 @@ function setWidgetSize(key, size){
   if (!a.widgets[key] || ['small','medium','large'].indexOf(size) < 0) return;
   a.widgets[key].size = size;
   queueHomeAppearanceApply();
+}
+
+
+function importWallpaperUrl(){
+  promptImageUrl('壁纸图片链接').then(function(url){
+    if (!url) return;
+    var a = normalizeHomeAppearance();
+    a.wallpaperData = url;
+    applyHomeAppearance();
+    saveSettings();
+    toast('已应用自定义壁纸');
+  });
 }
 
 

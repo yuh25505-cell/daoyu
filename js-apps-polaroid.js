@@ -18,7 +18,7 @@ function renderPolaroidPhoto(){
   if (empty) empty.hidden = !!data;
   var cap = $('polaroidCaption');
   if (cap && document.activeElement !== cap && cap.value !== a.polaroidCaption) cap.value = a.polaroidCaption;
-  var state = $('polaroidPhotoState'); if (state) state.textContent = data ? '已使用本地图片' : '未选择照片';
+  var state = $('polaroidPhotoState'); if (state) state.textContent = data ? (/^https?:/i.test(data) ? '已使用图床链接' : '已使用本地图片') : '未选择照片';
   var pick = $('polaroidPhotoPick'); if (pick) pick.textContent = data ? '更换照片' : '选择照片';
   var clear = $('polaroidPhotoClear'); if (clear) clear.hidden = !data;
 }
@@ -38,6 +38,18 @@ function handlePolaroidPhotoFile(file){
 }
 
 
+function importPolaroidPhotoUrl(){
+  promptImageUrl('拍立得照片链接').then(function(url){
+    if (!url) return;
+    var a = normalizeHomeAppearance();
+    a.polaroidPhoto = url;
+    applyHomeAppearance();
+    saveSettings();
+    toast('已更换拍立得照片');
+  });
+}
+
+
 function clearPolaroidPhoto(){
   var a = normalizeHomeAppearance();
   if (!a.polaroidPhoto) return;
@@ -54,6 +66,7 @@ function bindPolaroidEvents(){
   var btn = $('polaroidBtn'); if (btn) btn.addEventListener('click', openPicker);
   var pick = $('polaroidPhotoPick'); if (pick) pick.addEventListener('click', openPicker);
   var clear = $('polaroidPhotoClear'); if (clear) clear.addEventListener('click', clearPolaroidPhoto);
+  var urlBtn = $('polaroidPhotoUrl'); if (urlBtn) urlBtn.addEventListener('click', importPolaroidPhotoUrl);
   if (input) input.addEventListener('change', function(){
     handlePolaroidPhotoFile(input.files && input.files[0]);
     input.value = '';

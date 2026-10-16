@@ -71,6 +71,8 @@ import java.util.UUID;
 public class IslandNativePlugin extends Plugin {
     static final String NOTIFICATIONS = "notifications";
     static final String CHANNEL_ID = "island_messages";
+    /* 用户导入了自定义消息铃声时用的渠道：同样是高优先级，但没有系统提示音（铃声由应用自己播放） */
+    static final String SILENT_CHANNEL_ID = "island_messages_silent";
     static final String CHANNEL_NAME = "${appName}消息";
     static final int CHANNEL_IMPORTANCE = NotificationManager.IMPORTANCE_HIGH;
     static final String SAVE_FOLDER = "${appName}";
@@ -136,6 +138,8 @@ public class IslandNativePlugin extends Plugin {
         String body = safeText(call.getString("body", ""), "");
         String tag = safeText(call.getString("tag", "island-message"), "island-message");
         String url = call.getString("url", "");
+        Boolean silentFlag = call.getBoolean("silent", false);
+        boolean silent = silentFlag != null && silentFlag.booleanValue();
 
         if (!isNotificationEnabled()) {
             call.resolve(result(false, getNotificationState()));
@@ -163,7 +167,7 @@ public class IslandNativePlugin extends Plugin {
 
         Notification.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder = new Notification.Builder(getActivity(), CHANNEL_ID);
+            builder = new Notification.Builder(getActivity(), silent ? SILENT_CHANNEL_ID : CHANNEL_ID);
         } else {
             builder = new Notification.Builder(getActivity())
                 .setPriority(Notification.PRIORITY_HIGH);
@@ -177,7 +181,7 @@ public class IslandNativePlugin extends Plugin {
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_MESSAGE)
-            .setDefaults(Notification.DEFAULT_ALL);
+            .setDefaults(silent ? (Notification.DEFAULT_VIBRATE | Notification.DEFAULT_LIGHTS) : Notification.DEFAULT_ALL);
 
         NotificationManager manager = (NotificationManager) getActivity()
             .getSystemService(Context.NOTIFICATION_SERVICE);
@@ -426,6 +430,17 @@ public class IslandNativePlugin extends Plugin {
         channel.enableVibration(true);
         channel.setShowBadge(true);
         manager.createNotificationChannel(channel);
+
+        NotificationChannel silentChannel = new NotificationChannel(
+            SILENT_CHANNEL_ID,
+            CHANNEL_NAME + "（自定义铃声）",
+            CHANNEL_IMPORTANCE
+        );
+        silentChannel.setDescription("${appName}角色消息（由应用播放自定义铃声，系统不再出声）");
+        silentChannel.setSound(null, null);
+        silentChannel.enableVibration(true);
+        silentChannel.setShowBadge(true);
+        manager.createNotificationChannel(silentChannel);
     }
 
     private boolean isSafeDeepLink(String rawUrl) {

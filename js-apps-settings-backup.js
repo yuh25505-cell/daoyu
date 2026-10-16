@@ -28,11 +28,14 @@ function cloneSettingsForBackup(settings){
   var hasFontData = font && Array.isArray(font.items) && font.items.some(function(it){
     return it && (it.data instanceof ArrayBuffer || ArrayBuffer.isView(it.data));
   });
-  if (!hasFontData) return clone(settings);
+  var hasSounds = settings.sounds && typeof settings.sounds === 'object';
+  if (!hasFontData && !hasSounds) return clone(settings);
   var rest = Object.assign({}, settings);
-  delete rest.font;
+  if (hasFontData) delete rest.font;
+  if (hasSounds) delete rest.sounds;
   var out = clone(rest);
-  out.font = Object.assign({}, font, {
+  if (hasSounds) out.sounds = (typeof IslandSounds !== 'undefined') ? IslandSounds.toBackup(settings.sounds) : null;
+  if (hasFontData) out.font = Object.assign({}, font, {
     items: font.items.map(function(it){
       if (!it || !(it.data instanceof ArrayBuffer || ArrayBuffer.isView(it.data))) return clone(it);
       var buf = it.data instanceof ArrayBuffer ? it.data : it.data.buffer.slice(it.data.byteOffset, it.data.byteOffset + it.data.byteLength);
@@ -47,6 +50,7 @@ function cloneSettingsForBackup(settings){
 
 function restoreSettingsFromBackup(settings){
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return settings;
+  if (settings.sounds && typeof IslandSounds !== 'undefined') settings.sounds = IslandSounds.fromBackup(settings.sounds);
   var font = settings.font;
   if (!font || typeof font !== 'object' || !Array.isArray(font.items)) return settings;
   var items = [];

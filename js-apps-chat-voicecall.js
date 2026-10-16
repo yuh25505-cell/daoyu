@@ -531,6 +531,7 @@ function sendVoiceCallText(){
 
 
 function clearIncomingCallNotice(skipAnimation){
+  try { if (window.IslandSounds) IslandSounds.stopCallRing(); } catch(e) {}
   clearTimeout(incomingCallNoticeTimer);
   if (!pmIncomingCallNotice) return;
   if (skipAnimation) {
@@ -578,6 +579,7 @@ function showIncomingVoiceCall(event, nameHint){
   clearIncomingCallNotice(true);
   voiceCallState.active=false;voiceCallState.incoming=true;voiceCallState.name=name;voiceCallState.sessionId=String(event.callSessionId||genId('call_'));voiceCallState.startedAt=0;voiceCallState.incomingEventId=String(event.id||'');voiceCallState.incomingGreeting=String(event.greeting||'');
   renderIncomingCallNotice(name,event);
+  try { if (window.IslandSounds) IslandSounds.startCallRing(); } catch(e) {}
   return true;
 }
 
@@ -604,6 +606,7 @@ function rejectIncomingVoiceCall(){return closeIncomingVoiceCall('declined');}
 
 function openVoiceCallView(){
   if (!pmVoiceCallView || !currentName) return;
+  try { if (window.IslandSounds) IslandSounds.stopCallRing(); } catch(e) {}
   closePanel();
   closeVoiceTextComposer();
   releaseInputFocus();

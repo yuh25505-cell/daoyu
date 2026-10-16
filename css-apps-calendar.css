@@ -79,7 +79,7 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .cal-photo-img{ filt
 .cal-day.is-today{ background:var(--home-fg); color:var(--bg); font-weight:var(--island-fw-650); }
 
 /* 设置 · 默认小组件：日历卡片里的图片操作行 */
-.widget-card-actions{ display:flex; align-items:center; gap:8px; }
+.widget-card-actions{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 
 .widget-card-state{ flex:1 1 auto; min-width:0; font-size:calc(11px * var(--island-font-size-scale)); color:var(--fg-faint); }
 

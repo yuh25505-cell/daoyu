@@ -149,3 +149,18 @@ textarea.island-dialog-input{ min-height:104px; max-height:34vh; resize:none; li
 .island-dialog-btn.is-cancel{ background:var(--bubble-bg); color:var(--fg-soft); }
 .island-dialog-btn.is-confirm{ background:var(--fg); color:var(--bg); border-color:var(--fg); }
 .island-dialog-btn.is-confirm.is-danger{ background:var(--err); color:#fff; border-color:var(--err); }
+
+
+/* 夜间：确认弹窗的遮罩更深、面板用实色，不再和背后的页面糊在一起 */
+html[data-theme="dark"] .island-dialog-backdrop{ background:rgba(0,0,0,.74); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+html[data-theme="dark"] .island-dialog-panel{ background:#1f1f22; border-color:rgba(255,255,255,.22); box-shadow:0 18px 50px rgba(0,0,0,.75), 0 0 0 1px rgba(0,0,0,.6); }
+html[data-theme="dark"] .island-dialog-title{ color:#fff; }
+html[data-theme="dark"] .island-dialog-message{ color:rgba(255,255,255,.82); }
+html[data-theme="dark"] .island-dialog-btn.is-cancel{ background:#303034; color:#f5f5f5; border-color:rgba(255,255,255,.18); }
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]) .island-dialog-backdrop{ background:rgba(0,0,0,.74); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  html:not([data-theme]) .island-dialog-panel{ background:#1f1f22; border-color:rgba(255,255,255,.22); box-shadow:0 18px 50px rgba(0,0,0,.75), 0 0 0 1px rgba(0,0,0,.6); }
+  html:not([data-theme]) .island-dialog-title{ color:#fff; }
+  html:not([data-theme]) .island-dialog-message{ color:rgba(255,255,255,.82); }
+  html:not([data-theme]) .island-dialog-btn.is-cancel{ background:#303034; color:#f5f5f5; border-color:rgba(255,255,255,.18); }
+}

@@ -232,118 +232,17 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="off"] .app-icon.is-defaul
 .app-icon{ width:54px; }
 }
 
-/* ===== 液态玻璃图标（iOS Liquid Glass）=====
- * 立体感来自四层叠加（自下而上）：
- *   1. .lq-glass   壁纸模糊 +（Chromium 内核）边缘折射位移，玻璃自身有“厚度”
- *   2. 底板淡淡的受光渐变
- *   3. ::after     厚边内侧高光 / 暗边 / 左上镜面反光（放在玻璃层之上，不会被一起折射掉）
- *   4. 符号        带投影与边缘光的磨砂玻璃浮雕
- * --lq-depth（设置里的「立体厚度」）统一缩放高光、暗边与投影的强度。 */
-.app-icon.is-liquid{
-  --lq-bg:
-    linear-gradient(165deg, rgba(255,255,255,calc(.20 * var(--lq-fill,1))), rgba(255,255,255,calc(.04 * var(--lq-fill,1))) 46%, rgba(20,24,34,calc(.10 * var(--lq-fill,1))));
-  position:relative; isolation:isolate; overflow:hidden; border:none; color:#fff;
-  border-radius:22.5%;
-  background:var(--lq-bg);
-  -webkit-backdrop-filter:none; backdrop-filter:none;
-}
-
-html[data-theme="dark"] .app-icon.is-liquid{
-  --lq-bg:
-    linear-gradient(165deg, rgba(255,255,255,calc(.18 * var(--lq-fill,1))), rgba(255,255,255,calc(.03 * var(--lq-fill,1))) 46%, rgba(255,255,255,calc(.06 * var(--lq-fill,1))));
-}
-
-.app-icon.is-liquid .lq-glass{
-  position:absolute; inset:0; z-index:0; border-radius:inherit; pointer-events:none;
-  -webkit-backdrop-filter:blur(var(--lq-blur,10px)) saturate(1.9); backdrop-filter:blur(var(--lq-blur,10px)) saturate(1.9);
-}
-/* 边缘折射：先位移（折射）再模糊，保证折射的弯曲细节还在 */
-html.lq-lens .app-icon.is-liquid .lq-glass{
-  -webkit-backdrop-filter:url(#lqLensIcon) blur(var(--lq-blur,10px)) saturate(1.9); backdrop-filter:url(#lqLensIcon) blur(var(--lq-blur,10px)) saturate(1.9);
-}
-
-/* 边缘高光（iOS 26 的做法）：光只“打”在左上与右下两个转角，沿边迅速渐隐；
- * 另外两个转角与四条边中段几乎没有线，只留一层极淡的底光，所以不会出现一圈连续的白线。
- * ::before = 极细的高光描边（径向渐变 + 环形遮罩），::after = 转角内侧的柔光。 */
-.app-icon.is-liquid::before{
-  content:""; position:absolute; inset:0; z-index:3; border-radius:inherit; padding:var(--lq-rim,1px); pointer-events:none;
-  background:
-    radial-gradient(ellipse 62% 62% at 0% 0%, rgba(255,255,255,calc(.95 * var(--lq-depth,1))) 0%, rgba(255,255,255,calc(.42 * var(--lq-depth,1))) 38%, rgba(255,255,255,0) 100%),
-    radial-gradient(ellipse 55% 55% at 100% 100%, rgba(255,255,255,calc(.70 * var(--lq-depth,1))) 0%, rgba(255,255,255,calc(.28 * var(--lq-depth,1))) 38%, rgba(255,255,255,0) 100%),
-    linear-gradient(rgba(255,255,255,calc(.07 * var(--lq-depth,1))), rgba(255,255,255,calc(.07 * var(--lq-depth,1))));
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-.app-icon.is-liquid::after{
-  content:""; position:absolute; inset:0; z-index:2; border-radius:inherit; pointer-events:none;
-  background:
-    radial-gradient(ellipse 58% 58% at 0% 0%, rgba(255,255,255,calc(.26 * var(--lq-depth,1))) 0%, rgba(255,255,255,0) 72%),
-    radial-gradient(ellipse 50% 50% at 100% 100%, rgba(255,255,255,calc(.16 * var(--lq-depth,1))) 0%, rgba(255,255,255,0) 72%);
-}
-
-/* 符号 = 玻璃浮雕：.lq-gblur 用符号轮廓遮出一块模糊壁纸，svg 画半透明本体、边缘光和投影 */
-.app-icon.is-liquid .lq-glyph{ position:relative; z-index:4; width:100%; height:100%; display:grid; place-items:center; }
-
-.app-icon.is-liquid .lq-gblur{
-  position:absolute; left:23%; top:23%; width:54%; height:54%; pointer-events:none;
-  -webkit-mask:var(--lq-mask) center / 100% 100% no-repeat; mask:var(--lq-mask) center / 100% 100% no-repeat;
-  -webkit-backdrop-filter:blur(var(--lq-gblur,8px)) saturate(1.7) brightness(1.08); backdrop-filter:blur(var(--lq-gblur,8px)) saturate(1.7) brightness(1.08);
-  background:rgba(255,255,255,.08);
-}
-
-.app-icon.is-liquid .lq-glyph svg{
-  position:relative; width:54%; height:54%; display:block; overflow:visible;
-  fill-opacity:var(--lq-gfill,.6);
-  stroke:url(#lqGlyphEdge); stroke-opacity:var(--lq-gedge,.5); stroke-width:.45; stroke-linejoin:round;
-}
-
-/* Dock：同样是厚玻璃。自己不用 backdrop-filter（避免嵌套导致里面的图标发白），
- * 由 ::before 做模糊 +（Chromium）边缘折射，::after 画厚边高光。 */
-.home .dock{
-  position:relative; isolation:isolate; border:none;
-  -webkit-backdrop-filter:none; backdrop-filter:none;
-  background:linear-gradient(180deg, rgba(255,255,255,calc(var(--dock-effective-alpha, .075) * .42)), rgba(255,255,255,calc(var(--dock-effective-alpha, .075) * .22)));
-}
-
-.home .dock::before{
-  content:""; position:absolute; inset:0; z-index:-1; border-radius:inherit; pointer-events:none;
-  -webkit-backdrop-filter:blur(var(--dock-blur,16px)) saturate(1.6); backdrop-filter:blur(var(--dock-blur,16px)) saturate(1.6);
-}
-html.lq-lens .home .dock::before{
-  -webkit-backdrop-filter:url(#lqLensDock) blur(var(--dock-blur,16px)) saturate(1.6); backdrop-filter:url(#lqLensDock) blur(var(--dock-blur,16px)) saturate(1.6);
-}
-
-/* Dock 同理：高光只聚在左上、右下两个转角（用固定半径，避免长条形被拉成整条亮边） */
-.home .dock::after{
-  content:""; position:absolute; inset:0; z-index:0; border-radius:inherit; pointer-events:none; padding:1px;
-  background:
-    radial-gradient(circle 84px at 0% 0%, rgba(255,255,255,calc(.85 * var(--lq-depth,1))) 0%, rgba(255,255,255,calc(.34 * var(--lq-depth,1))) 40%, rgba(255,255,255,0) 100%),
-    radial-gradient(circle 70px at 100% 100%, rgba(255,255,255,calc(.62 * var(--lq-depth,1))) 0%, rgba(255,255,255,calc(.24 * var(--lq-depth,1))) 40%, rgba(255,255,255,0) 100%),
-    linear-gradient(rgba(255,255,255,calc(.07 * var(--lq-depth,1))), rgba(255,255,255,calc(.07 * var(--lq-depth,1))));
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-
-.app-icon.is-liquid.has-custom-image img{ position:relative; z-index:0; border-radius:inherit; }
-
 /* 图标圆角：由「图标调节 › 圆角」拉条控制（%，相对图标边长），对所有图标主题生效 */
 .home .app-icon,
 .home .dock .app-icon,
-.home .app-icon.is-liquid,
-.home .dock .app-icon.is-liquid,
 .app-icon.icon-library-preview{ border-radius:var(--icon-radius,9%); }
 
 
-/* ===== 图标调节：主题分组（可折叠，默认折叠）===== */
-.icon-adj-group[hidden]{ display:none; }
-.icon-adj-group-head{ display:flex; align-items:center; justify-content:space-between; width:100%; min-height:54px; padding:12px 16px; text-align:left; color:var(--fg); }
-.icon-adj-group-title{ font-size:calc(13.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); }
-.icon-adj-group-chev{ width:18px; height:18px; flex:none; color:var(--fg-soft); transition:transform .22s ease; }
-.icon-adj-group.is-open .icon-adj-group-chev{ transform:rotate(180deg); }
-.icon-adj-group-body[hidden]{ display:none; }
-
+/* ===== Dock：普通磨砂底板（模糊度由设置里的拉条控制）===== */
+.home .dock{
+  border:none;
+  -webkit-backdrop-filter:blur(var(--dock-blur,16px)) saturate(.65); backdrop-filter:blur(var(--dock-blur,16px)) saturate(.65);
+}
 
 /* ===== 图标大小固定 58px；整体缩放由「屏幕比例」做（见 css-core-base.css 的 data-scaled）===== */
 .home .app-icon,
@@ -359,8 +258,6 @@ html.lq-lens .home .dock::before{
 
 /* ===== 无 Dock 栏背景：只留图标 ===== */
 .home[data-dock-bg="off"] .dock{ background:none; box-shadow:none; border:none; -webkit-backdrop-filter:none; backdrop-filter:none; }
-.home[data-dock-bg="off"] .dock::before,
-.home[data-dock-bg="off"] .dock::after{ display:none; }
 
 /* ===== 设置里的数值输入行 ===== */
 .num-row{ display:flex; align-items:center; gap:10px; min-height:58px; padding:10px 16px; }

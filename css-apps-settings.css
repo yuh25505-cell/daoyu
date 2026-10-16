@@ -523,3 +523,12 @@ html[data-theme="dark"] .settings-panel[data-panel="notifications"] .notificatio
 .update-card-actions .api-btn{ padding:11px 12px; border-radius:12px; font-size:calc(13px * var(--island-font-size-scale)); }
 .update-card-actions .api-btn:disabled{ opacity:.55; }
 .update-card-actions .api-btn[hidden]{ display:none; }
+
+
+/* ---------- 铃声设置 ---------- */
+.sound-row{ padding:14px 16px; border-top:1px solid var(--track); }
+.sound-actions{ display:flex; gap:8px; margin-top:10px; }
+.sound-actions .appearance-upload-btn{ flex:1 1 0; min-width:0; padding:8px 6px; white-space:nowrap; }
+.appearance-upload-btn:disabled{ opacity:.4; pointer-events:none; }
+.sound-volume-row.dock-control-row{ grid-template-columns:72px minmax(0,1fr) 48px; border-top:1px solid var(--track); }
+.sound-note{ padding:2px 16px 14px; font-size:calc(11.5px * var(--island-font-size-scale)); line-height:1.6; color:var(--fg-faint); }

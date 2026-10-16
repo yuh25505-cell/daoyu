@@ -92,6 +92,33 @@ function islandPrompt(message, opts){
   });
 }
 
+/* 导入图床链接：弹出输入框 → 检查格式 → 真的把图加载一遍确认能用。返回 Promise<string|null>。 */
+function checkImageLoads(url){
+  return new Promise(function(resolve){
+    var img = new Image(), done = false;
+    var finish = function(ok){ if (done) return; done = true; clearTimeout(timer); img.onload = img.onerror = null; resolve(ok); };
+    var timer = setTimeout(function(){ finish(false); }, 12000);
+    img.onload = function(){ finish(true); };
+    img.onerror = function(){ finish(false); };
+    img.src = url;
+  });
+}
+
+function promptImageUrl(title){
+  return islandPrompt('粘贴图床里的图片直链（建议 https，以 .jpg / .png / .webp 等结尾更稳）。', { title: title || '导入图片链接', placeholder: 'https://example.com/image.jpg', confirmText: '使用', maxLength: 1000 }).then(function(v){
+    if (v === null) return null;
+    v = String(v).trim();
+    if (!v) return null;
+    if (!/^https?:\/\//i.test(v)) { toast('链接需要以 http:// 或 https:// 开头'); return null; }
+    if (!isImageSrc(v)) { toast('链接里有不支持的字符（空格、引号、括号）'); return null; }
+    toast('正在检查链接…');
+    return checkImageLoads(v).then(function(ok){
+      if (!ok) { toast('这个链接无法作为图片加载，请确认是图片直链'); return null; }
+      return v;
+    });
+  });
+}
+
 function showNextIslandDialog(){
   if (islandDialogCurrent || !islandDialogQueue.length) return;
   var item = islandDialogQueue.shift();

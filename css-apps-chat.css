@@ -2192,9 +2192,9 @@ html[data-theme="dark"] .pm-voice-call-mic{ background:#2a2a2a; color:#fff; bord
 
 .pm-memory-clear-modal.is-open{display:flex;}
 
-.pm-memory-clear-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.34);backdrop-filter:blur(2px);}
+.pm-memory-clear-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
 
-.pm-memory-clear-dialog{position:relative;width:min(520px,calc(calc(100vw / var(--island-scale,1)) - 28px));margin:0 0 calc(18px + var(--island-sab));padding:18px;border:1px solid var(--card-bd);border-radius:20px;background:var(--card-bg);box-shadow:0 18px 50px rgba(0,0,0,.18);}
+.pm-memory-clear-dialog{position:relative;width:min(520px,calc(calc(100vw / var(--island-scale,1)) - 28px));margin:0 0 calc(18px + var(--island-sab));padding:18px;border:1px solid var(--card-bd);border-radius:20px;background:var(--clr-surface);box-shadow:0 18px 50px rgba(0,0,0,.18);}
 
 .pm-memory-clear-title{font-size:18px;font-weight:var(--island-fw-700);color:var(--fg);}
 
@@ -2214,9 +2214,33 @@ html[data-theme="dark"] .pm-voice-call-mic{ background:#2a2a2a; color:#fff; bord
 
 .pm-memory-clear-actions{display:flex;gap:10px;margin-top:16px;}
 
-.pm-memory-clear-btn{flex:1;min-height:46px;border:1px solid var(--card-bd);border-radius:12px;background:var(--card-bg);color:var(--fg-soft);font-size:14px;font-weight:var(--island-fw-650);}
+.pm-memory-clear-btn{flex:1;min-height:46px;border:1px solid var(--card-bd);border-radius:12px;background:var(--clr-btn);color:var(--fg);font-size:14px;font-weight:var(--island-fw-650);}
 
 .pm-memory-clear-btn.danger{background:#111;color:#fff;border-color:#111;}
+
+/* 清空记忆弹窗：用不透明底色。夜间的 --card-bg 只有 5.5% 白，叠在黑底上几乎全透明，看不清字。
+ * 夜间同时加深遮罩（盖住后面的聊天内容）、面板用比页面更亮一档的实色并加亮边框，文字用高对比度。 */
+.pm-memory-clear-dialog{ --clr-surface:#ffffff; --clr-btn:#f0f0f0; }
+html[data-theme="dark"] .pm-memory-clear-backdrop{ background:rgba(0,0,0,.78); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+html[data-theme="dark"] .pm-memory-clear-dialog{ --clr-surface:#1f1f22; --clr-btn:#303034; border-color:rgba(255,255,255,.22); box-shadow:0 18px 50px rgba(0,0,0,.75), 0 0 0 1px rgba(0,0,0,.6); }
+html[data-theme="dark"] .pm-memory-clear-title{ color:#fff; }
+html[data-theme="dark"] .pm-memory-clear-hint{ color:rgba(255,255,255,.68); }
+html[data-theme="dark"] .pm-memory-clear-option{ border-bottom-color:rgba(255,255,255,.14); }
+html[data-theme="dark"] .pm-memory-clear-option strong{ color:#f5f5f5; }
+html[data-theme="dark"] .pm-memory-clear-option em{ color:rgba(255,255,255,.62); }
+html[data-theme="dark"] .pm-memory-clear-btn{ border-color:rgba(255,255,255,.18); color:#fff; }
+html[data-theme="dark"] .pm-memory-clear-btn.danger{ background:var(--err,#e5484d); border-color:var(--err,#e5484d); color:#fff; }
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]) .pm-memory-clear-backdrop{ background:rgba(0,0,0,.78); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  html:not([data-theme]) .pm-memory-clear-dialog{ --clr-surface:#1f1f22; --clr-btn:#303034; border-color:rgba(255,255,255,.22); box-shadow:0 18px 50px rgba(0,0,0,.75), 0 0 0 1px rgba(0,0,0,.6); }
+  html:not([data-theme]) .pm-memory-clear-title{ color:#fff; }
+  html:not([data-theme]) .pm-memory-clear-hint{ color:rgba(255,255,255,.68); }
+  html:not([data-theme]) .pm-memory-clear-option{ border-bottom-color:rgba(255,255,255,.14); }
+  html:not([data-theme]) .pm-memory-clear-option strong{ color:#f5f5f5; }
+  html:not([data-theme]) .pm-memory-clear-option em{ color:rgba(255,255,255,.62); }
+  html:not([data-theme]) .pm-memory-clear-btn{ border-color:rgba(255,255,255,.18); color:#fff; }
+  html:not([data-theme]) .pm-memory-clear-btn.danger{ background:var(--err,#e5484d); border-color:var(--err,#e5484d); color:#fff; }
+}
 
 /* Char 主动媒体：文字图 / 语音来电 */
 .pm-image-text-bubble{

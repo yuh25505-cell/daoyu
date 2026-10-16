@@ -37,7 +37,7 @@ function renderMusicCover(){
     img.hidden = !data;
   }
   if (empty) empty.hidden = !!data;
-  var state = $('musicCoverState'); if (state) state.textContent = data ? '已使用本地图片' : '未选择封面';
+  var state = $('musicCoverState'); if (state) state.textContent = data ? (/^https?:/i.test(data) ? '已使用图床链接' : '已使用本地图片') : '未选择封面';
   var pick = $('musicCoverPick'); if (pick) pick.textContent = data ? '更换封面' : '选择封面';
   var clear = $('musicCoverClear'); if (clear) clear.hidden = !data;
 }
@@ -57,6 +57,18 @@ function handleMusicCoverFile(file){
 }
 
 
+function importMusicCoverUrl(){
+  promptImageUrl('音乐封面链接').then(function(url){
+    if (!url) return;
+    var a = normalizeHomeAppearance();
+    a.musicCover = url;
+    applyHomeAppearance();
+    saveSettings();
+    toast('已更换音乐封面');
+  });
+}
+
+
 function clearMusicCover(){
   var a = normalizeHomeAppearance();
   if (!a.musicCover) return;
@@ -73,6 +85,7 @@ function bindMusicEvents(){
   var coverBtn = $('musicCoverBtn'); if (coverBtn) coverBtn.addEventListener('click', openCoverPicker);
   var coverPick = $('musicCoverPick'); if (coverPick) coverPick.addEventListener('click', openCoverPicker);
   var coverClear = $('musicCoverClear'); if (coverClear) coverClear.addEventListener('click', clearMusicCover);
+  var urlBtn = $('musicCoverUrl'); if (urlBtn) urlBtn.addEventListener('click', importMusicCoverUrl);
   if (coverInput) coverInput.addEventListener('change', function(){
     handleMusicCoverFile(coverInput.files && coverInput.files[0]);
     coverInput.value = '';

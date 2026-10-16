@@ -13,6 +13,11 @@ function releaseInputFocus(){
 
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 
+/* 图片地址：本地导入的 data:image，或图床直链（http / https，不含空白、引号、括号，能安全放进 CSS url("…") 和属性里） */
+function isImageSrc(v){
+  return typeof v === 'string' && (/^data:image\//i.test(v) || /^https?:\/\/[^\s"'<>()\\]+$/i.test(v));
+}
+
 function pad(n){ return n < 10 ? '0' + n : '' + n; }
 
 function escapeHTML(s){
