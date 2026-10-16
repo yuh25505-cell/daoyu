@@ -1,7 +1,7 @@
 const CACHE_VERSION = '__CACHE_VERSION__';
 const CACHE_NAME = `island-${CACHE_VERSION}`;
 // 由 stamp-version.mjs 自动写入：每次发布内容变化，sw.js 的字节也跟着变，浏览器就能发现新版本。
-const BUILD_STAMP = '1.67.0-acd22e23';
+const BUILD_STAMP = '1.67.1-47543d7e';
 const APP_SHELL = [
   './',
   './index.html',
@@ -144,22 +144,30 @@ self.addEventListener('fetch', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   const data = event.notification && event.notification.data ? event.notification.data : {};
-  const url = data.url || './';
+  const action = event.action || '';
+  let url = data.url || './';
+  if (data.call) {
+    if (action === 'accept') url = data.acceptUrl || url;
+    else if (action === 'decline') url = data.declineUrl || url;
+  }
   let name = data.name || '';
   if (!name) { try { name = new URL(url, self.location.href).searchParams.get('name') || ''; } catch (_) {} }
+  const call = data.call && (action === 'accept' || action === 'decline') ? action : '';
   event.waitUntil((async () => {
     const list = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     // 岛屿已经在运行：只把窗口带到前台，并告诉页面打开哪个聊天。
     // 不再 client.navigate(url)——那会让整个页面重新加载，打断正在进行的聊天 / AI 请求。
     const target = list.find(c => c.visibilityState === 'visible') || list[0];
     if (target) {
-      try { if ('focus' in target) await target.focus(); } catch (_) {}
+      // 拒接不需要把软件带到前台，只通知页面把来电标为已拒接
+      if (call !== 'decline') { try { if ('focus' in target) await target.focus(); } catch (_) {} }
       try {
-        target.postMessage({ type: 'island-open-chat', name, url });
+        target.postMessage({ type: 'island-open-chat', name, url, call });
         return;
       } catch (_) {}
     }
-    // 软件没有在运行：才需要新开窗口（冷启动，页面会从 ?island=chat&name=… 读取并打开聊天）
+    // 软件没有在运行：拒接无事可做；其余才需要新开窗口（冷启动，页面会从 ?island=chat&name=… 读取并打开聊天）
+    if (call === 'decline') return;
     if (clients.openWindow) await clients.openWindow(url);
   })());
 });

@@ -140,6 +140,10 @@ public class IslandNativePlugin extends Plugin {
         String url = call.getString("url", "");
         Boolean silentFlag = call.getBoolean("silent", false);
         boolean silent = silentFlag != null && silentFlag.booleanValue();
+        Boolean callFlag = call.getBoolean("callActions", false);
+        boolean callActions = callFlag != null && callFlag.booleanValue();
+        String acceptUrl = call.getString("acceptUrl", "");
+        String declineUrl = call.getString("declineUrl", "");
 
         if (!isNotificationEnabled()) {
             call.resolve(result(false, getNotificationState()));
@@ -191,6 +195,47 @@ public class IslandNativePlugin extends Plugin {
         }
 
         int id = (int) (System.currentTimeMillis() & 0x7fffffff);
+
+        if (callActions) {
+            // 语音来电：通知上带「接听 / 拒接」两个按钮。
+            // 接听 -> 打开软件并直接进入语音通话；拒接 -> 不打开软件，只通知前端把来电标为已拒接。
+            builder.setCategory(Notification.CATEGORY_CALL);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                builder.setTimeoutAfter(45000L);
+            }
+
+            Intent acceptIntent = new Intent(getActivity(), MainActivity.class);
+            acceptIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            if (isSafeDeepLink(acceptUrl)) {
+                acceptIntent.putExtra(MainActivity.EXTRA_DEEP_LINK, acceptUrl);
+            }
+            acceptIntent.putExtra(MainActivity.EXTRA_CANCEL_TAG, tag);
+            acceptIntent.putExtra(MainActivity.EXTRA_CANCEL_ID, id);
+            PendingIntent acceptPending = PendingIntent.getActivity(
+                getActivity(),
+                Math.abs((tag + "#accept").hashCode()),
+                acceptIntent,
+                pendingFlags
+            );
+
+            Intent declineIntent = new Intent(getActivity(), CallActionReceiver.class);
+            declineIntent.setAction("island.call.decline");
+            if (isSafeDeepLink(declineUrl)) {
+                declineIntent.putExtra(MainActivity.EXTRA_DEEP_LINK, declineUrl);
+            }
+            declineIntent.putExtra(MainActivity.EXTRA_CANCEL_TAG, tag);
+            declineIntent.putExtra(MainActivity.EXTRA_CANCEL_ID, id);
+            PendingIntent declinePending = PendingIntent.getBroadcast(
+                getActivity(),
+                Math.abs((tag + "#decline").hashCode()),
+                declineIntent,
+                pendingFlags
+            );
+
+            builder.addAction(0, "拒接", declinePending);
+            builder.addAction(0, "接听", acceptPending);
+        }
+
         manager.notify(tag, id, builder.build());
         call.resolve(result(true, getNotificationState()));
     }
@@ -468,6 +513,36 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     public static final String EXTRA_DEEP_LINK = "island_deep_link";
+    public static final String EXTRA_CANCEL_TAG = "island_cancel_tag";
+    public static final String EXTRA_CANCEL_ID = "island_cancel_id";
+
+    /** 当前页面的 WebView（弱引用）：来电通知的「拒接」按钮不拉起界面，由广播接收器直接把动作交给页面。 */
+    private static volatile java.lang.ref.WeakReference<WebView> webViewRef = null;
+
+    /** 把一条深链放进待处理，并通知页面取走（页面在后台但进程还活着时也有效）。 */
+    public static void deliverDeepLink(String url) {
+        if (url == null || url.isEmpty()) return;
+        pendingDeepLink = url;
+        java.lang.ref.WeakReference<WebView> ref = webViewRef;
+        final WebView webView = ref == null ? null : ref.get();
+        if (webView == null) return;
+        webView.post(() -> webView.evaluateJavascript(
+            "try{window.dispatchEvent(new Event('island-native-deeplink'));}catch(e){}", null));
+    }
+
+    /** 点通知按钮后，把这条通知从通知栏撤掉（按钮不会自动撤）。 */
+    public static void cancelNotification(android.content.Context context, Intent intent) {
+        if (context == null || intent == null) return;
+        String tag = intent.getStringExtra(EXTRA_CANCEL_TAG);
+        if (tag == null || tag.isEmpty() || !intent.hasExtra(EXTRA_CANCEL_ID)) return;
+        int id = intent.getIntExtra(EXTRA_CANCEL_ID, 0);
+        try {
+            android.app.NotificationManager manager = (android.app.NotificationManager)
+                context.getSystemService(android.content.Context.NOTIFICATION_SERVICE);
+            if (manager != null) manager.cancel(tag, id);
+        } catch (Exception ignored) {
+        }
+    }
 
     /**
      * 最近一次通知点击带来的链接。
@@ -506,6 +581,12 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        try {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                webViewRef = new java.lang.ref.WeakReference<>(getBridge().getWebView());
+            }
+        } catch (Exception ignored) {
+        }
         reapplySystemBars();
     }
 
@@ -519,6 +600,12 @@ public class MainActivity extends BridgeActivity {
     public void load() {
         registerPlugin(IslandNativePlugin.class);
         super.load();
+        try {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                webViewRef = new java.lang.ref.WeakReference<>(getBridge().getWebView());
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
@@ -526,7 +613,10 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         // 冷启动：被通知拉起时把链接放进待处理，页面加载完成后由前端取走。
         // savedInstanceState != null 只是系统重建（如旋转），不应重复打开。
-        if (savedInstanceState == null) rememberDeepLink(getIntent());
+        if (savedInstanceState == null) {
+            cancelNotification(this, getIntent());
+            rememberDeepLink(getIntent());
+        }
 
         // 返回键 / 返回手势（全面屏手势、三键导航都走这里）：
         // 先问前端有没有可以退的一层（弹窗、页面、子页面），有就由前端处理；
@@ -556,6 +646,7 @@ public class MainActivity extends BridgeActivity {
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        cancelNotification(this, intent);
         if (rememberDeepLink(intent)) notifyWebDeepLink();
     }
 
@@ -590,6 +681,38 @@ public class MainActivity extends BridgeActivity {
 }
 `;
 
+const callReceiverJava = `package ${appId};
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+
+/**
+ * 来电通知上的「拒接」按钮：不拉起软件界面，只撤掉通知，
+ * 并把深链（带 call=decline）交给页面，由前端把这通来电标记为已拒接。
+ */
+public class CallActionReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if (intent == null) return;
+        MainActivity.cancelNotification(context, intent);
+        String url = intent.getStringExtra(MainActivity.EXTRA_DEEP_LINK);
+        if (url == null || url.isEmpty()) return;
+        try {
+            android.net.Uri uri = android.net.Uri.parse(url);
+            if (!"https".equalsIgnoreCase(uri.getScheme()) ||
+                !"localhost".equalsIgnoreCase(uri.getHost())) {
+                return;
+            }
+        } catch (Exception ignored) {
+            return;
+        }
+        MainActivity.deliverDeepLink(url);
+    }
+}
+`;
+
+fs.writeFileSync(path.join(mainPackageDir, 'CallActionReceiver.java'), callReceiverJava, 'utf8');
 fs.writeFileSync(path.join(mainPackageDir, 'IslandNativePlugin.java'), pluginJava, 'utf8');
 fs.writeFileSync(path.join(mainPackageDir, 'MainActivity.java'), mainActivityJava, 'utf8');
 
@@ -629,6 +752,13 @@ manifest = manifest.replace(
     ? full
     : `${prefix} android:launchMode="singleTop"${end}`
 );
+if (!manifest.includes('.CallActionReceiver')) {
+  if (!manifest.includes('</application>')) throw new Error('</application> not found in AndroidManifest.xml');
+  manifest = manifest.replace(
+    '</application>',
+    '    <receiver android:name=".CallActionReceiver" android:exported="false" />\n    </application>'
+  );
+}
 fs.writeFileSync(manifestPath, manifest, 'utf8');
 
 const gradlePath = path.join(appDir, 'build.gradle');

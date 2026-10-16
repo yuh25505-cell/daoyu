@@ -115,14 +115,16 @@ function requestNotificationPermission(){
   return Notification.requestPermission().then(function(p){ renderNotificationSettings(); if (p === 'granted') toast('通知已允许'); else toast('通知权限未开启'); return p === 'granted'; });
 }
 
-function notificationUrl(name){
-  return location.href.split('#')[0].split('?')[0] + '?island=chat&name=' + encodeURIComponent(name || '');
+function notificationUrl(name, callAction){
+  return location.href.split('#')[0].split('?')[0] + '?island=chat&name=' + encodeURIComponent(name || '') + (callAction ? '&call=' + callAction : '');
 }
 
 function showCharacterNotification(name, text, avatar, opts){
   var title = String(name || '岛屿');
   var body = String(text || '').trim();
+  var isCall = !!(opts && opts.call);
   var data = { island:'chat', name:title, url:notificationUrl(title) };
+  if (isCall) { data.call = true; data.acceptUrl = notificationUrl(title, 'accept'); data.declineUrl = notificationUrl(title, 'decline'); }
   /* opts.unique：每条消息使用独立 tag，系统通知逐条堆叠（像微信），而不是互相覆盖 */
   var tagValue = 'island-chat-' + title + (opts && opts.unique ? '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : '');
   /* 自定义消息铃声：由岛屿自己出声，系统通知就设为静音，避免两个提示音叠在一起；没有导入铃声时照常使用系统通知声音 */
@@ -137,7 +139,10 @@ function showCharacterNotification(name, text, avatar, opts){
         body: body,
         tag: tagValue,
         url: data.url,
-        silent: toneClaimed
+        silent: toneClaimed,
+        callActions: isCall,
+        acceptUrl: isCall ? data.acceptUrl : '',
+        declineUrl: isCall ? data.declineUrl : ''
       }).then(function(result){
         return !!(result && result.shown !== false);
       }).catch(function(){ return false; });
@@ -145,6 +150,14 @@ function showCharacterNotification(name, text, avatar, opts){
     return false;
   }).then(function(nativeShown){
     if (nativeShown) return true;
+    /* 语音来电：网页 / PWA 用 Service Worker 通知，带「接听 / 拒接」两个按钮（普通 Notification 不支持按钮） */
+    if (isCall && navigator.serviceWorker && navigator.serviceWorker.ready && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      return navigator.serviceWorker.ready.then(function(reg){
+        if (!reg.showNotification) return false;
+        return reg.showNotification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data, silent:toneClaimed, requireInteraction:true,
+          actions:[{ action:'accept', title:'接听' }, { action:'decline', title:'拒接' }] }).then(function(){ return true; }).catch(function(){ return false; });
+      }).catch(function(){ return false; });
+    }
     try {
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         var n = new Notification(title, { body:body, icon:avatar || './assets/icons/icon-192.png', tag:tagValue, data:data, silent:toneClaimed });
@@ -220,7 +233,11 @@ function runProactiveMessage(force){
         var proactivePreview = transferResult.notices && transferResult.notices.length ? transferResult.notices.join(' · ') : '发送了新消息';
         c.preview=proactivePreview; c.time='刚刚'; c.unread=(Number(c.unread)||0)+1;
         return saveMessages(name).then(function(){return saveChats();}).then(function(){
-          if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name, { noNotify:true });
+          if (transferResult.incomingCall && transferResult.incomingCall.event) {
+            /* 来电由 showIncomingVoiceCall 自己发带「接听 / 拒接」的通知，这里不再重复发一条 */
+            showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name, { forceNotify:true });
+            return true;
+          }
           return Promise.resolve(showCharacterNotification(name, proactivePreview, c.avatar)).then(function(){return true;});
         });
       }
@@ -231,7 +248,7 @@ function runProactiveMessage(force){
     return saveMessages(name).then(function(){
       c.preview=segments[segments.length-1]; c.time='刚刚'; c.unread=(Number(c.unread)||0)+1;
       return saveChats().then(function(){
-        if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name);
+        if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name, { forceNotify:true });
         return Promise.resolve(notifySegments(name, segments, c.avatar)).then(function(){ return true; });
       });
     });
@@ -255,10 +272,44 @@ function startProactiveScheduler(){
  *  · 安卓 APK：原生把通知链接暂存，再触发 island-native-deeplink，由这里取走；
  *  · 软件完全未运行时（冷启动）才会带着 ?island=chat&name=… 打开，处理后立刻把参数清掉，
  *    避免之后每次回到前台都重复弹出这个聊天。 */
-function openNotificationTarget(name){
+function openNotificationTarget(name, callAction){
   name = String(name || '');
   if (!name) return;
+  if (callAction === 'accept' || callAction === 'decline') { handleCallNotificationAction(name, callAction); return; }
   setTimeout(function(){ try { openPM(name); } catch(e){} }, 80);
+}
+
+/* 通知里的「接听 / 拒接」：
+ *  · 拒接：不打开软件，直接把这通来电标记为已拒接；
+ *  · 接听：打开该聊天并直接进入语音通话界面。 */
+function markPendingCallHandled(name, status){
+  var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  for (var i = list.length - 1; i >= 0; i--) {
+    var m = list[i];
+    if (m && m.type === 'voice_call_event' && m.event === 'incoming' && !m.handled) {
+      m.handled = true; m.handledStatus = status; m.handledAt = Date.now();
+      saveMessages(name); try { saveChats(); } catch(e) {}
+      return true;
+    }
+  }
+  return false;
+}
+
+function handleCallNotificationAction(name, action){
+  try { if (window.IslandSounds) IslandSounds.stopCallRing(); } catch(e) {}
+  if (action === 'decline') {
+    if (voiceCallState.incoming && voiceCallState.name === name) rejectIncomingVoiceCall();
+    else markPendingCallHandled(name, 'declined');
+    return;
+  }
+  if (voiceCallState.active) { try { openPM(name); } catch(e) {} return; }
+  var tries = 0;
+  setTimeout(function(){ try { if (currentName !== name) openPM(name); } catch(e) {} }, 60);
+  (function waitIncoming(){
+    if (voiceCallState.incoming && voiceCallState.name === name) { acceptIncomingVoiceCall(); return; }
+    if (++tries < 12) { setTimeout(waitIncoming, 180); return; }
+    toast('这通来电已经结束');
+  })();
 }
 
 function consumeNativeDeepLink(){
@@ -268,9 +319,9 @@ function consumeNativeDeepLink(){
     b.consumeDeepLink({}).then(function(res){
       var url = res && res.url;
       if (!url) return;
-      var name = '';
-      try { name = new URL(url).searchParams.get('name') || ''; } catch(e) {}
-      openNotificationTarget(name);
+      var name = '', call = '';
+      try { var u = new URL(url); name = u.searchParams.get('name') || ''; call = u.searchParams.get('call') || ''; } catch(e) {}
+      openNotificationTarget(name, call);
     }).catch(function(){});
   } catch(e){}
 }
@@ -279,9 +330,9 @@ function handleNotificationDeepLink(){
   try {
     var q = new URLSearchParams(location.search);
     if (q.get('island') === 'chat') {
-      var name = q.get('name');
+      var name = q.get('name'), call = q.get('call') || '';
       try { history.replaceState(null, '', location.pathname + location.hash); } catch(e){}
-      openNotificationTarget(name);
+      openNotificationTarget(name, call);
     }
   } catch(e){}
   consumeNativeDeepLink();
@@ -292,6 +343,6 @@ window.addEventListener('island-native-deeplink', consumeNativeDeepLink);
 if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.addEventListener) {
   navigator.serviceWorker.addEventListener('message', function(e){
     var d = e && e.data;
-    if (d && d.type === 'island-open-chat') openNotificationTarget(d.name);
+    if (d && d.type === 'island-open-chat') openNotificationTarget(d.name, d.call || '');
   });
 }
