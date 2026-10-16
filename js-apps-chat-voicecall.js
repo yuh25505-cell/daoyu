@@ -568,7 +568,7 @@ function renderIncomingCallNotice(name, event){
   pmIncomingCallNotice.setAttribute('aria-hidden','false');
 }
 
-function showIncomingVoiceCall(event, nameHint){
+function showIncomingVoiceCall(event, nameHint, opts){
   if(!event)return false;
   var name=String(nameHint||event.sender||currentName||'').trim();
   if(!name)return false;
@@ -580,6 +580,14 @@ function showIncomingVoiceCall(event, nameHint){
   voiceCallState.active=false;voiceCallState.incoming=true;voiceCallState.name=name;voiceCallState.sessionId=String(event.callSessionId||genId('call_'));voiceCallState.startedAt=0;voiceCallState.incomingEventId=String(event.id||'');voiceCallState.incomingGreeting=String(event.greeting||'');
   renderIncomingCallNotice(name,event);
   try { if (window.IslandSounds) IslandSounds.startCallRing(); } catch(e) {}
+  /* 应用在后台时，角色发起语音通话也要弹手机系统通知（点开直接进该聊天）。opts.noNotify：调用方已经另外发过通知。 */
+  if (document.hidden && !(opts && opts.noNotify)) {
+    try {
+      var callGreeting = String(event.greeting || '').trim();
+      var callAvatar; try { callAvatar = getAvatar(name); } catch(e) {}
+      Promise.resolve(showCharacterNotification(name, '语音来电' + (callGreeting ? '：' + callGreeting : '，邀请你接听'), callAvatar, { unique:true })).catch(function(){});
+    } catch(e) {}
+  }
   return true;
 }
 

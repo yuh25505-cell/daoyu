@@ -220,7 +220,7 @@ function runProactiveMessage(force){
         var proactivePreview = transferResult.notices && transferResult.notices.length ? transferResult.notices.join(' · ') : '发送了新消息';
         c.preview=proactivePreview; c.time='刚刚'; c.unread=(Number(c.unread)||0)+1;
         return saveMessages(name).then(function(){return saveChats();}).then(function(){
-          if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name);
+          if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name, { noNotify:true });
           return Promise.resolve(showCharacterNotification(name, proactivePreview, c.avatar)).then(function(){return true;});
         });
       }

@@ -1514,7 +1514,6 @@
 <div class="sound-row" style="border-top:0"><div class="appearance-upload-copy"><strong>消息铃声</strong><em id="soundMessageState">默认（跟随系统通知声音）</em></div><div class="sound-actions"><button class="appearance-upload-btn" id="soundMessageImportBtn" type="button">导入</button><button class="appearance-upload-btn" id="soundMessagePreviewBtn" type="button">试听</button><button class="appearance-upload-btn" id="soundMessageResetBtn" type="button">恢复默认</button></div><input accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac" hidden="" id="soundMessageFileInput" type="file"/></div>
 <div class="sound-row"><div class="appearance-upload-copy"><strong>来电铃声</strong><em id="soundCallState">默认（无铃声，仅显示来电弹窗）</em></div><div class="sound-actions"><button class="appearance-upload-btn" id="soundCallImportBtn" type="button">导入</button><button class="appearance-upload-btn" id="soundCallPreviewBtn" type="button">试听</button><button class="appearance-upload-btn" id="soundCallResetBtn" type="button">恢复默认</button></div><input accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac" hidden="" id="soundCallFileInput" type="file"/></div>
 <div class="dock-control-row sound-volume-row"><span class="dock-control-label">音量</span><input aria-label="铃声音量" class="dock-control-range" id="soundVolumeRange" max="100" min="0" step="1" type="range" value="80"/><strong class="dock-control-value" id="soundVolumeValue">80%</strong></div>
-<div class="sound-note">消息铃声：角色发来消息、且你不在该聊天页（或应用在后台）时播放；来电铃声：角色发起语音通话时循环播放，接听、拒绝或 45 秒后停止。导入铃声后，系统通知自带的提示音会自动静音，避免重复。音频文件不超过 4MB，推荐 mp3。切到后台后能否响铃取决于应用是否仍在运行，建议同时开启「静音音频保活」。</div>
 </div>
 <div class="settings-section-title">系统权限</div>
 <div class="appearance-menu notification-menu">
@@ -1562,8 +1561,8 @@
 <div class="panel-scroll">
 <div class="settings-section-title">桌面主题</div>
 <div class="appearance-menu">
-<div class="appearance-upload" style="border-top:0"><div class="appearance-upload-copy"><strong>导出当前桌面</strong><em>主屏幕的装修：壁纸、图标、Dock、小组件样式与照片文字（含图床链接）；不含日夜间主题、聊天外观和字体</em></div><button class="appearance-upload-btn" id="themeExportBtn" type="button">导出</button></div>
-<div class="appearance-upload"><div class="appearance-upload-copy"><strong>导入桌面主题</strong><em>选择 .json 主题文件，立即生效，无需重启</em></div><button class="appearance-upload-btn" id="themeImportBtn" type="button">导入</button><input accept="application/json,.json" hidden="" id="themeFileInput" type="file"/></div>
+<div class="appearance-upload" style="border-top:0"><div class="appearance-upload-copy"><strong>导出当前桌面</strong></div><button class="appearance-upload-btn" id="themeExportBtn" type="button">导出</button></div>
+<div class="appearance-upload"><div class="appearance-upload-copy"><strong>导入桌面主题</strong></div><button class="appearance-upload-btn" id="themeImportBtn" type="button">导入</button><input accept="application/json,.json" hidden="" id="themeFileInput" type="file"/></div>
 </div>
 <div class="settings-section-title">系统主题</div><div class="theme-menu" id="themeMenu">
 <button aria-checked="false" class="theme-option" data-theme-choice="system" role="radio" type="button"><span class="theme-option-main"><strong>跟随系统</strong></span><span aria-hidden="true" class="appearance-switch"></span></button>
