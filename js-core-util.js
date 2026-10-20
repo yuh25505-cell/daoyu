@@ -224,3 +224,18 @@ function bindSmoothRange(el, onFrame, onCommit){
   el.addEventListener('pointercancel', commit);
   el.addEventListener('blur', commit);
 }
+
+
+/* 稳健定位：先用网络定位（Wi-Fi / 基站，快、室内也能用），失败或超时再退回 GPS 高精度。
+ * 只用高精度 + 短超时，在网页版和室内很容易“定位超时”。权限被拒绝（code 1）不重试。
+ * 成功 resolve 原生 position；失败 reject 原生 error（code 1 拒绝 / 2 不可用 / 3 超时，0 不支持）。 */
+function getPositionRobust(fresh){
+  return new Promise(function(resolve, reject){
+    if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') { reject({ code: 0 }); return; }
+    navigator.geolocation.getCurrentPosition(resolve, function(err1){
+      if (err1 && err1.code === 1) { reject(err1); return; }
+      navigator.geolocation.getCurrentPosition(resolve, function(err2){ reject(err2 || err1 || { code: 2 }); },
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 });
+    }, { enableHighAccuracy: false, timeout: 20000, maximumAge: fresh ? 0 : 10 * 60 * 1000 });
+  });
+}

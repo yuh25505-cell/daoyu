@@ -394,7 +394,8 @@ function shareCurrentLocation(){
     return;
   }
   closeLocationModal();
-  navigator.geolocation.getCurrentPosition(function(pos){
+  toast('正在定位…');
+  getPositionRobust().then(function(pos){
     var ok = sendLocationMessage({
       lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, label:'我的当前位置', source:'gps'
     });
@@ -405,7 +406,7 @@ function shareCurrentLocation(){
     else if (err && err.code === 2) msg = '暂时无法确定当前位置';
     else if (err && err.code === 3) msg = '定位超时，请重试';
     toast(msg);
-  }, { enableHighAccuracy:true, timeout:12000, maximumAge:30000 });
+  });
 }
 
 function sendCustomLocation(){

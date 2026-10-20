@@ -13,7 +13,8 @@ var DEFAULT_STT = {
 
 /* 旧名称 → 新名称：升级后沿用用户已自定义的桌面图标（本地数据与备份导入都会经过这里）。 */
 var LEGACY_APP_NAMES = { '通讯录': '屿年', '浏览器': '倒数日' };
-var HOME_APP_NAMES = ['聊天','屿年','相册','日历','备忘录','天气','时钟','设置','电话','倒数日','世界书','音乐'];
+var HOME_APP_NAMES = ['聊天','屿年','相册','日历','备忘录','天气','时钟','设置','电话','倒数日','世界书','音乐',
+  /* 第二页桌面 */ '相遇','关联账号','论坛','文学城','情侣空间','预设','番外笺','美团','栖迟'];
 
 /* 每个图标主题各自保存一组调节值：切换主题时，数值会换成该主题自己的那一组（与「锁定」无关）。
  * 「锁定」只负责防止上下滑动时误触拉条，不参与主题切换。 */
@@ -34,12 +35,16 @@ var DEFAULT_HOME_APPEARANCE = {
   iconData: {},
   dimDarkWallpaperAmount: 42, dimDarkIconAmount: 42, dimDarkWallpaperLocked: false, dimDarkIconLocked: false,
   dockRadius: 40, dockTransparency: 0, dockBlur: 16, dockRadiusLocked: false, dockTransparencyLocked: false, dockBlurLocked: false,
-  wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '', polaroidPhoto: '', polaroidCaption: '⌯>ᴗ<⌯ಣ',
+  wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '', polaroidPhoto: '', polaroidCaption: '⌯>ᴗ<⌯ಣ', photo2Photo: '', weather2Bg: '', ins2Time: false, ins2Text: '你收到一条新的 ins 消息', insR2Text: '好呀，晚点聊',
   widgets: {
     /* bgStyle：default＝原来的深色/浅色卡片（默认）；glass＝毛玻璃。glassBlur 模糊度 0–40px；glassTransparency 透明度 0–100%（越大越透） */
     calendar: { enabled: true, size: 'large', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
     music: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40, controlColor: 'auto' },
-    polaroid: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40, paper: 'white' }
+    polaroid: { enabled: true, size: 'medium', bgStyle: 'default', glassBlur: 20, glassTransparency: 40, paper: 'white' },
+    /* 第二页桌面组件：只有开关 */
+    photo2: { enabled: true, size: 'medium' },
+    weather2: { enabled: true, size: 'medium' },
+    ins2: { enabled: true, size: 'medium' }
   }
 };
 
@@ -332,6 +337,11 @@ function normalizeHomeAppearance(){
   base.calendarPhoto = isImageSrc(incoming.calendarPhoto) ? incoming.calendarPhoto : '';
   base.musicCover = isImageSrc(incoming.musicCover) ? incoming.musicCover : '';
   base.polaroidPhoto = isImageSrc(incoming.polaroidPhoto) ? incoming.polaroidPhoto : '';
+  base.photo2Photo = isImageSrc(incoming.photo2Photo) ? incoming.photo2Photo : '';
+  base.ins2Time = incoming.ins2Time === true;
+  base.ins2Text = typeof incoming.ins2Text === 'string' ? incoming.ins2Text.slice(0, 40) : base.ins2Text;
+  base.insR2Text = typeof incoming.insR2Text === 'string' ? incoming.insR2Text.slice(0, 40) : base.insR2Text;
+  base.weather2Bg = isImageSrc(incoming.weather2Bg) ? incoming.weather2Bg : '';
   base.polaroidCaption = typeof incoming.polaroidCaption === 'string' ? incoming.polaroidCaption.slice(0, 24) : base.polaroidCaption;
   var widgets = incoming.widgets && typeof incoming.widgets === 'object' ? incoming.widgets : {};
   /* 旧版「时间」组件已改为「日历」组件：沿用旧的开关状态。 */
@@ -353,6 +363,7 @@ function normalizeHomeAppearance(){
   base.widgets.calendar.enabled = widgets.calendar ? widgets.calendar.enabled !== false : true;
   base.widgets.music.enabled = widgets.music ? widgets.music.enabled !== false : true;
   base.widgets.polaroid.enabled = widgets.polaroid ? widgets.polaroid.enabled !== false : true;
+  ['photo2','weather2','ins2'].forEach(function(k){ base.widgets[k].enabled = widgets[k] ? widgets[k].enabled !== false : true; });
   /* 音乐按钮颜色：auto＝跟随主题（原来的样子）/ black / white */
   base.widgets.music.controlColor = widgets.music && ['black','white'].indexOf(widgets.music.controlColor) >= 0 ? widgets.music.controlColor : 'auto';
   /* 相纸颜色：白（默认）/ 黑；旧存档没有这个字段，一律按白色 */

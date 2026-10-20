@@ -7,6 +7,7 @@ function tick(){
   var d = new Date();
   var hm = d.getHours() + ':' + pad(d.getMinutes());
   renderCalendarWidget();
+  if (typeof renderInsClock === 'function') renderInsClock();
 }
 
 
@@ -73,6 +74,15 @@ var FLAT_GLYPHS = {
   '电话': '<path transform="rotate(-135 12 12)" d="M3.2 9.4c0-1.2.6-2 1.7-2.5 4.2-1.7 10.7-1.7 14.2 0 1.1.5 1.7 1.3 1.7 2.5v1.3c0 .9-.6 1.5-1.5 1.6l-2.6.3c-.8.1-1.4-.4-1.5-1.2l-.2-1.7c-.1-.5-.4-.8-.9-.9-1.3-.2-2.6-.2-3.9 0-.5.1-.8.4-.9.9l-.2 1.7c-.1.8-.7 1.3-1.5 1.2l-2.6-.3c-.9-.1-1.5-.7-1.5-1.6z"/>',
   '倒数日': '<path d="M2.91 15.83Q4.7 14.34 5.74 13.39Q6.78 12.43 7.49 11.39Q8.21 10.34 8.21 9.35Q8.21 8.6 7.86 8.17Q7.51 7.75 6.82 7.75Q6.12 7.75 5.72 8.27Q5.33 8.8 5.33 9.75H2.3Q2.34 8.19 2.97 7.15Q3.6 6.1 4.64 5.6Q5.68 5.11 6.94 5.11Q9.13 5.11 10.24 6.23Q11.35 7.35 11.35 9.15Q11.35 11.11 10.01 12.79Q8.67 14.47 6.59 16.07H11.55V18.62H2.34V16.29Q2.96 15.79 2.91 15.83ZM17.11 5.09Q18.49 5.09 19.47 5.57Q20.45 6.04 20.96 6.87Q21.46 7.7 21.46 8.72Q21.46 9.94 20.86 10.7Q20.25 11.46 19.44 11.73V11.81Q20.49 12.16 21.09 12.96Q21.7 13.77 21.7 15.04Q21.7 16.18 21.18 17.05Q20.65 17.92 19.65 18.41Q18.65 18.91 17.28 18.91Q15.07 18.91 13.76 17.83Q12.45 16.74 12.38 14.56H15.42Q15.44 15.37 15.88 15.84Q16.32 16.3 17.17 16.3Q17.88 16.3 18.28 15.89Q18.67 15.48 18.67 14.8Q18.67 13.92 18.11 13.52Q17.55 13.13 16.32 13.13H15.74V10.58H16.32Q17.26 10.58 17.84 10.26Q18.41 9.94 18.41 9.11Q18.41 8.45 18.05 8.08Q17.68 7.71 17.04 7.71Q16.34 7.71 16 8.14Q15.66 8.56 15.61 9.18H12.54Q12.61 7.22 13.83 6.15Q15.04 5.09 17.11 5.09Z"/>',
   '世界书': '<path d="M2.8 5.8c3.1-.9 6.2-.6 8.4 1v13c-2.3-1.5-5.4-1.8-8.4-.9z"/><path d="M21.2 5.8c-3.1-.9-6.2-.6-8.4 1v13c2.3-1.5 5.4-1.8 8.4-.9z"/>',
+  '相遇': '<circle cx="8.2" cy="8.2" r="3"/><path d="M2.6 19.6a5.6 5.6 0 0 1 11.2 0z"/><circle cx="15.8" cy="8.2" r="3" opacity=".72"/><path d="M10.2 19.6a5.6 5.6 0 0 1 11.2 0z" opacity=".72"/>',
+  '关联账号': '<circle cx="9" cy="8" r="3.4"/><path d="M2.6 20a6.4 6.4 0 0 1 12.8 0z"/><path d="M18.1 10.2h1.9v2.7h2.7v1.9H20v2.7h-1.9v-2.7h-2.7v-1.9h2.7z"/>',
+  '论坛': '<path fill-rule="evenodd" d="M5.5 3.5h13A2.5 2.5 0 0 1 21 6v9a2.5 2.5 0 0 1-2.5 2.5H12L7.5 21v-3.5h-2A2.5 2.5 0 0 1 3 15V6a2.5 2.5 0 0 1 2.5-2.5zM7 7.4h10V9H7zm0 3.4h6.4v1.6H7z"/>',
+  '文学城': '<rect x="2.8" y="10.6" width="5.2" height="9.6" rx="1.1"/><rect x="9.4" y="3.6" width="5.2" height="16.6" rx="1.1"/><rect x="16" y="8" width="5.2" height="12.2" rx="1.1"/>',
+  '情侣空间': '<path d="M12 20.6 4.2 12.9a4.6 4.6 0 0 1 0-6.6 4.8 4.8 0 0 1 6.7 0L12 7.4l1.1-1.1a4.8 4.8 0 0 1 6.7 0 4.6 4.6 0 0 1 0 6.6z"/>',
+  '预设': '<rect x="3" y="5.1" width="8.6" height="1.8" rx=".9"/><rect x="18.4" y="5.1" width="2.6" height="1.8" rx=".9"/><circle cx="15" cy="6" r="2.8"/><rect x="3" y="11.1" width="2.1" height="1.8" rx=".9"/><rect x="11.9" y="11.1" width="9.1" height="1.8" rx=".9"/><circle cx="8.5" cy="12" r="2.8"/><rect x="3" y="17.1" width="9.6" height="1.8" rx=".9"/><rect x="19.4" y="17.1" width="1.6" height="1.8" rx=".8"/><circle cx="16" cy="18" r="2.8"/>',
+  '番外笺': '<path fill-rule="evenodd" d="M5 5h14a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 19 19H5a2.5 2.5 0 0 1-2.5-2.5v-9A2.5 2.5 0 0 1 5 5zM4.6 8.4 12 14l7.4-5.6-1-1.4L12 11.7 5.6 7z"/>',
+  '美团': '<path d="M8.2 9.5V7.2a3.8 3.8 0 0 1 7.6 0v2.3h-1.8V7.2a2 2 0 0 0-4 0v2.3z"/><path d="M5.8 9.8h12.4l1 9.7a1.6 1.6 0 0 1-1.6 1.8H6.4a1.6 1.6 0 0 1-1.6-1.8z"/>',
+  '栖迟': '<path d="M19.6 14.6A8.4 8.4 0 0 1 9.4 4.4a8.4 8.4 0 1 0 10.2 10.2z"/><path d="M18.6 3.4l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/>',
   '音乐': '<ellipse cx="7" cy="17.8" rx="3.1" ry="2.7"/><ellipse cx="17" cy="15.8" rx="3.1" ry="2.7"/><rect x="8.9" y="5.6" width="2" height="12.2"/><rect x="18.9" y="3.6" width="2" height="12.2"/><path d="M8.9 5.2l12-2.6v4l-12 2.6z"/>'
 };
 
@@ -95,7 +105,17 @@ var DEFAULT_ICON_FILES = {
   '电话': 'icons/phone.png',
   '倒数日': 'icons/countdowndays.png',
   '世界书': 'icons/worldbook.png',
-  '音乐': 'icons/music.png'
+  '音乐': 'icons/music.png',
+  /* 第二页桌面 */
+  '相遇': 'icons/xiangyu.png',
+  '关联账号': 'icons/guanlianzhanghao.png',
+  '论坛': 'icons/luntan.png',
+  '文学城': 'icons/wenxuecheng.png',
+  '情侣空间': 'icons/qinglvkongjian.png',
+  '预设': 'icons/yushe.png',
+  '番外笺': 'icons/fanwaijian.png',
+  '美团': 'icons/meituan.png',
+  '栖迟': 'icons/xichi.png'
 };
 
 function setAppIconVisual(iconEl, appName, imageData){
@@ -262,6 +282,7 @@ function applyHomeAppearance(){
     home.setAttribute('data-widget-calendar', a.widgets.calendar && a.widgets.calendar.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-music', a.widgets.music && a.widgets.music.enabled ? 'on' : 'off');
     home.setAttribute('data-widget-polaroid', a.widgets.polaroid && a.widgets.polaroid.enabled ? 'on' : 'off');
+    ['photo2','weather2','ins2'].forEach(function(k){ home.setAttribute('data-widget-' + k, a.widgets[k] && a.widgets[k].enabled ? 'on' : 'off'); });
     var mctl = a.widgets.music && a.widgets.music.controlColor;
     mctl = (mctl === 'black' || mctl === 'white') ? mctl : 'auto';
     if (home.getAttribute('data-music-ctl') !== mctl) home.setAttribute('data-music-ctl', mctl);
@@ -282,6 +303,7 @@ function applyHomeAppearance(){
   renderCalendarPhoto();
   renderMusicCover();
   renderPolaroidPhoto();
+  if (typeof renderHomePage2 === 'function') renderHomePage2();
   syncHomeGridRows();
   if (wallpaper) {
     wallpaper.setAttribute('data-wallpaper', a.wallpaper);

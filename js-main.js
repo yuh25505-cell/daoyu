@@ -157,6 +157,7 @@ function bindEvents(){
   bindHomeGridEvents();
   bindCalendarWidgetEvents();
   bindPolaroidEvents();
+  bindHomePage2Events();
   bindHomeAppClickEvents();
   bindPhoneEvents();
   bindWorldbookEvents();

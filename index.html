@@ -21,6 +21,7 @@
 <link href="./css-apps-home.css" rel="stylesheet"/>
 <link href="./css-apps-music.css" rel="stylesheet"/>
 <link href="./css-apps-polaroid.css" rel="stylesheet"/>
+<link href="./css-apps-home-page2.css" rel="stylesheet"/>
 <link href="./css-apps-chat.css" rel="stylesheet"/>
 <link href="./css-apps-phone.css" rel="stylesheet"/>
 <link href="./css-apps-worldbook.css" rel="stylesheet"/>
@@ -129,6 +130,8 @@
 </div>
 <main class="home" id="home">
 <section class="home-body">
+<div class="home-pages" id="homePages">
+<div class="home-page" data-page="1">
 <div class="home-grid" id="homeGrid">
 <section aria-label="日历" class="home-calendar-widget" id="homeCalendarWidget">
 <div class="cal-widget">
@@ -205,7 +208,52 @@
 </div>
 </section>
 </div>
+</div>
+<div class="home-page" data-page="2">
+<div class="home-grid home-grid-2" id="homeGrid2">
+<section aria-label="照片" class="home-photo2-widget" id="homePhoto2Widget">
+<button aria-label="导入本地图片" class="photo2-btn" id="photo2Btn" type="button">
+<img alt="" class="photo2-img" hidden="" id="photo2Img"/>
+<span class="photo2-empty" id="photo2Empty"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewBox="0 0 24 24"><rect height="16" rx="2.5" width="18" x="3" y="4"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="m21 16-5-5-8 8"></path></svg><em>添加照片</em></span>
+</button>
+<input accept="image/*" aria-hidden="true" hidden="" id="photo2Input" type="file"/>
 </section>
+<div class="p2-block">
+<button class="app" data-app="相遇" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">相遇</span></button>
+<button class="app" data-app="关联账号" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">关联账号</span></button>
+<button class="app" data-app="论坛" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">论坛</span></button>
+<button class="app" data-app="文学城" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">文学城</span></button>
+</div>
+<div class="p2-block">
+<button class="app" data-app="情侣空间" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">情侣空间</span></button>
+<button class="app" data-app="预设" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">预设</span></button>
+<button class="app" data-app="番外笺" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">番外笺</span></button>
+<button class="app" data-app="美团" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">美团</span></button>
+</div>
+<section aria-label="天气" class="home-weather2-widget" id="homeWeather2Widget">
+<div class="weather2" id="weather2" role="button" tabindex="0" aria-label="天气，点按刷新">
+<img alt="" class="weather2-bg" hidden="" id="weather2BgImg"/>
+<div class="weather2-main">
+<div class="weather2-city" id="weather2City">定位中…</div>
+<div class="weather2-temp" id="weather2Temp">--°</div>
+<div class="weather2-cond" id="weather2Cond"></div>
+</div>
+<div class="weather2-days" id="weather2Days"></div>
+</div>
+<input accept="image/*" aria-hidden="true" hidden="" id="weather2BgInput" type="file"/>
+</section>
+<section aria-label="ins消息" class="home-ins2-widget" id="homeIns2Widget">
+<div class="ins2-stack">
+<div class="ins2"><i aria-hidden="true" class="ins2-line"></i><div autocapitalize="off" autocorrect="off" aria-label="ins消息文字（可编辑）" class="ins2-bubble" contenteditable="true" enterkeyhint="done" id="ins2Text" role="textbox" spellcheck="false"></div><time class="ins2-time" id="ins2Time">00:00:00</time></div>
+<div class="ins2 ins2-r"><div autocapitalize="off" autocorrect="off" aria-label="ins右侧消息文字（可编辑）" class="ins2-bubble" contenteditable="true" enterkeyhint="done" id="insR2Text" role="textbox" spellcheck="false"></div><i aria-hidden="true" class="ins2-line"></i></div>
+</div>
+</section>
+<button class="app" data-app="栖迟" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">栖迟</span></button>
+</div>
+</div>
+</div>
+</section>
+<nav class="home-dots" id="homeDots" aria-hidden="true"><i class="on"></i><i></i></nav>
 <nav class="dock">
 <button class="app" data-app="电话" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">电话</span></button>
 <button class="app" data-app="倒数日" type="button"><span aria-hidden="true" class="app-icon"></span><span class="app-name">倒数日</span></button>
@@ -1608,8 +1656,16 @@
 <article class="widget-card" data-widget-card="calendar"><div class="widget-card-head"><div class="widget-card-copy"><strong>日历</strong><em>岛屿 默认日历组件 · 左图右历</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="calendarPhotoState">未选择图片</span><button class="icon-library-btn" id="calendarPhotoPick" type="button">选择图片</button><button class="icon-library-btn" id="calendarPhotoUrl" type="button">图床链接</button><button class="icon-library-btn" hidden="" id="calendarPhotoClear" type="button">移除</button></div><div class="widget-controls cal-style-controls"><span class="widget-control-label">背景样式</span><div class="widget-chips is-four" id="calendarBgChips" role="radiogroup" aria-label="日历背景样式"><button aria-checked="true" class="widget-chip is-on" data-bg-style="default" role="radio" type="button">默认</button><button aria-checked="false" class="widget-chip" data-bg-style="glass" role="radio" type="button">毛玻璃</button><button aria-checked="false" class="widget-chip" data-bg-style="black" role="radio" type="button">黑</button><button aria-checked="false" class="widget-chip" data-bg-style="white" role="radio" type="button">白</button></div><div class="cal-glass-controls" hidden="" id="calendarGlassControls"><div class="dock-control-row cal-glass-row"><span class="dock-control-label">模糊度</span><input aria-label="日历毛玻璃模糊度" class="dock-control-range" id="calendarGlassBlurRange" max="40" min="0" step="1" type="range" value="20"/><strong class="dock-control-value" id="calendarGlassBlurValue">20px</strong></div><div class="dock-control-row cal-glass-row"><span class="dock-control-label">透明度</span><input aria-label="日历毛玻璃透明度" class="dock-control-range" id="calendarGlassTransparencyRange" max="100" min="0" step="1" type="range" value="40"/><strong class="dock-control-value" id="calendarGlassTransparencyValue">40%</strong></div></div></div></article>
 <article class="widget-card" data-widget-card="music"><div class="widget-card-head"><div class="widget-card-copy"><strong>音乐</strong><em>岛屿 默认音乐组件 · 2×2 唱片播放器</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="musicCoverState">未选择封面</span><button class="icon-library-btn" id="musicCoverPick" type="button">选择封面</button><button class="icon-library-btn" id="musicCoverUrl" type="button">图床链接</button><button class="icon-library-btn" hidden="" id="musicCoverClear" type="button">移除</button></div><div class="widget-controls cal-style-controls"><span class="widget-control-label">按钮颜色（喜欢 / 切歌 / 播放 / 列表）</span><div class="widget-chips" id="musicCtlChips" role="radiogroup" aria-label="音乐按钮颜色"><button aria-checked="true" class="widget-chip is-on" data-ctl="auto" role="radio" type="button">默认</button><button aria-checked="false" class="widget-chip" data-ctl="black" role="radio" type="button">黑</button><button aria-checked="false" class="widget-chip" data-ctl="white" role="radio" type="button">白</button></div><span class="widget-control-label">背景样式</span><div class="widget-chips is-two" id="musicBgChips" role="radiogroup" aria-label="音乐背景样式"><button aria-checked="true" class="widget-chip is-on" data-bg-style="default" role="radio" type="button">默认</button><button aria-checked="false" class="widget-chip" data-bg-style="glass" role="radio" type="button">毛玻璃</button></div><div class="cal-glass-controls" hidden="" id="musicGlassControls"><div class="dock-control-row cal-glass-row"><span class="dock-control-label">模糊度</span><input aria-label="音乐毛玻璃模糊度" class="dock-control-range" id="musicGlassBlurRange" max="40" min="0" step="1" type="range" value="20"/><strong class="dock-control-value" id="musicGlassBlurValue">20px</strong></div><div class="dock-control-row cal-glass-row"><span class="dock-control-label">透明度</span><input aria-label="音乐毛玻璃透明度" class="dock-control-range" id="musicGlassTransparencyRange" max="100" min="0" step="1" type="range" value="40"/><strong class="dock-control-value" id="musicGlassTransparencyValue">40%</strong></div></div></div></article>
 <article class="widget-card" data-widget-card="polaroid"><div class="widget-card-head"><div class="widget-card-copy"><strong>拍立得</strong><em>岛屿 默认拍立得组件 · 2×2 照片</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="polaroidPhotoState">未选择照片</span><button class="icon-library-btn" id="polaroidPhotoPick" type="button">选择照片</button><button class="icon-library-btn" id="polaroidPhotoUrl" type="button">图床链接</button><button class="icon-library-btn" hidden="" id="polaroidPhotoClear" type="button">移除</button></div><div class="widget-controls cal-style-controls"><span class="widget-control-label">相纸颜色</span><div class="widget-chips is-two" id="polaroidPaperChips" role="radiogroup" aria-label="拍立得相纸颜色"><button aria-checked="true" class="widget-chip is-on" data-paper="white" role="radio" type="button">白色</button><button aria-checked="false" class="widget-chip" data-paper="black" role="radio" type="button">黑色</button></div><span class="widget-control-label">背景样式</span><div class="widget-chips is-two" id="polaroidBgChips" role="radiogroup" aria-label="拍立得背景样式"><button aria-checked="true" class="widget-chip is-on" data-bg-style="default" role="radio" type="button">默认</button><button aria-checked="false" class="widget-chip" data-bg-style="glass" role="radio" type="button">毛玻璃</button></div><div class="cal-glass-controls" hidden="" id="polaroidGlassControls"><div class="dock-control-row cal-glass-row"><span class="dock-control-label">模糊度</span><input aria-label="拍立得毛玻璃模糊度" class="dock-control-range" id="polaroidGlassBlurRange" max="40" min="0" step="1" type="range" value="20"/><strong class="dock-control-value" id="polaroidGlassBlurValue">20px</strong></div><div class="dock-control-row cal-glass-row"><span class="dock-control-label">透明度</span><input aria-label="拍立得毛玻璃透明度" class="dock-control-range" id="polaroidGlassTransparencyRange" max="100" min="0" step="1" type="range" value="40"/><strong class="dock-control-value" id="polaroidGlassTransparencyValue">40%</strong></div></div></div></article>
+<article class="widget-card" data-widget-card="photo2"><div class="widget-card-head"><div class="widget-card-copy"><strong>照片（第二页）</strong><em>第二页桌面 · 2×2 本地照片，无边框</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="photo2State">未选择照片</span><button class="icon-library-btn" id="photo2Pick" type="button">选择照片</button><button class="icon-library-btn" id="photo2Url" type="button">图床链接</button><button class="icon-library-btn" hidden="" id="photo2Clear" type="button">移除</button></div></article>
+<article class="widget-card" data-widget-card="weather2"><div class="widget-card-head"><div class="widget-card-copy"><strong>天气（第二页）</strong><em>第二页桌面 · 2×2 实时定位天气，今明后三天</em></div><span aria-hidden="true" class="widget-toggle"></span></div><div class="widget-card-actions"><span class="widget-card-state" id="weather2BgState">未选择背景</span><button class="icon-library-btn" id="weather2BgPick" type="button">选择背景</button><button class="icon-library-btn" id="weather2BgUrl" type="button">图床链接</button><button class="icon-library-btn" hidden="" id="weather2BgClear" type="button">移除</button></div></article>
+<article class="widget-card" data-widget-card="ins2"><div class="widget-card-head"><div class="widget-card-copy"><strong>ins 消息（第二页）</strong><em>第二页桌面 · 4×2 左右两条消息气泡，点气泡可改文字</em></div><span aria-hidden="true" class="widget-toggle"></span></div></article>
 </div>
-<div class="settings-section-title">主屏幕 · 应用图标</div><div class="icon-library" id="iconLibrary"></div>
+<div class="settings-section-title">主屏幕 · ins 消息</div><div class="appearance-menu">
+<button aria-checked="false" class="appearance-row" id="ins2TimeToggle" role="switch" type="button"><span class="appearance-copy"><strong>显示时分秒时间戳</strong><em>在 ins 消息左侧气泡右边显示实时时间</em></span><span aria-hidden="true" class="appearance-switch"></span></button>
+</div>
+<div class="settings-section-title">主屏幕 · 应用图标</div><div class="appearance-menu">
+<button class="appearance-row" id="clearCustomIcons" type="button"><span class="appearance-copy"><strong>一键清除自定义图标</strong><em id="clearCustomIconsState">当前没有自定义图标</em></span></button>
+</div><div class="icon-library" id="iconLibrary"></div>
 <div style="height:30px"></div>
 </div>
 </section>
@@ -2008,6 +2064,7 @@
 <script defer="" src="./js-apps-worldbook.js"></script>
 <script defer="" src="./js-apps-music.js"></script>
 <script defer="" src="./js-apps-polaroid.js"></script>
+<script defer="" src="./js-apps-home-page2.js"></script>
 <script defer="" src="./js-apps-settings-core.js"></script>
 <script defer="" src="./js-apps-settings-api.js"></script>
 <script defer="" src="./js-apps-settings-fonts.js"></script>

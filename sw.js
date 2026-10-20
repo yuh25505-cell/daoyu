@@ -11,6 +11,7 @@ const APP_SHELL = [
   './css-apps-home.css',
   './css-apps-music.css',
   './css-apps-polaroid.css',
+  './css-apps-home-page2.css',
   './css-apps-chat.css',
   './css-apps-phone.css',
   './css-apps-worldbook.css',
@@ -53,6 +54,7 @@ const APP_SHELL = [
   './js-apps-worldbook.js',
   './js-apps-music.js',
   './js-apps-polaroid.js',
+  './js-apps-home-page2.js',
   './js-apps-settings-core.js',
   './js-apps-settings-api.js',
   './js-apps-settings-fonts.js',
@@ -84,7 +86,16 @@ const APP_SHELL = [
   './icons/phone.png',
   './icons/countdowndays.png',
   './icons/worldbook.png',
-  './icons/music.png'
+  './icons/music.png',
+  './icons/xiangyu.png',
+  './icons/guanlianzhanghao.png',
+  './icons/luntan.png',
+  './icons/wenxuecheng.png',
+  './icons/qinglvkongjian.png',
+  './icons/yushe.png',
+  './icons/fanwaijian.png',
+  './icons/meituan.png',
+  './icons/xichi.png'
 ];
 
 // Inside the Android APK (Capacitor serves the bundle from https://localhost) the
