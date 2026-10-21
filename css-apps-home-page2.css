@@ -89,7 +89,7 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .weather2-bg{ filter
 .ins2-stack{ width:100%; display:flex; flex-direction:column; gap:5px; min-width:0; }
 .ins2{ width:100%; display:flex; align-items:stretch; gap:8px; min-width:0; }
 .ins2-r{ justify-content:flex-end; }
-.ins2-line{ flex:none; width:4px; margin:1px 0; border-radius:2px; background:#4d4d4d; }   /* 比气泡矮 2px，上下各缩 1px，居中 */
+.ins2-line{ flex:none; width:4px; margin:2px 0; border-radius:2px; background:#4d4d4d; }   /* 比气泡矮 4px，上下各缩 2px，居中 */
 .ins2-bubble{
   flex:0 1 auto; min-width:44px; max-width:100%; box-sizing:border-box; padding:10px 15px; border-radius:20px;
   background:#272727; color:#fff; font-size:calc(14px * var(--island-font-size-scale)); line-height:1.35;
