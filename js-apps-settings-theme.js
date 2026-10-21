@@ -1,6 +1,6 @@
 /* 岛屿 · 设置 · 外观主题导出 / 导入
  * 主题文件（.json）只包含主屏幕桌面的装修：壁纸、图标主题与自定义图标、Dock、图标名称、屏幕比例、
- * 小组件样式，以及日历 / 音乐 / 拍立得组件里的照片与文字（本地图片以内嵌方式保存，图床链接原样保存）。
+ * 小组件样式，日历 / 音乐 / 拍立得组件里的照片与文字，以及第二页桌面（照片 / 天气背景 / ins 消息文字与时间戳 / 组件开关 / 9 个应用的自定义图标）（本地图片以内嵌方式保存，图床链接原样保存）。
  * 不包含系统主题（日间 / 夜间）、聊天外观、字体，也不包含聊天、API、铃声等任何其他数据。
  * 导入时只覆盖主屏幕外观，立即生效，不需要重启。
  * 所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
@@ -9,7 +9,7 @@
 var IslandTheme = (function(){
   var KIND = 'island-theme';
   var MAX_FILE_BYTES = 40 * 1024 * 1024;
-  var IMAGE_HOME_KEYS = ['wallpaperData', 'calendarPhoto', 'musicCover', 'polaroidPhoto'];
+  var IMAGE_HOME_KEYS = ['wallpaperData', 'calendarPhoto', 'musicCover', 'polaroidPhoto', 'photo2Photo', 'weather2Bg'];
 
   function toastSafe(msg){ try { toast(msg); } catch(e) {} }
   function plain(o){ return JSON.parse(JSON.stringify(o)); }
@@ -76,7 +76,8 @@ var IslandTheme = (function(){
     var h = d.homeAppearance, bits = ['图标 / Dock / 小组件样式'];
     if (isImageSrc(h.wallpaperData)) bits.unshift('壁纸');
     if (h.iconData && Object.keys(h.iconData).some(function(k){ return isImageSrc(h.iconData[k]); })) bits.push('自定义图标');
-    if (['calendarPhoto', 'musicCover', 'polaroidPhoto'].some(function(k){ return isImageSrc(h[k]); }) || h.polaroidCaption) bits.push('组件照片与文字');
+    if (['calendarPhoto', 'musicCover', 'polaroidPhoto', 'photo2Photo', 'weather2Bg'].some(function(k){ return isImageSrc(h[k]); }) || h.polaroidCaption) bits.push('组件照片与文字');
+    if (h.widgets && (h.widgets.photo2 || h.widgets.weather2 || h.widgets.ins2) || h.ins2Text || h.insR2Text || h.ins2Time || h.insR2Time) bits.push('第二页桌面');
     return bits.join('、');
   }
 

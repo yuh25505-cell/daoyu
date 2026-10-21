@@ -83,7 +83,7 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .weather2-bg{ filter
 .weather2-hint{ grid-column:1 / -1; font-size:calc(10px * var(--island-font-size-scale)); opacity:.85; }
 .weather2.is-loading .weather2-temp{ opacity:.55; }
 
-/* ---- ins 消息：4×2（占 4 列、一行网格高度，内含上下两条消息），气泡宽度随文字自适应，文字可直接点击修改 ---- */
+/* ---- ins 消息：4×2（占 4 列、一行网格高度，内含上下两条消息），气泡宽度随文字自适应，点一下气泡文字才进入编辑 ---- */
 .home-ins2-widget{ grid-column:span 4; grid-row:span 1; min-width:0; display:flex; align-items:center; }
 .home[data-widget-ins2="off"] .home-ins2-widget{ display:none; }
 .ins2-stack{ width:100%; display:flex; flex-direction:column; gap:5px; min-width:0; }
@@ -93,21 +93,30 @@ html[data-theme="dark"] .home[data-dim-dark-wallpaper="on"] .weather2-bg{ filter
 .ins2-bubble{
   flex:0 1 auto; min-width:44px; max-width:100%; box-sizing:border-box; padding:10px 15px; border-radius:20px;
   background:#272727; color:#fff; font-size:calc(14px * var(--island-font-size-scale)); line-height:1.35;
-  white-space:nowrap; overflow:hidden; outline:none; caret-color:#fff;
-  -webkit-user-select:text; user-select:text; -webkit-tap-highlight-color:transparent;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; outline:none; caret-color:#fff;
 }
-.ins2-bubble:not(:focus){ text-overflow:ellipsis; }
+/* 平时只展示；只有点一下气泡文字进入编辑后，才可选字 / 输入 */
+.ins2-bubble[contenteditable="true"],.ins2-bubble[contenteditable="plaintext-only"]{ -webkit-user-select:text; user-select:text; text-overflow:clip; }
 .ins2-bubble:empty::before{ content:"输入消息"; opacity:.4; }
-/* 时分秒时间戳：设置里可开关；与左侧气泡下边平齐 */
+/* 时分秒时间戳：左 / 右各自在设置里开关；与各自气泡下边平齐（右侧时间在气泡左边） */
 .ins2-time{
   flex:none; align-self:flex-end; color:#fff; font-size:calc(10px * var(--island-font-size-scale));
   font-weight:var(--island-fw-600,600); font-variant-numeric:tabular-nums; white-space:nowrap;
   text-shadow:var(--label-shadow, 0 0 1px rgba(0,0,0,.34), 0 1px 3px rgba(0,0,0,.20));
 }
-.home[data-ins2-time="off"] .ins2-time{ display:none; }
+.home[data-ins2-time="off"] .ins2-time-l{ display:none; }
+.home[data-insr2-time="off"] .ins2-time-r{ display:none; }
 
 /* 照片关闭时调整补位顺序：前 8 个应用 → ins 消息 → 天气 → 第 9 个应用，
  * 这样 ins（4 列宽）紧接在应用后面，天气落在其下方，右侧缺口由第 9 个应用补上，不会留下空洞。 */
 .home[data-widget-photo2="off"] .home-ins2-widget{ order:1; }
 .home[data-widget-photo2="off"] .home-weather2-widget{ order:2; }
 .home[data-widget-photo2="off"] .home-grid-2 > .app{ order:3; }
+
+/* ---- 设置页：ins 消息文字输入行 ---- */
+.ins2-edit-row{ display:flex; align-items:center; gap:12px; padding:12px 16px; border-top:1px solid var(--track); }
+.ins2-edit-row:first-child{ border-top:0; }
+.ins2-edit-row > span{ flex:none; width:72px; font-size:14px; font-weight:600; }
+.ins2-edit-row > input{ flex:1 1 auto; min-width:0; box-sizing:border-box; padding:8px 12px; border-radius:10px; border:1px solid var(--card-bd); background:transparent; color:inherit; font:inherit; font-size:16px; outline:none; }
+.ins2-edit-row-switch{ border-top:1px solid var(--track); }

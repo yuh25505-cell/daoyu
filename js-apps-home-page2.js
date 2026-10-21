@@ -34,7 +34,7 @@ function bindHomePager(){
   var drag = null, moved = false;
   pages.addEventListener('pointerdown', function(e){
     if (e.pointerType !== 'mouse' || e.button !== 0) return;
-    if (e.target.closest && e.target.closest('input,textarea,[contenteditable]')) return;
+    if (e.target.closest && e.target.closest('input,textarea')) return;
     drag = { x: e.clientX, left: pages.scrollLeft, page: currentHomePage() };
     moved = false;
   });
@@ -124,19 +124,24 @@ function bindImageSlot(opts){
 /* ============================== ins 消息：时间戳开关 / 清除自定义图标 ============================== */
 
 function renderInsClock(){
-  var el = $('ins2Time');
-  if (!el || !document.getElementById('home') || document.getElementById('home').getAttribute('data-ins2-time') === 'off') return;
+  var home = $('home');
+  if (!home) return;
   var d = new Date();
   var t = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-  if (el.textContent !== t) el.textContent = t;
+  [['ins2Time', 'data-ins2-time'], ['insR2Time', 'data-insr2-time']].forEach(function(x){
+    var el = $(x[0]);
+    if (el && home.getAttribute(x[1]) !== 'off' && el.textContent !== t) el.textContent = t;
+  });
 }
 
 function renderInsTimeToggle(){
   var a = normalizeHomeAppearance();
   var home = $('home');
-  if (home) home.setAttribute('data-ins2-time', a.ins2Time ? 'on' : 'off');
-  var tg = $('ins2TimeToggle');
-  if (tg) { tg.classList.toggle('is-on', !!a.ins2Time); tg.setAttribute('aria-checked', a.ins2Time ? 'true' : 'false'); }
+  if (home) { home.setAttribute('data-ins2-time', a.ins2Time ? 'on' : 'off'); home.setAttribute('data-insr2-time', a.insR2Time ? 'on' : 'off'); }
+  [['ins2TimeToggle', a.ins2Time], ['insR2TimeToggle', a.insR2Time]].forEach(function(x){
+    var tg = $(x[0]);
+    if (tg) { tg.classList.toggle('is-on', !!x[1]); tg.setAttribute('aria-checked', x[1] ? 'true' : 'false'); }
+  });
   renderInsClock();
 }
 
@@ -173,13 +178,35 @@ function renderInsTexts(){
   INS_BUBBLES.forEach(function(b){
     var el = $(b[0]);
     if (el && document.activeElement !== el && el.textContent !== a[b[1]]) el.textContent = a[b[1]];
+    var inp = $(b[0] + 'Input');
+    if (inp && document.activeElement !== inp && inp.value !== a[b[1]]) inp.value = a[b[1]];
   });
+}
+
+/* 气泡平时不可编辑（滑动、误触屏幕都不会弹键盘），只有点一下气泡文字才进入编辑，失焦后恢复。
+ * 设置 › 外观 › 主屏幕 · ins 消息 里的输入框是另一处入口，两边实时同步。 */
+function startInsEdit(el, e){
+  if (el.isContentEditable) return;
+  el.contentEditable = 'plaintext-only';
+  if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
+  el.focus();
+  var r = null;
+  try {
+    if (document.caretRangeFromPoint) r = document.caretRangeFromPoint(e.clientX, e.clientY);
+    else if (document.caretPositionFromPoint) {
+      var cp = document.caretPositionFromPoint(e.clientX, e.clientY);
+      if (cp) { r = document.createRange(); r.setStart(cp.offsetNode, cp.offset); r.collapse(true); }
+    }
+  } catch (err) { r = null; }
+  if (!r || !el.contains(r.startContainer)) { r = document.createRange(); r.selectNodeContents(el); r.collapse(false); }
+  var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
 }
 
 function bindInsBubble(id, field){
   var el = $(id);
   if (!el) return;
-  try { el.contentEditable = 'plaintext-only'; if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true'; } catch (e) {}
+  el.contentEditable = 'false';
+  el.addEventListener('click', function(e){ startInsEdit(el, e); });
   el.addEventListener('input', function(){
     var t = el.textContent.replace(/[\r\n]+/g, ' ');
     if (t.length > INS_TEXT_MAX) {
@@ -188,6 +215,7 @@ function bindInsBubble(id, field){
       var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
     }
     normalizeHomeAppearance()[field] = t;
+    var inp = $(id + 'Input'); if (inp && inp.value !== t) inp.value = t;
     scheduleSettingsSave(300);
   });
   el.addEventListener('paste', function(e){
@@ -196,7 +224,24 @@ function bindInsBubble(id, field){
     document.execCommand('insertText', false, txt);
   });
   el.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
-  el.addEventListener('blur', function(){ el.scrollLeft = 0; saveSettings(); });
+  el.addEventListener('blur', function(){ el.contentEditable = 'false'; el.scrollLeft = 0; saveSettings(); });
+}
+
+function bindInsTextInputs(){
+  INS_BUBBLES.forEach(function(b){
+    var inp = $(b[0] + 'Input');
+    if (inp) {
+      inp.addEventListener('input', function(){
+        var a = normalizeHomeAppearance();
+        a[b[1]] = inp.value.replace(/[\r\n]+/g, ' ').slice(0, INS_TEXT_MAX);
+        var el = $(b[0]); if (el) el.textContent = a[b[1]];
+        scheduleSettingsSave(300);
+      });
+      inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+      inp.addEventListener('blur', function(){ saveSettings(); });
+    }
+    bindInsBubble(b[0], b[1]);
+  });
 }
 
 
@@ -402,10 +447,12 @@ function bindHomePage2Events(){
   bindImageSlot({ field: 'weather2Bg', input: 'weather2BgInput', pickers: ['weather2BgPick'], url: 'weather2BgUrl', clear: 'weather2BgClear',
     urlTitle: '天气背景图片链接', okMsg: '已更换天气背景', clearMsg: '已移除天气背景' });
   bindWeather2();
-  var tt = $('ins2TimeToggle'); if (tt) tt.addEventListener('click', function(){ var a = normalizeHomeAppearance(); a.ins2Time = !a.ins2Time; queueHomeAppearanceApply(); });
+  [['ins2TimeToggle', 'ins2Time'], ['insR2TimeToggle', 'insR2Time']].forEach(function(x){
+    var tg = $(x[0]);
+    if (tg) tg.addEventListener('click', function(){ var a = normalizeHomeAppearance(); a[x[1]] = !a[x[1]]; queueHomeAppearanceApply(); });
+  });
   var ci = $('clearCustomIcons'); if (ci) ci.addEventListener('click', clearAllCustomIcons);
-  bindInsBubble('ins2Text', 'ins2Text');
-  bindInsBubble('insR2Text', 'insR2Text');
+  bindInsTextInputs();
   renderInsTexts();
   renderPhoto2();
   renderWeather2Bg();

@@ -35,7 +35,7 @@ var DEFAULT_HOME_APPEARANCE = {
   iconData: {},
   dimDarkWallpaperAmount: 42, dimDarkIconAmount: 42, dimDarkWallpaperLocked: false, dimDarkIconLocked: false,
   dockRadius: 40, dockTransparency: 0, dockBlur: 16, dockRadiusLocked: false, dockTransparencyLocked: false, dockBlurLocked: false,
-  wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '', polaroidPhoto: '', polaroidCaption: '⌯>ᴗ<⌯ಣ', photo2Photo: '', weather2Bg: '', ins2Time: false, ins2Text: '你收到一条新的 ins 消息', insR2Text: '好呀，晚点聊',
+  wallpaper: 'mono', wallpaperData: '', calendarPhoto: '', musicCover: '', polaroidPhoto: '', polaroidCaption: '⌯>ᴗ<⌯ಣ', photo2Photo: '', weather2Bg: '', ins2Time: false, insR2Time: false, ins2Text: '你收到一条新的 ins 消息', insR2Text: '好呀，晚点聊',
   widgets: {
     /* bgStyle：default＝原来的深色/浅色卡片（默认）；glass＝毛玻璃。glassBlur 模糊度 0–40px；glassTransparency 透明度 0–100%（越大越透） */
     calendar: { enabled: true, size: 'large', bgStyle: 'default', glassBlur: 20, glassTransparency: 40 },
@@ -339,6 +339,7 @@ function normalizeHomeAppearance(){
   base.polaroidPhoto = isImageSrc(incoming.polaroidPhoto) ? incoming.polaroidPhoto : '';
   base.photo2Photo = isImageSrc(incoming.photo2Photo) ? incoming.photo2Photo : '';
   base.ins2Time = incoming.ins2Time === true;
+  base.insR2Time = incoming.insR2Time === true;
   base.ins2Text = typeof incoming.ins2Text === 'string' ? incoming.ins2Text.slice(0, 40) : base.ins2Text;
   base.insR2Text = typeof incoming.insR2Text === 'string' ? incoming.insR2Text.slice(0, 40) : base.insR2Text;
   base.weather2Bg = isImageSrc(incoming.weather2Bg) ? incoming.weather2Bg : '';
