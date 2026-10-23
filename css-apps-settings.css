@@ -531,3 +531,7 @@ html[data-theme="dark"] .settings-panel[data-panel="notifications"] .notificatio
 .sound-actions .appearance-upload-btn{ flex:1 1 0; min-width:0; padding:8px 6px; white-space:nowrap; }
 .appearance-upload-btn:disabled{ opacity:.4; pointer-events:none; }
 .sound-volume-row.dock-control-row{ grid-template-columns:72px minmax(0,1fr) 48px; border-top:1px solid var(--track); }
+
+/* ===== 日间纯白：整个设置 App（含所有子界面与选择模型弹层）。夜间 --bg-pure 与 --bg 同为 #000，夜间不变。 ===== */
+.settings-app{ --bg:var(--bg-pure); }
+.model-sheet{ background:var(--pop-bg, var(--bg)); }

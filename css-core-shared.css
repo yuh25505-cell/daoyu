@@ -164,3 +164,7 @@ html[data-theme="dark"] .island-dialog-btn.is-cancel{ background:#303034; color:
   html:not([data-theme]) .island-dialog-message{ color:rgba(255,255,255,.82); }
   html:not([data-theme]) .island-dialog-btn.is-cancel{ background:#303034; color:#f5f5f5; border-color:rgba(255,255,255,.18); }
 }
+
+/* ===== 日间纯白弹窗（通用）：对话框 / 底部抽屉。夜间 --pop-bg 为 initial，回退到原来的 var(--bg)，夜间不变。 ===== */
+.island-dialog-panel{ background:var(--pop-bg, var(--bg)); }
+.sheet{ background:var(--pop-bg, var(--bg)); }

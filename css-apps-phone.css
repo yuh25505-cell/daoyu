@@ -191,3 +191,6 @@
 .phone-list{ padding-left:9px; padding-right:9px; }
 .phone-transcript-bubble{ max-width:88%; }
 }
+
+/* ===== 日间纯白：整个电话 App（含所有子界面）。夜间 --bg-pure 与 --bg 同为 #000，夜间不变。 ===== */
+.phone-app{ --bg:var(--bg-pure); }

@@ -30,6 +30,8 @@
   --chat-image-text-bg:#ffffff; --chat-image-text-fg:#111111; --chat-image-text-border:rgba(17,17,17,.08);
   --wp-a:rgba(16,16,16,.05); --wp-b:rgba(16,16,16,.025);
   --wallpaper-bg:#f3f3f3;
+  /* 日间纯白：页面级 / 弹窗级白底。夜间块里把它们还原，保证夜间外观不变。 */
+  --bg-pure:#ffffff; --pop-bg:#ffffff;
   --home-fg:#101010; --home-soft:rgba(16,16,16,.56); --home-faint:rgba(16,16,16,.34);
   --home-surface:rgba(255,255,255,.66); --home-surface-soft:rgba(16,16,16,.035);
   --home-border:rgba(16,16,16,.10); --home-border-strong:rgba(16,16,16,.17);
@@ -59,6 +61,7 @@ html[data-theme="dark"]{
   --chat-image-text-bg:#2A2A2C; --chat-image-text-fg:#EAEAEA; --chat-image-text-border:rgba(0,0,0,.42);
   --wp-a:rgba(255,255,255,.07); --wp-b:rgba(255,255,255,.03);
   --wallpaper-bg:#000000;
+  --bg-pure:#000000; --pop-bg:initial;
   --home-fg:#f5f5f5; --home-soft:rgba(245,245,245,.56); --home-faint:rgba(245,245,245,.30);
   --widget-surface:#131315; --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
   --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);
@@ -87,6 +90,7 @@ html:not([data-theme]){
   --chat-image-text-bg:#2A2A2C; --chat-image-text-fg:#EAEAEA; --chat-image-text-border:rgba(0,0,0,.42);
     --wp-a:rgba(255,255,255,.07); --wp-b:rgba(255,255,255,.03);
     --wallpaper-bg:#000000;
+    --bg-pure:#000000; --pop-bg:initial;
     --home-fg:#f5f5f5; --home-soft:rgba(245,245,245,.56); --home-faint:rgba(245,245,245,.30);
     --widget-surface:#131315; --home-surface:rgba(255,255,255,.045); --home-surface-soft:rgba(255,255,255,.025);
     --home-border:rgba(255,255,255,.10); --home-border-strong:rgba(255,255,255,.17);

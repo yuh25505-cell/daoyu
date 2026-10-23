@@ -2398,3 +2398,25 @@ html[data-theme="dark"] .pm-memory-clear-btn.danger{ background:var(--err,#e5484
 .pm-voice-call-composer.is-incoming{ display:none; }
 
 .pm-voice-call-view.is-incoming .pm-voice-call-label::after{ content:' · 来电'; }
+
+/* ===== 日间纯白：消息 / 联系人 / 朋友圈 / 我 四个 Tab 页，以及「外观」「我的角色」子界面 =====
+ * 只改这几块的底色；私聊页（.pm-view）、记忆页等保持原样，避免白色气泡与白底融在一起。
+ * 夜间 --bg-pure 与 --bg 同为 #000，夜间外观不变。 */
+.chat-app{ background:var(--bg-pure); }
+.chat-appearance-view,
+.up-view{ background:var(--bg-pure); }
+
+/* ===== 日间纯白弹窗（聊天内）。夜间 --pop-bg 为 initial，回退到各自原来的值，夜间不变。 ===== */
+.pm-forward-dialog,
+.char-language-dialog,
+.pm-transfer-dialog,
+.pm-location-dialog,
+.voice-text-dialog,
+.pm-image-text-dialog,
+.pm-file-view-dialog{ background:var(--pop-bg, var(--bg)); }
+.pm-memory-notice-dialog,
+.pm-incoming-call-notice-dialog{ background:var(--pop-bg, var(--card-bg)); }
+
+/* ===== 日间纯白：记忆页（记忆首页 + 各记忆子页）。夜间 --bg-pure 与 --bg 同为 #000，夜间不变。 ===== */
+.pm-memory-home-view,
+.pm-memory-view{ --bg:var(--bg-pure); }
