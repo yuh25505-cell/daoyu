@@ -178,7 +178,7 @@ public class IslandNativePlugin extends Plugin {
         }
 
         builder
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_stat_island)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new Notification.BigTextStyle().bigText(body))
@@ -760,6 +760,15 @@ if (!manifest.includes('.CallActionReceiver')) {
   );
 }
 fs.writeFileSync(manifestPath, manifest, 'utf8');
+
+// Notification small icon: use icon-192.png (same icon as the web app) instead of the generic Android info icon.
+const statIconSrc = path.join(root, 'icon-192.png');
+if (!fs.existsSync(statIconSrc)) {
+  throw new Error('icon-192.png not found; needed for the notification small icon');
+}
+const statIconDir = path.join(appDir, 'src', 'main', 'res', 'drawable-nodpi');
+fs.mkdirSync(statIconDir, { recursive: true });
+fs.copyFileSync(statIconSrc, path.join(statIconDir, 'ic_stat_island.png'));
 
 const gradlePath = path.join(appDir, 'build.gradle');
 let gradle = fs.readFileSync(gradlePath, 'utf8');

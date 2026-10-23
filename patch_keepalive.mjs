@@ -113,7 +113,7 @@ public class KeepAliveService extends Service {
             builder = new Notification.Builder(this).setPriority(Notification.PRIORITY_LOW);
         }
         builder
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_stat_island)
             .setContentTitle("${appName}正在后台运行")
             .setContentText("静音保活已开启，点按返回应用")
             .setContentIntent(openPi)
