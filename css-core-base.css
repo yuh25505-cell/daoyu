@@ -171,153 +171,132 @@ ul{ list-style:none; margin:0; padding:0; }
 
 h1,h2,h3,p{ margin:0; font-weight:inherit; }
 
-/* 启动层 · 岛屿拱门
- * 日出（深色主题为月夜）时分，一座小岛从海平线浮起：
- * 拱门窗由下向上打开 → 太阳 / 月牙升起 → 小岛浮出 → 倒影、涟漪与碎光 → 字标落定 → 淡出。
- * 画面是一整张内联 SVG（自带裁切，iOS Safari 不会漏出边角），其余全部为纯 CSS 动画；不依赖图片和外部字体。 */
+/* 全屏启动场 · 动态排版、流体线场与触摸扰动。无中心徽标、无环形主视觉。 */
 .boot{
-  --fit:1;
-  --b-ring:var(--home-border-strong);
-  position:fixed; inset:0; z-index:100; display:grid; place-items:center; overflow:hidden;
-  background:var(--bg); color:var(--home-fg);
-  font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Songti SC","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC",Georgia,serif;
-  animation:bootLeave .7s 2.45s cubic-bezier(.4,0,.2,1) forwards;
-  will-change:opacity;   /* 淡出只在合成器线程上做，不触发下面主屏幕重绘 */
+  --boot-field:var(--fg);
+  --boot-paper:var(--bg-pure);
+  position:fixed; inset:0; z-index:100; overflow:hidden;
+  color:var(--fg); background:var(--boot-paper);
+  font-family:"SF Pro Display","Helvetica Neue","PingFang SC","Noto Sans CJK SC",sans-serif;
+  isolation:isolate; touch-action:none;
+  animation:bootLeave .68s 2.55s cubic-bezier(.2,.72,.22,1) forwards;
+  will-change:opacity;
 }
-
-/* 淡出前定格循环动画（脚本在约 2.2s 加上 is-calm） */
-.boot.is-calm .s-mist, .boot.is-calm .s-rip, .boot.is-calm .gl, .boot.is-calm .s-star,
-.boot.is-calm .s-bird, .boot.is-calm .boot-status i{ animation-play-state:paused; }
-
-html[data-theme="dark"] .boot{
-  --b-ring:rgba(255,255,255,.4);
+.boot-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.88}
+.boot::before,.boot::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1}
+.boot::before{background:linear-gradient(180deg,var(--boot-paper) 0%,transparent 19%,transparent 79%,var(--boot-paper) 100%);opacity:.68}
+.boot::after{background:repeating-linear-gradient(0deg,transparent 0 3px,var(--home-border) 4px,transparent 5px);opacity:.07;mix-blend-mode:multiply}
+.boot-sweep{position:absolute;z-index:1;left:-35%;width:170%;height:1px;pointer-events:none;opacity:.3;background:linear-gradient(90deg,transparent,var(--fg-soft) 18%,var(--fg-faint) 50%,var(--fg-soft) 82%,transparent);transform:rotate(-8deg);transform-origin:center}
+.boot-sweep--one{top:32%;animation:bootSweepOne 4.8s -1.7s ease-in-out infinite}
+.boot-sweep--two{top:69%;opacity:.18;transform:rotate(5deg);animation:bootSweepTwo 6.1s -3s ease-in-out infinite}
+.boot-topline{position:absolute;z-index:4;top:max(22px,calc(env(safe-area-inset-top,0px) + 14px));left:clamp(20px,5.4vw,76px);right:clamp(20px,5.4vw,76px);display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:8px;line-height:1.3;letter-spacing:.18em;color:var(--fg-soft)}
+.boot-signature,.boot-live{display:flex;align-items:center;gap:9px;white-space:nowrap}
+.boot-signature{animation:bootMetaIn .8s .05s both}
+.boot-signature-sep{opacity:.38;margin:0 1px}
+.boot-slashes{height:13px;display:flex;align-items:center;gap:2px;margin-right:3px;transform:skew(-24deg)}
+.boot-slashes i{display:block;width:2px;height:7px;background:var(--fg);animation:bootSlash 1.5s ease-in-out infinite}
+.boot-slashes i:nth-child(2){height:12px;animation-delay:.12s}
+.boot-slashes i:nth-child(3){height:5px;animation-delay:.24s}
+.boot-live{gap:8px;animation:bootMetaIn .8s .16s both}
+.boot-live-dot,.boot-loading-dot{width:4px;height:4px;border-radius:50%;background:var(--fg);flex:0 0 4px;animation:bootBlink 1.15s ease-in-out infinite}
+.boot-live-index{font-variant-numeric:tabular-nums;opacity:.48;margin-left:4px}
+.boot-fragments{position:absolute;inset:0;z-index:3;pointer-events:none}
+.boot-fragment{position:absolute;display:block;white-space:nowrap;font-size:clamp(7px,.77vw,10px);line-height:1;letter-spacing:.15em;font-weight:500;color:var(--fg-soft);opacity:.75;will-change:transform;transform:translate3d(var(--fx,0px),var(--fy,0px),0) rotate(var(--fr,0deg));transition:color .3s}
+.boot-fragment::before{content:"";display:inline-block;width:clamp(9px,1.3vw,17px);height:1px;vertical-align:middle;background:currentColor;margin:0 9px 3px 0;opacity:.65}
+.boot-fragment--a{left:9%;top:20%;--fr:-7deg;animation:bootMetaIn .9s .1s both}
+.boot-fragment--b{right:12%;top:24%;--fr:5deg;animation:bootMetaIn .9s .18s both}
+.boot-fragment--c{left:5%;top:43%;--fr:-90deg;transform-origin:left top;animation:bootMetaIn .9s .24s both}
+.boot-fragment--d{right:8%;top:46%;--fr:90deg;transform-origin:right top;animation:bootMetaIn .9s .3s both}
+.boot-fragment--e{left:21%;top:61%;--fr:2deg;animation:bootMetaIn .9s .36s both}
+.boot-fragment--f{right:16%;top:67%;--fr:-4deg;animation:bootMetaIn .9s .42s both}
+.boot-fragment--g{left:11%;top:80%;--fr:4deg;animation:bootMetaIn .9s .48s both}
+.boot-fragment--h{right:8%;top:82%;--fr:-3deg;animation:bootMetaIn .9s .54s both}
+.boot-fragment--i{left:44%;top:14%;--fr:1deg;animation:bootMetaIn .9s .6s both}
+.boot-fragment--j{right:37%;top:88%;--fr:-2deg;animation:bootMetaIn .9s .66s both}
+.boot-marquee{position:absolute;z-index:2;left:0;right:0;overflow:hidden;white-space:nowrap;pointer-events:none;line-height:1}
+.boot-marquee--upper{top:29%;transform:rotate(-2.3deg)}
+.boot-marquee--lower{top:63%;transform:rotate(1.65deg)}
+.boot-marquee-track{display:flex;width:max-content;will-change:transform;opacity:.14;color:var(--fg)}
+.boot-marquee--upper .boot-marquee-track{animation:bootMarqueeLeft 26s linear infinite}
+.boot-marquee--lower .boot-marquee-track{animation:bootMarqueeRight 33s linear infinite}
+.boot-marquee-track span{display:block;flex:0 0 auto;font-size:clamp(15px,2.15vw,29px);font-weight:450;letter-spacing:.08em;padding-right:.3em}
+.boot-center{position:absolute;z-index:4;left:50%;top:50%;width:min(84vw,680px);transform:translate3d(calc(-50% + var(--boot-core-x,0px)),calc(-50% + var(--boot-core-y,0px)),0);text-align:center;will-change:transform}
+.boot-center-kicker{display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:clamp(12px,2vh,22px);font-size:8px;line-height:1;letter-spacing:.24em;color:var(--fg-soft);animation:bootMetaIn .8s .2s both}
+.boot-center-kicker span{display:block;width:clamp(13px,2.2vw,24px);height:1px;background:var(--fg-faint)}
+.boot-kinetic-word{display:flex;justify-content:center;align-items:center;gap:.025em;min-height:1.02em;font-size:clamp(39px,8.3vw,91px);line-height:.98;font-weight:400;letter-spacing:.07em;font-family:"Helvetica Neue","SF Pro Display","Arial",sans-serif;font-kerning:none}
+/* 主词采用横向揭幕与字形显影，不再使用向上弹跳；字符错峰展开，整体节奏更从容。 */
+.boot-kinetic-word span{display:inline-block;opacity:0;clip-path:inset(0 100% 0 0);transform:translate3d(.16em,0,0);filter:blur(5px);animation:bootGlyphReveal .64s cubic-bezier(.22,.61,.36,1) forwards;animation-delay:calc(var(--char,0)*43ms);will-change:opacity,transform,filter,clip-path}
+.boot-kinetic-word.is-word-leaving span{animation:bootGlyphExit .27s cubic-bezier(.4,0,.7,.2) forwards;animation-delay:calc(var(--char,0)*15ms)}
+.boot-center-caption{display:flex;justify-content:center;align-items:center;gap:clamp(9px,1.9vw,20px);margin-top:clamp(14px,2.3vh,23px);font-size:7px;line-height:1.2;letter-spacing:.17em;color:var(--fg-faint);animation:bootMetaIn .8s .35s both}
+.boot-center-caption i{display:block;width:3px;height:3px;background:var(--fg-soft);transform:rotate(45deg)}
+.boot-bottomline{position:absolute;z-index:4;left:clamp(20px,5.4vw,76px);right:clamp(20px,5.4vw,76px);bottom:calc(env(safe-area-inset-bottom,0px) + clamp(22px,4.5vh,42px));display:grid;grid-template-columns:1fr auto;gap:12px 20px;align-items:center}
+.boot-loading-copy{display:flex;align-items:center;gap:9px;font-size:8px;line-height:1.2;letter-spacing:.14em;color:var(--fg-soft);animation:bootMetaIn .7s .28s both}
+.boot-percent{font-size:9px;font-variant-numeric:tabular-nums;letter-spacing:.08em;color:var(--fg);text-align:right}
+.boot-progress-track{position:relative;grid-column:1/-1;height:2px;overflow:hidden;background:var(--track)}
+.boot-progress-fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--fg);animation:bootProgress 2.45s .08s cubic-bezier(.2,.75,.2,1) forwards;will-change:width}
+.boot-progress-glint{position:absolute;top:-3px;bottom:-3px;left:-10%;width:13%;background:linear-gradient(90deg,transparent,var(--boot-paper),transparent);opacity:.9;animation:bootProgressGlint 1.05s .2s ease-in-out infinite}
+.boot-footer-meta{display:flex;grid-column:1/-1;justify-content:space-between;gap:12px;margin-top:1px;font-size:7px;line-height:1.3;letter-spacing:.14em;color:var(--fg-faint)}
+.boot-footer-meta span:last-child{white-space:nowrap}
+.boot.is-calm .boot-live-dot,.boot.is-calm .boot-loading-dot,.boot.is-calm .boot-slashes i{animation-play-state:paused}
+@keyframes bootMetaIn{from{opacity:0;filter:blur(3px);translate:0 7px}to{opacity:1;filter:blur(0);translate:0 0}}
+@keyframes bootSlash{0%,100%{transform:scaleY(.68);opacity:.45}50%{transform:scaleY(1);opacity:1}}
+@keyframes bootBlink{0%,100%{opacity:.24;transform:scale(.78)}50%{opacity:1;transform:scale(1.18)}}
+@keyframes bootGlyphReveal{0%{opacity:0;clip-path:inset(0 100% 0 0);transform:translate3d(.16em,0,0);filter:blur(5px)}58%{opacity:.92;clip-path:inset(0 0 0 0)}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translate3d(0,0,0);filter:blur(0)}}
+@keyframes bootGlyphExit{0%{opacity:1;clip-path:inset(0 0 0 0);transform:translate3d(0,0,0);filter:blur(0)}100%{opacity:0;clip-path:inset(0 38% 0 0);transform:translate3d(-.14em,0,0);filter:blur(4px)}}
+@keyframes bootMarqueeLeft{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes bootMarqueeRight{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@keyframes bootSweepOne{0%{translate:-18vw -15vh;opacity:0}25%{opacity:.27}70%{opacity:.15}100%{translate:20vw 19vh;opacity:0}}
+@keyframes bootSweepTwo{0%{translate:18vw 15vh;opacity:0}24%{opacity:.16}74%{opacity:.1}100%{translate:-20vw -17vh;opacity:0}}
+@keyframes bootProgress{0%{width:0}70%{width:68%}100%{width:100%}}
+@keyframes bootProgressGlint{0%{left:-15%;opacity:0}20%{opacity:.65}85%{opacity:.65}100%{left:105%;opacity:0}}
+@keyframes bootLeave{to{opacity:0;visibility:hidden;pointer-events:none;filter:blur(2px)}}
+@media (max-width:520px){
+  .boot-topline{font-size:7px;letter-spacing:.12em;top:max(20px,calc(env(safe-area-inset-top,0px) + 10px))}
+  .boot-signature,.boot-live{gap:6px}
+  .boot-fragment{font-size:7px;letter-spacing:.1em}
+  .boot-fragment::before{width:8px;margin-right:5px}
+  .boot-fragment--a{left:7%;top:20%}
+  .boot-fragment--b{right:5%;top:25%}
+  .boot-fragment--c{left:3%;top:45%}
+  .boot-fragment--d{right:1.5%;top:46%}
+  .boot-fragment--e{left:10%;top:62%}
+  .boot-fragment--f{right:7%;top:68%}
+  .boot-fragment--g{left:7%;top:79%}
+  .boot-fragment--h{right:4%;top:84%}
+  .boot-fragment--i{left:39%;top:14%}
+  .boot-fragment--j{right:31%;top:89%}
+  .boot-center{width:90vw;top:49%}
+  .boot-kinetic-word{font-size:clamp(37px,12vw,61px)}
+  .boot-center-kicker{font-size:7px;letter-spacing:.15em;gap:8px}
+  .boot-center-caption{font-size:6px;letter-spacing:.1em;gap:8px}
+  .boot-marquee--upper{top:31%}
+  .boot-marquee--lower{top:61%}
+  .boot-marquee-track span{font-size:18px}
+  .boot-bottomline{left:20px;right:20px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);gap:10px 12px}
+  .boot-loading-copy{font-size:7px;letter-spacing:.09em}
+  .boot-footer-meta{font-size:6px;letter-spacing:.08em}
 }
-
-@media (prefers-color-scheme: dark){
-  html:not([data-theme]) .boot{
-    --b-ring:rgba(255,255,255,.4);
-  }
+@media (max-width:360px){
+  .boot-live{font-size:6px}
+  .boot-center-kicker{font-size:6px}
+  .boot-center-caption{letter-spacing:.06em}
+  .boot-fragment--c,.boot-fragment--d{opacity:.42}
+  .boot-footer-meta{letter-spacing:.04em}
 }
-
-/* 适配不同屏幕：矮屏（iPhone SE / 横向 / 小窗口）整体缩小，平板与大屏略放大 */
-@media (max-height:720px){ .boot{ --fit:.88; } }
-@media (max-height:600px){ .boot{ --fit:.74; } }
-@media (max-width:340px){ .boot{ --fit:.86; } }
-@media (min-width:700px) and (min-height:860px){ .boot{ --fit:1.22; } }
-
-.boot-fit{ transform:scale(var(--fit)); }
-
-.boot-stage{
-  position:relative; display:flex; flex-direction:column; align-items:center;
-  animation:bootStageLeave .7s 2.45s cubic-bezier(.4,0,.2,1) forwards;
+@media (max-height:650px){
+  .boot-center{top:47%}
+  .boot-kinetic-word{font-size:clamp(34px,8vh,64px)}
+  .boot-center-kicker{margin-bottom:10px}
+  .boot-center-caption{margin-top:12px}
+  .boot-bottomline{bottom:calc(env(safe-area-inset-bottom,0px) + 15px)}
+  .boot-fragment--i,.boot-fragment--j{display:none}
 }
-
-/* 拱门框：外圈极细线 + 内部画面 */
-.boot-frame{
-  position:relative; width:150px; height:198px;
-  opacity:0; animation:bootFrameIn 1s .1s cubic-bezier(.22,1,.36,1) forwards;
+@media (prefers-reduced-motion:reduce){
+  .boot,.boot-sweep--one,.boot-sweep--two,.boot-marquee--upper .boot-marquee-track,.boot-marquee--lower .boot-marquee-track{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important}
+  .boot-fragment,.boot-signature,.boot-live,.boot-center-kicker,.boot-center-caption,.boot-loading-copy,.boot-kinetic-word span{animation-duration:.01ms!important;animation-delay:0s!important;opacity:1;filter:none;transform:none}
+  .boot-slashes i,.boot-live-dot,.boot-loading-dot,.boot-progress-glint{animation:none}
+  .boot-progress-fill{animation-duration:.25s;animation-delay:0s}
 }
-
-.boot-frame::before{
-  content:''; position:absolute; inset:-10px; border:1px solid var(--b-ring);
-  border-radius:85px 85px 30px 30px; opacity:0; transform:scale(.94);
-  animation:bootRingIn 1.2s .45s cubic-bezier(.22,1,.36,1) forwards;
-}
-
-/* 拱门"由下向上打开"：原先动画 clip-path（只能在主线程上重绘，脚本一加载就掉帧），
- * 现在改为一块与背景同色的幕布做 scaleY 收起（纯 transform，由合成器线程执行，主线程忙时也不卡）。 */
-.boot-arch{
-  position:absolute; inset:0; overflow:hidden;
-  border-radius:75px 75px 20px 20px;
-}
-
-.boot-arch::after{
-  content:''; position:absolute; inset:-1px; background:var(--bg);
-  transform-origin:50% 0; will-change:transform;
-  animation:bootCurtain 1.15s .15s cubic-bezier(.65,0,.2,1) forwards;
-}
-
-.boot-scene{ position:absolute; left:0; top:0; width:150px; height:198px; display:block; contain:layout paint style; }
-
-.boot-scene--night{ display:none; }
-html[data-theme="dark"] .boot-scene--day{ display:none; }
-html[data-theme="dark"] .boot-scene--night{ display:block; }
-@media (prefers-color-scheme: dark){
-  html:not([data-theme]) .boot-scene--day{ display:none; }
-  html:not([data-theme]) .boot-scene--night{ display:block; }
-}
-
-.s-rise{ opacity:0; animation:bootRise 2s .55s cubic-bezier(.16,.84,.3,1) forwards; }
-.s-isle{ opacity:0; animation:bootEmerge 1.4s .95s cubic-bezier(.16,.84,.3,1) forwards; }
-.s-refl{ opacity:0; animation:bootFade .9s 1.5s ease-out forwards; }
-.s-mist{ animation:bootMist 6s steps(16,end) infinite alternate; }
-
-.s-rip{
-  opacity:0; transform-box:fill-box; transform-origin:center; transform:scale(.3);
-  animation:bootRip 2.8s 1.6s cubic-bezier(.2,.6,.3,1) infinite;
-}
-
-.gl{
-  fill-opacity:0; transform-box:fill-box; transform-origin:center;
-  animation:bootGlit 2.4s 1.6s steps(8,end) infinite alternate;
-}
-
-.s-star{ opacity:0; animation:bootTwinkle 3.2s 0s steps(8,end) infinite alternate; }
-
-.s-bird{ opacity:0; animation:bootBird 7s 1.6s steps(28,end) infinite alternate; }
-.s-bird-2{ animation-delay:2.4s; animation-duration:8s; }
-
-/* 字标 */
-.boot-word{
-  display:flex; margin-top:40px; margin-right:-.5em;
-  font-size:27px; font-weight:var(--island-fw-300); line-height:1; letter-spacing:.5em; color:var(--home-fg);
-}
-
-.boot-word span{
-  display:inline-block; opacity:0; transform:translateY(8px); will-change:transform,opacity;
-  animation:bootChar 1s cubic-bezier(.22,1,.36,1) forwards;
-}
-
-.boot-word span:nth-child(1){ animation-delay:1.25s; }
-.boot-word span:nth-child(2){ animation-delay:1.42s; }
-
-.boot-sub{
-  margin-top:13px; margin-right:-.3em; font-size:13px; font-style:italic; font-weight:var(--island-fw-400);
-  letter-spacing:.3em; color:var(--home-soft);
-  opacity:0; animation:bootFadeUp .9s 1.6s ease-out forwards;
-}
-
-.boot-status{
-  position:absolute; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 8%);
-  text-align:center; font-size:10.5px; letter-spacing:.42em; text-indent:.42em; color:var(--home-faint);
-  opacity:0; animation:bootFadeUp .8s 1.9s ease-out forwards;
-}
-
-.boot-status i{
-  display:inline-block; width:3px; height:3px; margin-left:2px; border-radius:50%;
-  background:currentColor; vertical-align:middle; opacity:.2;
-  animation:bootDot 1.4s ease-in-out infinite;
-}
-
-.boot-status i:nth-of-type(2){ animation-delay:.18s; }
-.boot-status i:nth-of-type(3){ animation-delay:.36s; }
-
-@keyframes bootFrameIn{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
-@keyframes bootRingIn{ to{opacity:1; transform:none} }
-@keyframes bootCurtain{ from{ transform:scaleY(1) } to{ transform:scaleY(0) } }
-@keyframes bootRise{ 0%{opacity:0; transform:translateY(40px)} 22%{opacity:1} 100%{opacity:1; transform:translateY(0)} }
-@keyframes bootEmerge{ 0%{opacity:0; transform:translateY(16px)} 35%{opacity:1} 100%{opacity:1; transform:translateY(0)} }
-@keyframes bootFade{ to{opacity:1} }
-@keyframes bootMist{ from{transform:translateX(-4px)} to{transform:translateX(4px)} }
-@keyframes bootRip{ 0%{opacity:0; transform:scale(.3)} 20%{opacity:.75} 100%{opacity:0; transform:scale(1.18)} }
-@keyframes bootGlit{ 0%{fill-opacity:.12; transform:scaleX(.8)} 100%{fill-opacity:1; transform:scaleX(1)} }
-@keyframes bootTwinkle{ from{opacity:.15} to{opacity:.9} }
-@keyframes bootBird{ 0%{opacity:0; transform:translate(10px,3px)} 25%{opacity:.6} 75%{opacity:.6} 100%{opacity:0; transform:translate(-12px,-3px)} }
-@keyframes bootChar{ to{opacity:1; transform:none} }
-@keyframes bootFadeUp{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
-@keyframes bootDot{ 0%,100%{opacity:.2} 50%{opacity:.9} }
-@keyframes bootStageLeave{ to{transform:scale(1.035)} }
-@keyframes bootLeave{ to{opacity:0; visibility:hidden; pointer-events:none} }
 
 html.pm-open{ --pm-chat-head-bg:#ededed; --pm-chat-head-fg:#171717; }
 

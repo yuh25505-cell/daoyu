@@ -2,10 +2,257 @@
  * 拆分自原 app.js；所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
 'use strict';
 
-/* 启动层由 CSS 动画自行淡出（约 3.15s），这里只做兜底移除，避免异常情况下遮挡界面。 */
-setTimeout(function(){ var boot = $('boot'); if (boot) boot.style.display = 'none'; }, 3500);
-/* 淡出前先让启动画面里循环播放的小动画（雾气、星光、飞鸟、涟漪）定格：这些是主线程动画，定格后淡出更顺。 */
-setTimeout(function(){ var boot = $('boot'); if (boot) boot.classList.add('is-calm'); }, 2200);
+/* 全屏启动场：流体线场、漂移排版、触摸扰动与柔光微尘。 */
+(function bindBootMotion(){
+  var boot = document.getElementById('boot');
+  if (!boot) return;
+  var canvas = document.getElementById('bootCanvas');
+  var ctx = canvas && canvas.getContext ? canvas.getContext('2d', { alpha: true, desynchronized: true }) : null;
+  var wordEl = document.getElementById('bootKineticWord');
+  var progressEl = document.getElementById('bootPercent');
+  var loadingText = document.getElementById('bootLoadingText');
+  var liveIndex = document.getElementById('bootLiveIndex');
+  var prefersReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var width = 0, height = 0, dpr = 1, raf = 0, destroyed = false;
+  var startAt = performance.now(), pointer = { x: -1000, y: -1000, active: false, down: false, energy: 0 };
+  var particles = [], fragments = Array.prototype.slice.call(boot.querySelectorAll('[data-float]'));
+  var words = ['THINK', 'CREATE'];
+  var loadingPhrases = ['TUNING INTO YOUR WORLD', 'GATHERING YOUR LITTLE THINGS', 'MAKING ROOM FOR WHAT’S NEXT', 'READY WHEN YOU ARE'];
+  var lastWord = -1, lastPhrase = -1, currentWordTimer = 0, lastProgress = -1;
+  var fg = '#101010';
+
+  function refreshColor(){
+    var style = getComputedStyle(document.documentElement);
+    fg = (style.getPropertyValue('--fg') || '#101010').trim();
+  }
+  function random(min, max){ return min + Math.random() * (max - min); }
+  function resize(){
+    if (!canvas || !ctx) return;
+    width = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    height = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+    dpr = Math.min(window.devicePixelRatio || 1, width < 600 ? 1.45 : 1.65);
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    /* 减少数量、移除拖尾：粒子变成轻柔的漂浮微尘，不再像细小虫体来回爬动。 */
+    var count = Math.round(Math.max(42, Math.min(96, width * height / 12500)));
+    particles = [];
+    for (var i = 0; i < count; i++) particles.push(makeParticle(random(0,width),random(0,height)));
+    paint(performance.now(), false);
+  }
+  function makeParticle(x,y){
+    /* 每个微尘围绕固定锚点走缓慢的平滑曲线，不做随机游走或尖锐折返。 */
+    return {
+      ox:x, oy:y, x:x, y:y,
+      phase:random(0,Math.PI*2), phase2:random(0,Math.PI*2),
+      ampX:random(5,25), ampY:random(4,17),
+      speed:random(.62,1.08),
+      size:random(.65,1.55), alpha:random(.13,.34)
+    };
+  }
+  function wordSet(word){
+    if (!wordEl) return;
+    wordEl.textContent = '';
+    var chars = Array.from(word);
+    for (var i=0;i<chars.length;i++){
+      var span = document.createElement('span');
+      span.textContent = chars[i];
+      span.style.setProperty('--char', i);
+      wordEl.appendChild(span);
+    }
+  }
+  function updateTypography(now){
+    var elapsed = now - startAt;
+    if (!prefersReduced && elapsed < 2450){
+      /* 中央主词只切换一次，让每个词有足够停留时间；用横向揭幕替代连续上弹。 */
+      var wi = elapsed < 1190 ? 0 : 1;
+      if (wi !== lastWord){
+        lastWord = wi;
+        if (wi === 0) {
+          wordSet(words[wi]);
+        } else if (wordEl) {
+          wordEl.classList.add('is-word-leaving');
+          currentWordTimer = window.setTimeout(function(){
+            currentWordTimer = 0;
+            if (destroyed || !wordEl || boot.style.display === 'none') return;
+            wordEl.classList.remove('is-word-leaving');
+            wordSet(words[wi]);
+          }, 340);
+        }
+      }
+      var pi = Math.min(loadingPhrases.length-1, Math.floor(elapsed / 650));
+      if (pi !== lastPhrase && loadingText){ lastPhrase = pi; loadingText.textContent = loadingPhrases[pi]; }
+      if (liveIndex) liveIndex.textContent = String(Math.min(99, Math.floor(elapsed / 34))).padStart(3,'0');
+    }
+    var ratio = Math.min(100, Math.max(0, Math.round((1 - Math.pow(1 - Math.min(1, elapsed / 2520), 2.1)) * 100)));
+    if (ratio !== lastProgress){ lastProgress = ratio; if(progressEl) progressEl.textContent = String(ratio).padStart(2,'0') + '%'; }
+    if (ratio >= 100 && loadingText && !prefersReduced) loadingText.textContent = 'ALL YOUR THINGS, IN PLACE';
+  }
+  function drawFlowLines(t){
+    var lineGap = width < 600 ? 27 : 34;
+    var rows = Math.ceil(height / lineGap) + 4;
+    var xStep = width < 600 ? 19 : 24;
+    ctx.lineCap = 'round';
+    for (var r=-2; r<rows; r++){
+      ctx.beginPath();
+      var baseY = r * lineGap - 8;
+      for (var x=-xStep; x<=width+xStep; x+=xStep){
+        var phase = r*.39;
+        var y = baseY
+          + Math.sin(x*.0064 + t*.00042 + phase)*10
+          + Math.sin(x*.0021 - t*.00026 + phase*1.7)*17
+          + Math.cos(x*.013 + t*.00019 + r*.17)*2.5;
+        var dx = x - pointer.x, dy = y - pointer.y;
+        var dist2 = dx*dx + dy*dy;
+        var reach = width < 600 ? 155 : 205;
+        if (pointer.active && dist2 < reach*reach){
+          var force = (1 - Math.sqrt(dist2)/reach);
+          var swirl = pointer.down ? 1.05 : .52;
+          y += (dy/(Math.sqrt(dist2)+2))*force*30 + Math.sin(t*.005+Math.sqrt(dist2)*.025)*force*11;
+          x += (-dy/(Math.sqrt(dist2)+2))*force*12*swirl;
+        }
+        if (x === -xStep) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.globalAlpha = (r % 4 === 0) ? .105 : .038;
+      ctx.strokeStyle = fg;
+      ctx.lineWidth = (r % 4 === 0) ? .72 : .48;
+      ctx.stroke();
+    }
+    // A sparse crossing set gives the line field a woven, dimensional rhythm without ring motifs.
+    var colGap = width < 600 ? 51 : 72;
+    var cols = Math.ceil(width / colGap) + 3;
+    for (var c=-1; c<cols; c++){
+      ctx.beginPath();
+      var baseX = c*colGap;
+      for (var y2=-12; y2<=height+12; y2+=width < 600 ? 23 : 29){
+        var xx = baseX + Math.sin(y2*.005 + t*.00031 + c*.45)*12 + Math.cos(y2*.0025 - t*.0002)*8;
+        var yy = y2;
+        var dx2 = xx-pointer.x, dy2 = yy-pointer.y, d2=dx2*dx2+dy2*dy2;
+        var reach2 = width < 600 ? 135 : 180;
+        if(pointer.active && d2 < reach2*reach2){
+          var influence=1-Math.sqrt(d2)/reach2;
+          xx += (dx2/(Math.sqrt(d2)+1))*influence*18;
+          yy += Math.sin(t*.004+Math.sqrt(d2)*.022)*influence*9;
+        }
+        if(y2===-12) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+      }
+      ctx.globalAlpha = (c % 5 === 0) ? .07 : .025;
+      ctx.lineWidth = (c % 5 === 0) ? .65 : .4;
+      ctx.strokeStyle = fg;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawParticles(t, advance){
+    /* 柔光微尘：只绘制低对比度光点，不画运动尾线，也不在点击时喷射短线。 */
+    var time = t * .00022;
+    for(var i=0;i<particles.length;i++){
+      var p=particles[i];
+      var phase = time * p.speed + p.phase;
+      var phase2 = time * .73 * p.speed + p.phase2;
+      var x = p.ox + Math.sin(phase) * p.ampX + Math.sin(phase2*.61) * p.ampX*.22;
+      var y = p.oy + Math.cos(phase2) * p.ampY + Math.cos(phase*.57) * p.ampY*.2;
+      var dx=x-pointer.x, dy=y-pointer.y, dist=Math.sqrt(dx*dx+dy*dy);
+      var influence=0;
+      var radius=width<600?138:178;
+      if(pointer.active && dist<radius){
+        var raw=1-dist/radius;
+        influence=raw*raw*(3-2*raw);
+        /* 指针附近轻轻让开，并随视线离开平顺复位。 */
+        var push=influence*(pointer.down?13:8);
+        x += dx/(dist+1)*push;
+        y += dy/(dist+1)*push;
+      }
+      var shimmer=.82 + .18*Math.sin(t*.00048 + p.phase*1.7);
+      var alpha=p.alpha*shimmer;
+      var r=p.size*(1+influence*.18);
+
+      /* 极淡的外缘与清晰的小核心，整体像浮尘/柔光，而非线状生物轨迹。 */
+      ctx.beginPath();
+      ctx.arc(x,y,r*3.3,0,Math.PI*2);
+      ctx.globalAlpha=alpha*.085;
+      ctx.fillStyle=fg;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.globalAlpha=alpha*.62;
+      ctx.fillStyle=fg;
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  function moveFragments(t){
+    for(var i=0;i<fragments.length;i++){
+      var el=fragments[i], seed=Number(el.getAttribute('data-float'))||0;
+      var x=Math.sin(t*.00056+seed*1.7)*(width<600?5:10);
+      var y=Math.cos(t*.00044+seed*1.12)*(width<600?4:8);
+      var a=pointer.x-(el.offsetLeft+el.offsetWidth*.5), b=pointer.y-(el.offsetTop+el.offsetHeight*.5);
+      var dist=Math.sqrt(a*a+b*b);
+      if(pointer.active && dist<230){var repel=(1-dist/230)*(pointer.down?17:10);x-=a/(dist+1)*repel;y-=b/(dist+1)*repel;}
+      el.style.setProperty('--fx',x.toFixed(1)+'px');
+      el.style.setProperty('--fy',y.toFixed(1)+'px');
+    }
+    var cx=pointer.active && width ? (pointer.x/width-.5) : 0;
+    var cy=pointer.active && height ? (pointer.y/height-.5) : 0;
+    boot.style.setProperty('--boot-core-x',(cx*-11).toFixed(1)+'px');
+    boot.style.setProperty('--boot-core-y',(cy*-8).toFixed(1)+'px');
+  }
+  function paint(now, advance){
+    if(!ctx || !width || !height) return;
+    ctx.clearRect(0,0,width,height);
+    drawFlowLines(now);
+    drawParticles(now, advance);
+    if(advance) moveFragments(now);
+  }
+  function frame(now){
+    if(destroyed || document.hidden || boot.style.display==='none') return;
+    updateTypography(now);
+    paint(now,true);
+    raf=window.requestAnimationFrame(frame);
+  }
+  function setPointer(event){
+    var rect=boot.getBoundingClientRect();
+    pointer.x=event.clientX-rect.left; pointer.y=event.clientY-rect.top;
+    pointer.active=true; pointer.energy=1;
+    if(!prefersReduced && !raf) raf=window.requestAnimationFrame(frame);
+  }
+  boot.addEventListener('pointermove',function(event){setPointer(event);},{passive:true});
+  boot.addEventListener('pointerdown',function(event){
+    setPointer(event); pointer.down=true;
+    /* 点按只扰动全屏流线与近处微尘，不再发散短线粒子。 */
+    if(prefersReduced) paint(performance.now(),false);
+  },{passive:true});
+  boot.addEventListener('pointerup',function(){pointer.down=false;},{passive:true});
+  boot.addEventListener('pointercancel',function(){pointer.down=false;},{passive:true});
+  boot.addEventListener('pointerleave',function(){pointer.active=false;pointer.down=false;},{passive:true});
+  window.addEventListener('resize',resize,{passive:true});
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){if(raf) window.cancelAnimationFrame(raf);raf=0;}
+    else if(!destroyed && !prefersReduced){raf=window.requestAnimationFrame(frame);}
+  });
+  boot.addEventListener('animationend',function(event){
+    if(event.animationName==='bootLeave'){
+      destroyed=true;
+      if(raf) window.cancelAnimationFrame(raf);
+      raf=0;
+      if(canvas){canvas.width=1;canvas.height=1;}
+    }
+  });
+  refreshColor();
+  if(wordEl) wordSet(prefersReduced?'CREATE':'THINK');
+  resize();
+  if(!prefersReduced) raf=window.requestAnimationFrame(frame);
+  else {
+    updateTypography(performance.now());
+    if(progressEl) progressEl.textContent='100%';
+    if(loadingText) loadingText.textContent='ALL YOUR THINGS, IN PLACE';
+    paint(performance.now(),false);
+  }
+  /* CSS owns the exit choreography; this timeout only prevents an unusual stuck overlay. */
+  setTimeout(function(){var node=document.getElementById('boot');if(node&&node.style.display!=='none')node.style.display='none';destroyed=true;if(raf)window.cancelAnimationFrame(raf);},3500);
+})();
 
 function bindSafetyEvents(){
 
