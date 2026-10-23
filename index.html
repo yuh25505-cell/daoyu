@@ -406,9 +406,7 @@
 <div class="pm-head-center">
 <div class="pm-title" id="pmTitle">角色</div>
 </div>
-<button aria-label="转发已选消息" class="ph-btn" id="pmForwardSelected" type="button" disabled>
-<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M5 12h13"></path><path d="m13 6 6 6-6 6"></path></svg>
-</button>
+<button aria-label="转发已选消息" class="ph-btn" id="pmForwardSelected" type="button" disabled>转发</button>
 <button aria-label="设置" class="ph-btn" id="pmMore" type="button">
 <svg aria-hidden="true" fill="currentColor" viewbox="0 0 24 24">
 <circle cx="5.5" cy="12" r="1.9"></circle>
@@ -876,19 +874,21 @@
 <input accept="image/*" hidden="" id="pmImageInput" multiple="" type="file"/>
 <input accept="image/*" capture="environment" hidden="" id="pmCameraInput" type="file"/>
 <input accept=".txt,.md,.markdown,.json,.jsonl,.csv,.xml,.html,.htm,.css,.js,.ts,.jsx,.tsx,.py,.java,.c,.cpp,.h,.hpp,.log,.yaml,.yml,.toml,.ini,.conf,.sql,.sh,.bat,.docx,text/plain,text/markdown,application/json,application/xml,application/javascript,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-hidden="true" hidden="" id="pmFileInput" multiple="" type="file"/>
-<div aria-hidden="true" class="pm-quote-bar" id="pmQuoteBar" hidden>
-<div class="pm-quote-main"><div class="pm-quote-text" id="pmQuoteText"></div></div>
-<button type="button" class="pm-quote-cancel" id="pmQuoteCancel" aria-label="取消引用">×</button>
-</div>
 <div class="pm-bar" id="pmBar">
 <button aria-label="语音" class="pm-bar-btn pm-voice-btn" id="pmVoice" type="button">
 <img alt="语音" id="pmVoiceIcon" src="https://nos.netease.com/vcloud-statistic/nrtc/a6ee4a35-6552-49a8-8c87-9256cd426ed5.png" style="width:24px;height:24px;object-fit:contain;display:block;"/>
 </button>
+<div class="pm-input-col">
 <div class="pm-input-wrap">
 <textarea autocomplete="off" class="pm-input" id="pmInput" rows="1"></textarea>
 <button aria-label="AI 回复" class="pm-bar-btn pm-ai-inside" id="pmAiBtn" type="button">
 <img alt="AI 回复" src="https://nos.netease.com/vcloud-statistic/nrtc/cc265253-20f9-49c6-a8d2-e259bce889dd.png"/>
 </button>
+</div>
+<div aria-hidden="true" class="pm-quote-bar" id="pmQuoteBar" hidden>
+<div class="pm-quote-main"><div class="pm-quote-text" id="pmQuoteText"></div></div>
+<button type="button" class="pm-quote-cancel" id="pmQuoteCancel" aria-label="取消引用">×</button>
+</div>
 </div>
 <button class="pm-hold" id="pmHold" type="button">按住 说话</button>
 <button aria-label="表情" class="pm-bar-btn" id="pmEmojiBtn" type="button">

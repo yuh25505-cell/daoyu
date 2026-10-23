@@ -2427,3 +2427,21 @@ html[data-theme="dark"] .pm-voice-call-end{ background:#f5f5f5; color:#111; bord
   html:not([data-theme]) .pm-voice-call-end{ background:#f5f5f5; color:#111; border-color:rgba(255,255,255,.28); }
   html:not([data-theme]) .pm-voice-call-mic{ background:#2a2a2a; color:#fff; border-color:rgba(255,255,255,.12); }
 }
+
+/* ===== v1.68 · 多选「转发」文字按钮 ===== */
+.pm-head #pmForwardSelected{
+  width:auto; min-width:44px; height:38px; padding:0 10px;
+  border-radius:8px; white-space:nowrap;
+  font-size:calc(15px * var(--island-font-size-scale, 1)); font-weight:600; line-height:1; color:inherit;
+}
+.pm-head.is-message-selection-mode #pmForwardSelected{ display:grid; place-items:center; }
+
+/* ===== v1.68 · 引用预览栏：与输入框等宽，位于输入框下方 ===== */
+.pm-input-col{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
+.pm-input-col > .pm-input-wrap{ flex:none; }
+.pm-input-col > .pm-quote-bar{ margin:4px 0 0; width:100%; }
+/* 有引用栏时，左右按钮仍与输入框对齐（让出引用栏的高度） */
+.pm-bar.has-quote:not(.is-voice) > .pm-bar-btn,
+.pm-bar.has-quote:not(.is-voice) > .pm-hold{ margin-bottom:var(--pm-quote-h, 0px); }
+/* 语音模式下输入框列整体隐藏，保持“按住说话”横向铺开 */
+.pm-bar.is-voice .pm-input-col{ display:none !important; }

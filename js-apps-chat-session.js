@@ -1132,6 +1132,11 @@ function bindChatEvents(){
     }
   }
   if (pmScroll) pmScroll.addEventListener('scroll', closeVoiceMessageActionMenu, { passive:true });
+  /* 表情包栏 / 加号菜单打开时，点击聊天区任意位置即可收回（不再只能再点一次对应按钮）。
+   * 使用捕获阶段且不阻止冒泡，原有的气泡点击行为不受影响；滑动滚动不会触发 click。 */
+  if (pmScroll) pmScroll.addEventListener('click', function(){
+    if (panelMode) closePanel();
+  }, true);
   window.addEventListener('resize', closeVoiceMessageActionMenu);
   updateMessageSelectionChrome();
   document.addEventListener('click', function(e){

@@ -190,6 +190,11 @@ function updateMessageQuoteBar(){
   pmQuoteBar.classList.toggle('is-open', active);
   pmQuoteBar.setAttribute('aria-hidden', active ? 'false' : 'true');
   pmQuoteText.innerHTML = active ? renderMessageQuoteMarkup(messageQuoteDraft) : '';
+  /* 引用栏位于输入框下方：记录其占用高度，让左右按钮继续与输入框对齐 */
+  if (pmBar) {
+    pmBar.classList.toggle('has-quote', active);
+    pmBar.style.setProperty('--pm-quote-h', active ? (pmQuoteBar.offsetHeight + 4) + 'px' : '0px');
+  }
   autoResizeInput();
 }
 
