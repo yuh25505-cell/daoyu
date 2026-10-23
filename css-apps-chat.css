@@ -2420,3 +2420,10 @@ html[data-theme="dark"] .pm-memory-clear-btn.danger{ background:var(--err,#e5484
 /* ===== 日间纯白：记忆页（记忆首页 + 各记忆子页）。夜间 --bg-pure 与 --bg 同为 #000，夜间不变。 ===== */
 .pm-memory-home-view,
 .pm-memory-view{ --bg:var(--bg-pure); }
+
+/* ===== 夜间语音通话：挂断按钮可见性（黑白配色：夜间为白底黑图标，日间不变） ===== */
+html[data-theme="dark"] .pm-voice-call-end{ background:#f5f5f5; color:#111; border-color:rgba(255,255,255,.28); }
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]) .pm-voice-call-end{ background:#f5f5f5; color:#111; border-color:rgba(255,255,255,.28); }
+  html:not([data-theme]) .pm-voice-call-mic{ background:#2a2a2a; color:#fff; border-color:rgba(255,255,255,.12); }
+}

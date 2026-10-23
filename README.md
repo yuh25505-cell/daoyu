@@ -1,3 +1,5 @@
+> **开发新界面 / 新 App 前请先读 [DESIGN.md](./DESIGN.md)：配色只用纯黑纯白（日间白黑、夜间黑白），不使用其他主颜色。**
+
 # Island WorldBook v1.40 — Voice Message Layout
 
 语音消息采用“语音气泡 + 头像同侧对齐 + 转写文字在下方”的默认展示方式。保留 v1.35 STT API 配置、模型拉取与聊天识别能力。
