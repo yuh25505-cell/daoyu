@@ -340,6 +340,61 @@
 </div>
 </div>
 <div aria-hidden="true" class="pm-view" id="pmView">
+<section aria-hidden="true" class="pm-chat-settings-view" id="pmChatSettingsView" data-swipe-back>
+  <div class="pm-chat-settings-shell">
+    <header class="pm-chat-settings-head">
+      <button aria-label="返回聊天" class="ph-btn" id="pmChatSettingsBack" data-swipe-back-close type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button>
+      <div class="pm-chat-settings-head-title">聊天设置</div><span class="pm-chat-settings-head-spacer"></span>
+    </header>
+    <div class="pm-chat-settings-scroll">
+      <div class="pm-chat-settings-identity-card">
+        <div class="pm-chat-settings-avatar-row">
+          <button type="button" class="pm-chat-settings-avatar-button" id="pmSettingsCharAvatarBtn" aria-label="更换当前会话 Char 头像"><span class="pm-chat-settings-avatar" id="pmSettingsCharAvatarPreview">角</span><span>更换 Char 头像</span></button>
+          <button type="button" class="pm-chat-settings-avatar-button" id="pmSettingsUserAvatarBtn" aria-label="更换当前会话 user 头像"><span class="pm-chat-settings-avatar" id="pmSettingsUserAvatarPreview">我</span><span>更换 user 头像</span></button>
+        </div>
+        <div class="pm-chat-settings-avatar-clear-row"><button type="button" id="pmSettingsCharAvatarClear">恢复角色卡头像</button><button type="button" id="pmSettingsUserAvatarClear">恢复用户角色头像</button></div>
+        <div class="pm-chat-settings-identity-names"><div><strong id="pmSettingsCharName">角色</strong><span>当前会话 Char</span></div><div><strong id="pmSettingsUserName">我</strong><span>当前会话 user</span></div></div>
+        <div class="pm-chat-settings-note">头像和备注只作用于当前聊天，不会修改角色卡或「我的角色」。</div>
+      </div>
+      <label class="pm-chat-settings-field"><span>Char 备注</span><input id="pmSettingsCharRemark" maxlength="40" placeholder="留空则显示原角色名" autocomplete="off" /></label>
+      <div class="pm-chat-settings-group">
+        <button type="button" class="pm-chat-settings-row" id="pmChatRecordSearchOpen"><span><strong>查找聊天记录</strong><small>搜索文字，按日期、图片、文件等类型筛选</small></span><span class="pm-chat-settings-chevron">›</span></button>
+        <button type="button" class="pm-chat-settings-row" id="pmSettingsDoNotDisturb" role="switch" aria-checked="false"><span><strong>消息免打扰</strong><small>关闭此会话的系统消息通知</small></span><span class="pm-chat-settings-switch" aria-hidden="true"><i></i></span></button>
+      </div>
+      <div class="pm-chat-settings-section-label">聊天背景</div>
+      <div class="pm-chat-settings-wallpaper-card"><div class="pm-chat-settings-wallpaper-preview" id="pmSettingsWallpaperPreview">未设置背景图</div><div class="pm-chat-settings-wallpaper-actions"><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperChoose">选择背景图</button><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperClear">恢复默认</button></div><p>背景图仅用于当前会话；建议选用清晰、尺寸适中的图片。</p></div>
+      <div class="pm-chat-settings-danger"><button type="button" id="pmSettingsClearRecords">清空聊天记录</button><small>仅删除当前会话的消息，保留头像、备注和背景设置。</small></div>
+    </div>
+  </div>
+  <input accept="image/*" hidden id="pmSettingsCharAvatarInput" type="file" />
+  <input accept="image/*" hidden id="pmSettingsUserAvatarInput" type="file" />
+  <input accept="image/*" hidden id="pmSettingsWallpaperInput" type="file" />
+</section>
+<section aria-hidden="true" class="pm-chat-record-search-view" id="pmChatRecordSearchView" data-swipe-back>
+  <div class="pm-chat-settings-shell">
+    <header class="pm-chat-settings-head">
+      <button aria-label="返回聊天设置" class="ph-btn" id="pmChatRecordSearchBack" data-swipe-back-close type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button>
+      <div class="pm-chat-settings-head-title">查找聊天记录</div><span class="pm-chat-settings-head-spacer"></span>
+    </header>
+    <div class="pm-chat-record-search-body">
+      <label class="pm-chat-record-searchbox"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 4.4 4.4"></path></svg><input id="pmChatRecordSearchInput" type="search" placeholder="搜索聊天内容、文件名或链接" autocomplete="off" /><button type="button" id="pmChatRecordSearchClear" aria-label="清除搜索">×</button></label>
+      <div class="pm-chat-record-categories" id="pmChatRecordCategories" aria-label="聊天记录类型">
+        <button type="button" data-record-category="all" class="is-active" aria-pressed="true">全部</button>
+        <button type="button" data-record-category="date" aria-pressed="false">日期</button>
+        <button type="button" data-record-category="image" aria-pressed="false">图片</button>
+        <button type="button" data-record-category="file" aria-pressed="false">文件</button>
+        <button type="button" data-record-category="link" aria-pressed="false">链接</button>
+        <button type="button" data-record-category="audio" aria-pressed="false">音乐与音频</button>
+        <button type="button" data-record-category="transfer" aria-pressed="false">交易</button>
+        <button type="button" data-record-category="location" aria-pressed="false">位置</button>
+        <button type="button" data-record-category="sticker" aria-pressed="false">表情包</button>
+      </div>
+      <div class="pm-chat-record-date-row" id="pmChatRecordDateRow" hidden><label for="pmChatRecordSearchDate">选择日期</label><input id="pmChatRecordSearchDate" type="date" /></div>
+      <div class="pm-chat-record-results-head"><span>搜索结果</span><span id="pmChatRecordSearchCount">0 条记录</span></div>
+      <div class="pm-chat-record-results" id="pmChatRecordSearchResults"></div>
+    </div>
+  </div>
+</section>
 <div class="pm-shell">
 <header class="pm-head">
 <button aria-label="返回消息" class="ph-btn" id="pmBack" type="button">
@@ -2006,6 +2061,7 @@
 <script defer="" src="./js-apps-chat-voicecall.js"></script>
 <script defer="" src="./js-apps-chat-panel.js"></script>
 <script defer="" src="./js-apps-chat-persona.js"></script>
+<script defer="" src="./js-apps-chat-settings.js"></script>
 <script defer="" src="./js-apps-phone.js"></script>
 <script defer="" src="./js-apps-worldbook.js"></script>
 <script defer="" src="./js-apps-music.js"></script>

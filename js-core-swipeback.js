@@ -1,7 +1,7 @@
-/* 岛屿 · 左边缘右滑返回 + 系统返回键 / 返回手势
+/* 岛屿 · 左右边缘滑动返回 + 系统返回键 / 返回手势
  *
  * 做了两件事：
- * 1. 手指从屏幕左边缘向右滑，当前页面跟手滑出，松手后执行该页面“返回”按钮原本的逻辑。
+ * 1. 手指从屏幕左边缘向右滑、或从右边缘向左滑，当前页面跟手滑出，松手后执行该页面“返回”按钮原本的逻辑。
  * 2. 浏览器 / 安卓系统的返回键、返回手势，也依次关闭最上层页面，而不是直接退出岛屿。
  *
  * 不改动任何已有页面的代码：每一层页面的“返回”仍然调用它自己原有的关闭函数。
@@ -62,6 +62,25 @@
     return { el:$q(pair[0]), back:function(){ click(pair[1]); } };
   }
 
+  /* 新页面通用约定：全屏根节点标记 data-swipe-back.is-open，返回按钮标记 data-swipe-back-close。
+   * 这样以后新增任意 App 子页面无需再往本文件加专属分支，即可自动获得左右边缘滑动和系统返回支持。 */
+  function getGenericSwipeLayer(){
+    var nodes = document.querySelectorAll('[data-swipe-back].is-open');
+    for (var n = nodes.length - 1; n >= 0; n--) {
+      var el = nodes[n];
+      if (!el || el.getAttribute('aria-hidden') === 'true') continue;
+      var rect = el.getBoundingClientRect();
+      if (rect.width < Math.min(window.innerWidth * .72, 280) || rect.height < Math.min(window.innerHeight * .68, 360)) continue;
+      return { el:el, back:function(){
+        var btn = el.querySelector('[data-swipe-back-close], [data-page-back], .js-page-back');
+        if (btn) { btn.click(); return; }
+        var closeName = el.getAttribute('data-swipe-back-action');
+        if (closeName && typeof window[closeName] === 'function') window[closeName]();
+      } };
+    }
+    return null;
+  }
+
   /* 返回 { el: 要被拖动的元素, back: 执行返回, block: true 表示这一层不允许手势返回 } */
   function getTopLayer(){
     var i;
@@ -69,7 +88,12 @@
     /* 语音通话：返回按钮 = 挂断，手势 / 返回键都不应误触 */
     if (isOpen('#pmVoiceCallView')) return { el:$q('#pmVoiceCallView'), block:true };
 
+    var genericSwipeLayer = getGenericSwipeLayer();
+    if (genericSwipeLayer) return genericSwipeLayer;
+
     if (isOpen('#chatApp')) {
+      if (isOpen('#pmChatRecordSearchView')) return { el:$q('#pmChatRecordSearchView'), back:function(){ call('closeChatRecordSearch'); call('openPMChatSettings'); } };
+      if (isOpen('#pmChatSettingsView')) return { el:$q('#pmChatSettingsView'), back:function(){ call('closePMChatSettings'); } };
       if (isOpen('#pmForwardRecordView')) return { el:$q('#pmForwardRecordView'), back:function(){ call('closeForwardRecordView'); } };
       if (isOpen('#pmLocationMapView'))   return { el:$q('#pmLocationMapView'),   back:function(){ call('closeLocationMapView'); } };
       for (i = 0; i < MEMORY_VIEWS.length; i++) {
@@ -128,20 +152,23 @@
     drag = null;
     if (e.touches.length !== 1) return;
     var t = e.touches[0];
-    if (t.clientX > EDGE_PX) return;
+    var fromLeft = t.clientX <= EDGE_PX;
+    var fromRight = t.clientX >= Math.max(window.innerWidth - EDGE_PX, EDGE_PX + 1);
+    if (!fromLeft && !fromRight) return;
     if (getModal()) return;
     var layer = getTopLayer();
     if (!layer || layer.block || !layer.el) return;
-    drag = { x0:t.clientX, y0:t.clientY, t0:Date.now(), layer:layer, el:layer.el, active:false, w:Math.max(window.innerWidth, 1), dx:0 };
-    /* 手指一落到边缘就先提升图层并画好阴影：等到开始拖动才做，iOS 会在第一帧重绘整层，表现为“闪一下” */
+    var sign = fromRight ? -1 : 1;
+    drag = { x0:t.clientX, y0:t.clientY, t0:Date.now(), layer:layer, el:layer.el, active:false, w:Math.max(window.innerWidth, 1), dx:0, sign:sign };
+    /* 左右两侧都支持边缘滑动返回；方向由触点所在的屏幕边缘决定。 */
     layer.el.style.willChange = 'translate';
-    layer.el.style.boxShadow = '-10px 0 28px rgba(0,0,0,.18)';
+    layer.el.style.boxShadow = fromRight ? '10px 0 28px rgba(0,0,0,.18)' : '-10px 0 28px rgba(0,0,0,.18)';
   }, { passive:true });
 
   document.addEventListener('touchmove', function(e){
     if (!drag || e.touches.length !== 1) { if (drag && e.touches.length > 1) cancelDrag(); return; }
     var t = e.touches[0];
-    var dx = t.clientX - drag.x0, dy = t.clientY - drag.y0;
+    var dx = (t.clientX - drag.x0) * drag.sign, dy = t.clientY - drag.y0;
     if (!drag.active) {
       if (Math.abs(dy) > START_MOVE && Math.abs(dy) > Math.abs(dx)) { resetEl(drag.el); drag = null; return; }   /* 竖向滚动，放行 */
       if (dx > START_MOVE && dx > Math.abs(dy) * 1.2) {
@@ -152,7 +179,7 @@
     }
     if (e.cancelable) e.preventDefault();
     drag.dx = Math.max(0, dx);
-    drag.el.style.translate = drag.dx + 'px 0';
+    drag.el.style.translate = (drag.dx * drag.sign) + 'px 0';
   }, { passive:false });
 
   function cancelDrag(){
@@ -180,7 +207,7 @@
       return;
     }
     el.style.transition = 'translate .18s ease-out';
-    el.style.translate = d.w + 'px 0';
+    el.style.translate = (d.w * d.sign) + 'px 0';
     setTimeout(function(){
       el.style.transition = 'none';   /* 让关闭瞬间生效，避免淡出动画在原位闪一下 */
       try { d.layer.back(); } catch(err) { console.error('[岛屿] 滑动返回失败：', err); }

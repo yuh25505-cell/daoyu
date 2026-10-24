@@ -19,13 +19,16 @@ function autoResizeInput(){
 
 function openPM(name){
   if (!pmView || !name) return;
+  if (typeof closeChatRecordSearch === 'function') closeChatRecordSearch();
+  if (typeof closePMChatSettings === 'function') closePMChatSettings();
   clearMessageSelection();
   clearMessageQuote();
   closeForwardRecordView();
   closeUP();
   closeVoiceCallView({silent:true});
-  currentName = name; currentAvatar = getAvatar(name);
-  if (pmTitle) pmTitle.textContent = name;
+  currentName = name; currentAvatar = (typeof getSessionCharAvatar === 'function' ? getSessionCharAvatar(name) : null) || getAvatar(name);
+  if (typeof applySessionChatIdentity === 'function') applySessionChatIdentity(name);
+  else if (pmTitle) pmTitle.textContent = name;
   hideTypingStatus();
   if (replyInFlight[name]) showTypingStatus();
   if (!Array.isArray(MESSAGES[name])) { MESSAGES[name] = []; saveMessages(name); }
@@ -63,6 +66,8 @@ function openPM(name){
 }
 
 function closePM(){
+  if (typeof closeChatRecordSearch === 'function') closeChatRecordSearch();
+  if (typeof closePMChatSettings === 'function') closePMChatSettings();
   clearMessageSelection();
   clearMessageQuote();
   closeForwardPicker();
@@ -381,7 +386,7 @@ function bindChatEvents(){
   });
   var pmMore = $('pmMore'); if (pmMore) pmMore.addEventListener('click', function(){
     if (messageSelectionMode) { deleteSelectedMessages(); }
-    else toast('聊天设置 · 开发中');
+    else if (typeof openPMChatSettings === 'function') openPMChatSettings();
   });
 
   if (pmQuoteCancel) pmQuoteCancel.addEventListener('click', function(){ clearMessageQuote(); });

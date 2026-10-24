@@ -227,7 +227,7 @@ function bubbleHTML(msg, entering, index){
   var selected = !!selectedMessageIndices[String(index)];
   var selectionClass = messageSelectionMode ? ' is-message-selection-mode' : '';
   var selectionCheck = '<button type="button" class="pm-message-select-check" data-message-select-index="' + index + '" aria-label="' + (selected ? '取消选择' : '选择消息') + '" aria-pressed="' + (selected ? 'true' : 'false') + '"><span aria-hidden="true">' + (selected ? '<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6.5 12.5 3.6 3.6 7.4-8.2"></path></svg>' : '') + '</span></button>';
-  if (msg.from === 'them') return '<div class="pm-row chat-message chat-message--received' + (msg && msg.type === 'voice' ? ' chat-message--voice' : '') + voiceRowClass + stickerRowClass + imageRowClass + locationRowClass + fileRowClass + selectionClass + (selected ? ' is-message-selected' : '') + enterClass + '" data-message-index="' + index + '">' + selectionCheck + avatarHTML(currentName, 3, currentAvatar, 'avatar-sm chat-message__char-avatar') + body + '</div>';
+  if (msg.from === 'them') return '<div class="pm-row chat-message chat-message--received' + (msg && msg.type === 'voice' ? ' chat-message--voice' : '') + voiceRowClass + stickerRowClass + imageRowClass + locationRowClass + fileRowClass + selectionClass + (selected ? ' is-message-selected' : '') + enterClass + '" data-message-index="' + index + '">' + selectionCheck + avatarHTML((typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(currentName) : currentName), 3, currentAvatar, 'avatar-sm chat-message__char-avatar') + body + '</div>';
   return '<div class="pm-row chat-message chat-message--sent' + (msg && msg.type === 'voice' ? ' chat-message--voice' : '') + voiceRowClass + stickerRowClass + imageRowClass + locationRowClass + fileRowClass + selectionClass + (selected ? ' is-message-selected' : '') + enterClass + '" data-message-index="' + index + '">' + selectionCheck + body + userAvatarHTML() + '</div>';
 }
 
@@ -470,7 +470,7 @@ pmTitle.textContent = '对方正在输入...';
 
 function hideTypingStatus(){
 if (!pmTitle) return;
-pmTitle.textContent = currentName || '角色';
+pmTitle.textContent = (typeof getSessionCharDisplayName === 'function' && currentName) ? getSessionCharDisplayName(currentName) : (currentName || '角色');
 }
 
 /* replyInFlight：正在生成回复的聊天（离开聊天页后回复仍在后台继续，回来时可恢复「对方正在输入...」），声明在 currentName 旁边 */
@@ -514,6 +514,8 @@ if (!viewing) {
 }
 if (!text || viewing) return;
 var avatar; try { avatar = getAvatar(name); } catch(e) { avatar = undefined; }
+var session = null; try { session = typeof getSessionChatSettings === 'function' ? getSessionChatSettings(name, false) : null; } catch(e) {}
+if (session && session.doNotDisturb) return;
 try { Promise.resolve(showCharacterNotification(name, text, avatar, { unique:true })).catch(function(){}); } catch(e){}
 }
 

@@ -120,6 +120,9 @@ function notificationUrl(name, callAction){
 }
 
 function showCharacterNotification(name, text, avatar, opts){
+  var sessionSettings = null;
+  try { sessionSettings = typeof getSessionChatSettings === 'function' ? getSessionChatSettings(name, false) : null; } catch(e) {}
+  if (sessionSettings && sessionSettings.doNotDisturb && !(opts && opts.call)) return Promise.resolve(false);
   var title = String(name || '岛屿');
   var body = String(text || '').trim();
   var isCall = !!(opts && opts.call);

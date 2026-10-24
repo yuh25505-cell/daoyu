@@ -29,6 +29,7 @@ function closeChatApp(){
 function switchTab(name){
   releaseInputFocus();
   closePM(); closeUP(); closeChatAppearance();
+  if (chatApp) chatApp.classList.toggle('is-chats-tab-active', name === 'chats');
   $$('.tab-panel').forEach(function(p){ p.classList.toggle('is-active', p.dataset.panel === name); });
   $$('.chat-tab').forEach(function(t){ t.classList.toggle('is-active', t.dataset.tab === name); });
   exitSearchAll();

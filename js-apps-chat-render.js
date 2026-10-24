@@ -11,7 +11,9 @@ function avatarHTML(name, index, avatar, extraClass){
 
 function userAvatarHTML(){
   var u = getActiveUserPersona();
-  var inner = u.avatar ? '<img src="' + u.avatar + '" alt="">' : escapeHTML(String(u.name || '我').charAt(0));
+  var sessionAvatar = (typeof getSessionUserAvatar === 'function' && currentName) ? getSessionUserAvatar(currentName) : null;
+  var avatar = sessionAvatar || (u && u.avatar) || null;
+  var inner = avatar ? '<img src="' + String(avatar).replace(/"/g, '&quot;') + '" alt="">' : escapeHTML(String(u && (u.name || u.socialId) || '我').charAt(0));
   return '<div class="avatar avatar-sm chat-message__avatar chat-message__user-avatar" data-avatar-owner="user" style="--deg:40deg">' + inner + '</div>';
 }
 
@@ -87,18 +89,23 @@ function getSortedVisibleChats(){
 function renderChats(){
   var list = $('chatList'); if (!list) return;
   var rows = getSortedVisibleChats();
+  var chatRoot = $('chatApp');
+  if (chatRoot) chatRoot.classList.toggle('has-pinned-chats', rows.some(function(row){ return !!(row.chat && row.chat.pinned); }));
   if (!rows.length) { list.innerHTML = '<li class="empty-state">还没有会话<br>点右上角 ＋ 添加人设开始</li>'; updatePMBackBadge(); updateHomeChatBadge(); return; }
   var now = Date.now();
   list.innerHTML = rows.map(function(r, i){
     var c = r.chat;
     var badge = '';
+    var displayName = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(c.name) : c.name) || c.name;
+    var sessionCharAvatar = c.sessionSettings && c.sessionSettings.charAvatar;
+    var displayAvatar = sessionCharAvatar || c.avatar || (typeof getAvatar === 'function' ? getAvatar(c.name) : null) || null;
     if (Number(c.unread) > 0) badge = '<span class="chat-unread-badge">' + (Number(c.unread) > 99 ? '99+' : Number(c.unread)) + '</span>';
     else if (c.markedUnread) badge = '<span class="chat-unread-badge is-dot" aria-label="未读"></span>';
     return '<li class="list-item' + (c.pinned ? ' is-pinned' : '') + '" data-name="' + escapeHTML(c.name) + '">' +
-      '<div class="chat-avatar-wrap">' + avatarHTML(c.name, i, c.avatar) + badge + '</div>' +
+      '<div class="chat-avatar-wrap">' + avatarHTML(displayName, i, displayAvatar) + badge + '</div>' +
       '<div class="li-main">' +
         '<div class="li-top">' +
-          '<span class="li-name">' + escapeHTML(c.name) + '</span>' +
+          '<span class="li-name">' + escapeHTML(displayName) + '</span>' +
           '<span class="li-time">' + escapeHTML(formatChatListTime(r.ts, now)) + '</span>' +
         '</div>' +
         '<div class="li-bottom">' +
@@ -315,10 +322,14 @@ function renderContacts(){
     groups[letter].sort(function(a,b){ return compareContactNames(a && a.name, b && b.name); });
     html += '<div class="group-letter">' + escapeHTML(letter) + '</div>';
     groups[letter].forEach(function(c, i){
+      var sessionChat = typeof findChatByName === 'function' ? findChatByName(c.name) : null;
+      var sessionSettings = sessionChat && sessionChat.sessionSettings && typeof sessionChat.sessionSettings === 'object' ? sessionChat.sessionSettings : null;
+      var displayName = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(c.name) : c.name) || c.name;
+      var displayAvatar = (sessionSettings && sessionSettings.charAvatar) || c.avatar || null;
       html += '<div class="list-item" data-name="' + escapeHTML(c.name) + '">' +
-        avatarHTML(c.name, i + (letter.charCodeAt(0) || 0), c.avatar) +
-        '<div class="li-main"><div class="li-top"><span class="li-name">' + escapeHTML(c.name) + '</span></div>' +
-        '<div class="li-bottom"><span class="li-preview">点击开始对话</span></div></div></div>';
+        avatarHTML(displayName, i + (letter.charCodeAt(0) || 0), displayAvatar) +
+        '<div class="li-main"><div class="li-top"><span class="li-name">' + escapeHTML(displayName) + '</span></div>' +
+        '</div></div>';
     });
   });
   box.innerHTML = html;
