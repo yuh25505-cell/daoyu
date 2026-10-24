@@ -1,7 +1,7 @@
 const CACHE_VERSION = '__CACHE_VERSION__';
 const CACHE_NAME = `island-${CACHE_VERSION}`;
 // 由 stamp-version.mjs 自动写入：每次发布内容变化，sw.js 的字节也跟着变，浏览器就能发现新版本。
-const BUILD_STAMP = '1.69.2-bf181293';
+const BUILD_STAMP = '1.69.2-33ee5a17';
 const APP_SHELL = [
   './',
   './index.html',
@@ -105,7 +105,7 @@ const APP_SHELL = [
 // worker removes its caches and unregisters itself instead of intercepting requests.
 // 图标等静态图片：放进独立的长期缓存，缓存优先、不再每次打开都联网重新加载。
 // 它不跟随 CACHE_VERSION 清理；若以后替换了这些图片，把下面的版本号 +1 即可让所有人更新一次。
-const STATIC_CACHE = 'island-static-icons-v2';
+const STATIC_CACHE = 'island-static-icons-v3';
 const STATIC_ASSET_RE = /\/(icons\/[^/]+\.png|icon-(?:180|192|512)\.png)$/;
 const STATIC_ASSETS = APP_SHELL.filter(p => /icons\/[^/]+\.png$|icon-(?:180|192|512)\.png$/.test(p));
 
