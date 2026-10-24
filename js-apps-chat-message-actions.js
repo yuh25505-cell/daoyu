@@ -16,6 +16,7 @@ function selectedMessageCount(){
 function clearMessageSelection(){
   messageSelectionMode = false;
   selectedMessageIndices = Object.create(null);
+  syncAllMessageSelectionRows();
   updateMessageSelectionChrome();
 }
 
@@ -400,12 +401,39 @@ function setMessageSelected(index, selected){
   else delete selectedMessageIndices[String(index)];
 }
 
+var MESSAGE_SELECTION_CHECK_SVG = '<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"><path d="m6.5 12.5 3.6 3.6 7.4-8.2"></path></svg>';
+
+function syncMessageSelectionRow(index, row){
+  index = Number(index);
+  if (!Number.isInteger(index)) return;
+  row = row || (pmScroll && pmScroll.querySelector('.chat-message[data-message-index="' + index + '"]'));
+  if (!row) return;
+  var selected = !!messageSelectionMode && !!selectedMessageIndices[String(index)];
+  row.classList.toggle('is-message-selection-mode', !!messageSelectionMode);
+  row.classList.toggle('is-message-selected', selected);
+  var check = row.querySelector('.pm-message-select-check');
+  if (!check) return;
+  check.setAttribute('aria-label', selected ? '取消选择' : '选择消息');
+  check.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  var icon = check.querySelector('span');
+  if (icon) {
+    var desired = selected ? MESSAGE_SELECTION_CHECK_SVG : '';
+    if (icon.innerHTML !== desired) icon.innerHTML = desired;
+  }
+}
+
+function syncAllMessageSelectionRows(){
+  if (!pmScroll) return;
+  var rows = pmScroll.querySelectorAll('.chat-message[data-message-index]');
+  for (var i = 0; i < rows.length; i++) syncMessageSelectionRow(Number(rows[i].dataset.messageIndex), rows[i]);
+}
+
 function toggleMessageSelected(index){
   index = Number(index);
   var key = String(index);
   setMessageSelected(index, !selectedMessageIndices[key]);
+  syncMessageSelectionRow(index);
   updateMessageSelectionChrome();
-  renderMessages(false);
 }
 
 function enterMessageSelection(index){
@@ -416,8 +444,8 @@ function enterMessageSelection(index){
   messageSelectionMode = true;
   selectedMessageIndices = Object.create(null);
   setMessageSelected(index, true);
+  syncAllMessageSelectionRows();
   updateMessageSelectionChrome();
-  renderMessages(false);
   try { if (navigator.vibrate) navigator.vibrate(18); } catch(e) {}
 }
 
@@ -483,13 +511,25 @@ function getMessageTranslationSource(msg){
 }
 
 
+function scheduleMessageStateSave(name){
+  name = String(name || '');
+  if (!name) return;
+  var timers = scheduleMessageStateSave._timers || (scheduleMessageStateSave._timers = Object.create(null));
+  if (timers[name]) clearTimeout(timers[name]);
+  timers[name] = setTimeout(function(){
+    delete timers[name];
+    saveMessages(name);
+  }, 0);
+}
+
 function translateMessage(index){
-  var list = MESSAGES[currentName] || [], msg = list[Number(index)];
+  var chatName = currentName;
+  var list = MESSAGES[chatName] || [], msg = list[Number(index)];
   if (!msg) return;
   if (msg.translation) {
     msg.translationVisible = msg.translationVisible === false;
-    saveMessages(currentName);
-    renderMessages(false);
+    syncMessageTranslationDOM(index);
+    scheduleMessageStateSave(chatName);
     return;
   }
   var source = getMessageTranslationSource(msg);
@@ -497,7 +537,7 @@ function translateMessage(index){
   if (!isApiReady()) { toast('请先在设置中配置 AI 接口'); return; }
   if (msg.translationLoading) return;
   msg.translationLoading = true;
-  renderMessages(false);
+  syncMessageTranslationDOM(index);
   var systemPrompt = '你是聊天应用的翻译助手。请将用户提供的消息翻译成简体中文。只输出译文，不要解释，不要加引号，不要附带“翻译：”之类的前缀。保留原文的语气、称呼、换行和表情符号。';
   callApiOnce([
     { role:'system', content:systemPrompt },
@@ -506,13 +546,13 @@ function translateMessage(index){
     var translated = String(result || '').trim();
     if (!translated) throw ApiError('parse','AI 没有返回译文');
     msg.translation = translated;
-    msg.translationVisible = getCharAutoExpandTranslation(findPersona(currentName));
+    msg.translationVisible = getCharAutoExpandTranslation(findPersona(chatName));
     msg.translationLoading = false;
-    saveMessages(currentName);
-    renderMessages(false);
+    if (currentName === chatName) syncMessageTranslationDOM(Number(index));
+    scheduleMessageStateSave(chatName);
   }).catch(function(err){
     msg.translationLoading = false;
-    renderMessages(false);
+    if (currentName === chatName) syncMessageTranslationDOM(Number(index));
     toast(err && err.message ? '翻译失败：' + err.message : '翻译失败');
   });
 }

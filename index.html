@@ -353,17 +353,23 @@
           <button type="button" class="pm-chat-settings-avatar-button" id="pmSettingsUserAvatarBtn" aria-label="更换当前会话 user 头像"><span class="pm-chat-settings-avatar" id="pmSettingsUserAvatarPreview">我</span><span>更换 user 头像</span></button>
         </div>
         <div class="pm-chat-settings-avatar-clear-row"><button type="button" id="pmSettingsCharAvatarClear">恢复角色卡头像</button><button type="button" id="pmSettingsUserAvatarClear">恢复用户角色头像</button></div>
-        <div class="pm-chat-settings-identity-names"><div><strong id="pmSettingsCharName">角色</strong><span>当前会话 Char</span></div><div><strong id="pmSettingsUserName">我</strong><span>当前会话 user</span></div></div>
-        <div class="pm-chat-settings-note">头像和备注只作用于当前聊天，不会修改角色卡或「我的角色」。</div>
+        <div class="pm-chat-settings-identity-names"><div><strong id="pmSettingsCharName">角色</strong></div><div><strong id="pmSettingsUserName">我</strong></div></div>
       </div>
-      <label class="pm-chat-settings-field"><span>Char 备注</span><input id="pmSettingsCharRemark" maxlength="40" placeholder="留空则显示原角色名" autocomplete="off" /></label>
+      <label class="pm-chat-settings-field"><span>Char 备注</span><input id="pmSettingsCharRemark" maxlength="40" autocomplete="off" /></label>
       <div class="pm-chat-settings-group">
-        <button type="button" class="pm-chat-settings-row" id="pmChatRecordSearchOpen"><span><strong>查找聊天记录</strong><small>搜索文字，按日期、图片、文件等类型筛选</small></span><span class="pm-chat-settings-chevron">›</span></button>
-        <button type="button" class="pm-chat-settings-row" id="pmSettingsDoNotDisturb" role="switch" aria-checked="false"><span><strong>消息免打扰</strong><small>关闭此会话的系统消息通知</small></span><span class="pm-chat-settings-switch" aria-hidden="true"><i></i></span></button>
+        <button type="button" class="pm-chat-settings-row" id="pmChatRecordSearchOpen"><span><strong>查找聊天记录</strong></span><span class="pm-chat-settings-chevron">›</span></button>
+        <button type="button" class="pm-chat-settings-row" id="pmSettingsDoNotDisturb" role="switch" aria-checked="false"><span><strong>消息免打扰</strong></span><span class="pm-chat-settings-switch" aria-hidden="true"><i></i></span></button>
+      </div>
+      <div class="pm-chat-settings-group pm-chat-settings-tone-group">
+        <div class="pm-chat-settings-tone-row">
+          <div class="pm-chat-settings-tone-copy"><strong>消息通知铃声</strong><small id="pmSettingsMessageToneState">跟随全局消息铃声</small></div>
+          <div class="pm-chat-settings-tone-actions"><button type="button" class="pm-chat-settings-action" id="pmSettingsMessageToneImportBtn">导入</button><button type="button" class="pm-chat-settings-action" id="pmSettingsMessageTonePreviewBtn" disabled>试听</button><button type="button" class="pm-chat-settings-action" id="pmSettingsMessageToneResetBtn" disabled>恢复默认</button></div>
+          <input accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac" hidden id="pmSettingsMessageToneFileInput" type="file" />
+        </div>
       </div>
       <div class="pm-chat-settings-section-label">聊天背景</div>
-      <div class="pm-chat-settings-wallpaper-card"><div class="pm-chat-settings-wallpaper-preview" id="pmSettingsWallpaperPreview">未设置背景图</div><div class="pm-chat-settings-wallpaper-actions"><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperChoose">选择背景图</button><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperClear">恢复默认</button></div><p>背景图仅用于当前会话；建议选用清晰、尺寸适中的图片。</p></div>
-      <div class="pm-chat-settings-danger"><button type="button" id="pmSettingsClearRecords">清空聊天记录</button><small>仅删除当前会话的消息，保留头像、备注和背景设置。</small></div>
+      <div class="pm-chat-settings-wallpaper-card"><div class="pm-chat-settings-wallpaper-preview" id="pmSettingsWallpaperPreview">未设置背景图</div><div class="pm-chat-settings-wallpaper-actions"><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperChoose">选择背景图</button><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperClear">恢复默认</button></div></div>
+      <div class="pm-chat-settings-danger"><button type="button" id="pmSettingsClearRecords">清空聊天记录</button></div>
     </div>
   </div>
   <input accept="image/*" hidden id="pmSettingsCharAvatarInput" type="file" />

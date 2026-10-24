@@ -153,6 +153,7 @@ function updatePMChatSettingsUI(){
       wallpaperPreview.textContent = '未设置背景图';
     }
   }
+  if (window.IslandSounds && typeof IslandSounds.renderSessionSettings === 'function') IslandSounds.renderSessionSettings(currentName);
 }
 
 function readSessionImage(file, callback){
@@ -338,6 +339,10 @@ function bindPMChatSettingsEvents(){
   var charAvatarClear = $('pmSettingsCharAvatarClear');
   var userAvatarClear = $('pmSettingsUserAvatarClear');
   var wallpaperInput = $('pmSettingsWallpaperInput');
+  var sessionToneImportBtn = $('pmSettingsMessageToneImportBtn');
+  var sessionTonePreviewBtn = $('pmSettingsMessageTonePreviewBtn');
+  var sessionToneResetBtn = $('pmSettingsMessageToneResetBtn');
+  var sessionToneFileInput = $('pmSettingsMessageToneFileInput');
 
   if (settingsBack) settingsBack.addEventListener('click', closePMChatSettings);
   if (searchBack) searchBack.addEventListener('click', function(){ closeChatRecordSearch(); openPMChatSettings(); });
@@ -409,6 +414,44 @@ function bindPMChatSettingsEvents(){
   });
   var clearRecords = $('pmSettingsClearRecords');
   if (clearRecords) clearRecords.addEventListener('click', clearCurrentChatRecords);
+
+  if (sessionToneImportBtn && sessionToneFileInput) {
+    sessionToneImportBtn.addEventListener('click', function(){
+      sessionToneFileInput.value = '';
+      sessionToneFileInput.click();
+    });
+    sessionToneFileInput.addEventListener('change', function(){
+      var file = sessionToneFileInput.files && sessionToneFileInput.files[0];
+      var name = currentName;
+      sessionToneFileInput.value = '';
+      if (!file || !name || !window.IslandSounds || typeof IslandSounds.importSessionMessageTone !== 'function') return;
+      sessionToneImportBtn.dataset.busy = 'true';
+      sessionToneImportBtn.disabled = true;
+      IslandSounds.importSessionMessageTone(name, file).then(function(){
+        if (currentName === name) updatePMChatSettingsUI();
+      }).finally(function(){
+        delete sessionToneImportBtn.dataset.busy;
+        if (currentName) IslandSounds.renderSessionSettings(currentName);
+        else sessionToneImportBtn.disabled = false;
+      });
+    });
+  }
+  if (sessionTonePreviewBtn) sessionTonePreviewBtn.addEventListener('click', function(){
+    if (currentName && window.IslandSounds && typeof IslandSounds.previewSessionMessageTone === 'function') IslandSounds.previewSessionMessageTone(currentName);
+  });
+  if (sessionToneResetBtn) sessionToneResetBtn.addEventListener('click', function(){
+    var name = currentName;
+    if (!name || !window.IslandSounds || typeof IslandSounds.clearSessionMessageTone !== 'function') return;
+    sessionToneResetBtn.dataset.busy = 'true';
+    sessionToneResetBtn.disabled = true;
+    IslandSounds.clearSessionMessageTone(name).then(function(){
+      if (currentName === name) updatePMChatSettingsUI();
+    }).finally(function(){
+      delete sessionToneResetBtn.dataset.busy;
+      if (currentName) IslandSounds.renderSessionSettings(currentName);
+      else sessionToneResetBtn.disabled = false;
+    });
+  });
 
   var searchInput = $('pmChatRecordSearchInput');
   var dateInput = $('pmChatRecordSearchDate');

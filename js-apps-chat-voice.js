@@ -363,7 +363,7 @@ function toggleVoiceTranscript(index){
     return;
   }
   voiceTranscriptOpen[msg.id] = (voiceTranscriptOpen[msg.id] !== true);
-  renderMessages(false);
+  syncVoiceTranscriptDOM(index);
 }
 
 
@@ -376,8 +376,8 @@ function updateVoiceMessageTranscript(index, transcript, source){
   msg.voiceText = transcript;
   msg.transcriptSource = source || 'stt_api';
   voiceTranscriptOpen[msg.id] = false;
+  syncVoiceTranscriptDOM(index);
   saveMessages(currentName);
-  renderMessages(false);
   return true;
 }
 
@@ -420,7 +420,7 @@ function transcribeVoiceMessage(index, options){
   options = options || {};
   if (!msg || msg.type !== 'voice') return Promise.resolve(false);
   var direct = getVoiceTranscript(msg);
-  if (direct && !options.force) { voiceTranscriptOpen[msg.id] = true; renderMessages(false); return Promise.resolve(true); }
+  if (direct && !options.force) { voiceTranscriptOpen[msg.id] = true; syncVoiceTranscriptDOM(index); return Promise.resolve(true); }
   var blob = getVoiceBlob(msg);
   if (!blob) { toast('这条语音没有可用的音频文件'); return Promise.resolve(false); }
   var cfg = getSttConfig();

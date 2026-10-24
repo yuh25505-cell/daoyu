@@ -17,8 +17,10 @@ var IslandSounds = (function(){
   var MESSAGE_GAP_MS = 2500;            /* 连续多条消息只响一次 */
   var PREVIEW_CAL_MS = 8000;
 
-  var players = {};                     /* kind -> { audio, key } */
-  var urls = {};                        /* kind -> blob url */
+  var players = {};                     /* 全局 kind -> { audio, key } */
+  var urls = {};                        /* 全局 kind -> blob url */
+  var sessionPlayers = Object.create(null); /* 会话名 -> { audio, key } */
+  var sessionUrls = Object.create(null);
   var ringing = false, ringTimer = 0, msgTimer = 0, lastMsgAt = 0, msgHeld = false;
   var previewKind = '', previewTimer = 0;
   var activated = false;
@@ -47,6 +49,14 @@ var IslandSounds = (function(){
   function item(kind){ return getConfig()[kind] || null; }
   function has(kind){ return !!item(kind); }
 
+  function sessionTone(name){
+    if (!name || typeof getSessionChatSettings !== 'function') return null;
+    var settings;
+    try { settings = getSessionChatSettings(name, false); } catch(e) { return null; }
+    var tone = settings && settings.messageTone;
+    return tone && typeof tone === 'object' && isBuf(tone.data) && tone.data.byteLength > 0 ? tone : null;
+  }
+
   /* ---------- 播放器 ---------- */
   function keyOf(it){ return it ? (it.name + '|' + it.data.byteLength) : ''; }
 
@@ -73,6 +83,32 @@ var IslandSounds = (function(){
     if (cur) { try { cur.audio.pause(); } catch(e) {} try { cur.audio.removeAttribute('src'); cur.audio.load(); } catch(e) {} }
     delete players[kind];
     if (urls[kind]) { try { URL.revokeObjectURL(urls[kind]); } catch(e) {} delete urls[kind]; }
+  }
+
+  function ensureSessionPlayer(name){
+    var tone = sessionTone(name);
+    if (!tone) { dropSessionPlayer(name); return null; }
+    var key = String(tone.name || '') + '|' + String(tone.mime || '') + '|' + tone.data.byteLength;
+    var current = sessionPlayers[name];
+    if (current && current.key === key) return current.audio;
+    dropSessionPlayer(name);
+    var url;
+    try { url = URL.createObjectURL(new Blob([bufOf(tone.data)], { type:tone.mime || 'audio/mpeg' })); }
+    catch(e) { return null; }
+    var audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = url;
+    audio.setAttribute('playsinline', '');
+    sessionUrls[name] = url;
+    sessionPlayers[name] = { audio:audio, key:key };
+    return audio;
+  }
+
+  function dropSessionPlayer(name){
+    var current = sessionPlayers[name];
+    if (current) { try { current.audio.pause(); } catch(e) {} try { current.audio.removeAttribute('src'); current.audio.load(); } catch(e) {} }
+    delete sessionPlayers[name];
+    if (sessionUrls[name]) { try { URL.revokeObjectURL(sessionUrls[name]); } catch(e) {} delete sessionUrls[name]; }
   }
 
   function volume(){ return getConfig().volume / 100; }
@@ -109,14 +145,15 @@ var IslandSounds = (function(){
 
   /* ---------- 消息提示音 ----------
    * 返回 true：已由本模块负责出声（调用方应把系统通知设为静音，避免两个声音叠在一起）。 */
-  function playMessage(){
-    if (!has('message') && !(ringing && has('call'))) return false;
-    if (ringing) return true;                      /* 来电铃声正在响：通话通知不再叠加消息音 */
-    if (!has('message')) return false;
-    if (!activated) return false;                  /* 还没有用户手势：播不出来，让系统通知照常响 */
+  function playMessage(sessionName){
+    var hasSessionTone = !!sessionTone(sessionName);
+    if (ringing) return hasSessionTone || has('message') || has('call'); /* 来电铃声正在响：通话通知不再叠加消息音 */
+    if (!hasSessionTone && !has('message')) return false;
+    if (!activated) return false;                  /* 未有用户手势时，让系统通知照常响 */
     var now = Date.now();
     if (now - lastMsgAt < MESSAGE_GAP_MS) return true;
-    var a = ensurePlayer('message'); if (!a) return false;
+    var a = hasSessionTone ? ensureSessionPlayer(sessionName) : ensurePlayer('message');
+    if (!a) return false;
     lastMsgAt = now;
     try {
       a.loop = false; a.muted = false; a.volume = volume(); a.currentTime = 0;
@@ -161,11 +198,18 @@ var IslandSounds = (function(){
   function stopPreview(){
     clearTimeout(previewTimer); previewTimer = 0;
     if (previewKind) {
-      var cur = players[previewKind];
-      if (cur) stopAudio(cur.audio);
+      if (previewKind.indexOf('session:') === 0) {
+        var sessionName = previewKind.slice(8);
+        var sessionPlayer = sessionPlayers[sessionName];
+        if (sessionPlayer) stopAudio(sessionPlayer.audio);
+      } else {
+        var cur = players[previewKind];
+        if (cur) stopAudio(cur.audio);
+      }
       previewKind = '';
     }
     renderSettings();
+    if (typeof currentName !== 'undefined' && currentName) renderSessionSettings(currentName);
   }
 
   function preview(kind){
@@ -255,6 +299,109 @@ var IslandSounds = (function(){
     saveSettings();
     renderSettings();
     toastSafe('已恢复默认' + LABELS[kind]);
+  }
+
+  function renderSessionSettings(name){
+    var state = document.getElementById('pmSettingsMessageToneState');
+    var previewBtn = document.getElementById('pmSettingsMessageTonePreviewBtn');
+    var resetBtn = document.getElementById('pmSettingsMessageToneResetBtn');
+    var importBtn = document.getElementById('pmSettingsMessageToneImportBtn');
+    if (!state || !name) return;
+    var tone = sessionTone(name);
+    if (tone) {
+      var bytes = Number(tone.size) || tone.data.byteLength;
+      var sizeText = bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+      state.textContent = String(tone.name || '自定义铃声') + ' · ' + sizeText + (tone.duration ? ' · ' + tone.duration + ' 秒' : '');
+    } else {
+      state.textContent = '跟随全局消息铃声';
+    }
+    if (previewBtn) { previewBtn.disabled = !tone; previewBtn.textContent = previewKind === ('session:' + name) ? '停止' : '试听'; }
+    if (resetBtn && resetBtn.dataset.busy !== 'true') resetBtn.disabled = !tone;
+    if (importBtn && importBtn.dataset.busy !== 'true') importBtn.disabled = false;
+  }
+
+  function importSessionMessageTone(name, file){
+    name = String(name || '').trim();
+    if (!name || !file) return Promise.resolve(false);
+    if (!looksLikeAudio(file)) { toastSafe('请选择音频文件（mp3 / m4a / wav / ogg 等）'); return Promise.resolve(false); }
+    if (file.size > MAX_BYTES) { toastSafe('文件太大了（上限 4MB），请选择更短的铃声'); return Promise.resolve(false); }
+    return new Promise(function(resolve){
+      var reader = new FileReader();
+      reader.onerror = function(){ toastSafe('读取音频失败'); resolve(false); };
+      reader.onload = function(){
+        var buffer = reader.result, mime = mimeFor(file);
+        canDecode(buffer, mime).then(function(duration){
+          if (!duration) { toastSafe('这个音频无法播放，请换一个格式（推荐 mp3）'); resolve(false); return; }
+          var settings = typeof getSessionChatSettings === 'function' ? getSessionChatSettings(name, true) : null;
+          if (!settings) { toastSafe('当前会话不可用'); resolve(false); return; }
+          var previous = settings.messageTone;
+          stopPreview();
+          settings.messageTone = { name:String(file.name || '会话消息铃声'), mime:mime, size:buffer.byteLength, duration:Math.round(duration * 10) / 10, data:buffer };
+          dropSessionPlayer(name);
+          var saveResult;
+          try { saveResult = typeof saveChats === 'function' ? saveChats() : Promise.resolve(false); }
+          catch(e) { saveResult = Promise.reject(e); }
+          Promise.resolve(saveResult).then(function(){
+            renderSessionSettings(name);
+            toastSafe('已设置当前会话的消息铃声');
+            resolve(true);
+          }).catch(function(){
+            if (previous) settings.messageTone = previous; else delete settings.messageTone;
+            dropSessionPlayer(name);
+            renderSessionSettings(name);
+            toastSafe('保存失败，请检查本机存储空间');
+            resolve(false);
+          });
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function previewSessionMessageTone(name){
+    name = String(name || '').trim();
+    if (!name || !sessionTone(name)) { toastSafe('请先为当前会话导入铃声'); return false; }
+    var key = 'session:' + name;
+    if (previewKind === key) { stopPreview(); return true; }
+    stopPreview(); stopCallRing();
+    var a = ensureSessionPlayer(name);
+    if (!a) { toastSafe('铃声加载失败，请重新导入'); return false; }
+    try {
+      a.loop = false; a.muted = false; a.volume = volume(); a.currentTime = 0;
+      previewKind = key;
+      var end = function(){ if (previewKind === key) stopPreview(); };
+      a.onended = end; a.onerror = end;
+      var p = a.play();
+      if (p && p.catch) p.catch(function(){ end(); toastSafe('播放失败，请再点一次'); });
+      previewTimer = setTimeout(end, MESSAGE_CAP_MS);
+      renderSessionSettings(name);
+      return true;
+    } catch(e) { previewKind = ''; renderSessionSettings(name); return false; }
+  }
+
+  function clearSessionMessageTone(name){
+    name = String(name || '').trim();
+    if (!name || !sessionTone(name)) return Promise.resolve(false);
+    var settings = typeof getSessionChatSettings === 'function' ? getSessionChatSettings(name, false) : null;
+    if (!settings) return Promise.resolve(false);
+    var previous = settings.messageTone;
+    if (previewKind === 'session:' + name) stopPreview();
+    delete settings.messageTone;
+    dropSessionPlayer(name);
+    var saveResult;
+    try { saveResult = typeof saveChats === 'function' ? saveChats() : Promise.resolve(false); }
+    catch(e) { saveResult = Promise.reject(e); }
+    return Promise.resolve(saveResult).then(function(){
+      renderSessionSettings(name);
+      toastSafe('已恢复全局消息铃声');
+      return true;
+    }).catch(function(){
+      settings.messageTone = previous;
+      dropSessionPlayer(name);
+      renderSessionSettings(name);
+      toastSafe('保存失败，请重试');
+      return false;
+    });
   }
 
   /* ---------- 备份：ArrayBuffer ↔ base64 ---------- */
@@ -356,6 +503,9 @@ var IslandSounds = (function(){
   return {
     has: has, playMessage: playMessage, startCallRing: startCallRing, stopCallRing: stopCallRing, isRinging: isRinging,
     preview: preview, importFile: importFile, clear: clear, render: renderSettings,
+    importSessionMessageTone: importSessionMessageTone, previewSessionMessageTone: previewSessionMessageTone,
+    clearSessionMessageTone: clearSessionMessageTone, hasSessionMessageTone: function(name){ return !!sessionTone(name); },
+    renderSessionSettings: renderSessionSettings,
     toBackup: toBackup, fromBackup: fromBackup
   };
 })();

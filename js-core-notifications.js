@@ -132,7 +132,7 @@ function showCharacterNotification(name, text, avatar, opts){
   var tagValue = 'island-chat-' + title + (opts && opts.unique ? '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : '');
   /* 自定义消息铃声：由岛屿自己出声，系统通知就设为静音，避免两个提示音叠在一起；没有导入铃声时照常使用系统通知声音 */
   var toneClaimed = false;
-  try { if (window.IslandSounds && !(opts && opts.noSound)) toneClaimed = !!IslandSounds.playMessage(); } catch(e) {}
+  try { if (window.IslandSounds && !(opts && opts.noSound)) toneClaimed = !!IslandSounds.playMessage(title); } catch(e) {}
   var nativePromise = getNativeNotificationState();
   return nativePromise.then(function(nativeState){
     var b = islandNativePlugin;

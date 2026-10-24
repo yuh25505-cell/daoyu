@@ -48,6 +48,49 @@ function cloneSettingsForBackup(settings){
   return out;
 }
 
+function cloneChatsForBackup(chats){
+  return (chats || []).map(function(chat){
+    if (!chat || typeof chat !== 'object') return clone(chat);
+    var settings = chat.sessionSettings && typeof chat.sessionSettings === 'object' ? chat.sessionSettings : null;
+    var tone = settings && settings.messageTone;
+    var copySource = Object.assign({}, chat);
+    if (settings) {
+      copySource.sessionSettings = Object.assign({}, settings);
+      delete copySource.sessionSettings.messageTone;
+    }
+    var copy = clone(copySource);
+    if (tone && tone.data && (tone.data instanceof ArrayBuffer || ArrayBuffer.isView(tone.data))) {
+      var buf = tone.data instanceof ArrayBuffer ? tone.data : tone.data.buffer.slice(tone.data.byteOffset, tone.data.byteOffset + tone.data.byteLength);
+      copy.sessionSettings = Object.assign({}, copy.sessionSettings || {});
+      copy.sessionSettings.messageTone = Object.assign({}, tone, { dataBase64:arrayBufferToBase64(buf), size:buf.byteLength });
+      delete copy.sessionSettings.messageTone.data;
+    }
+    return copy;
+  });
+}
+
+function restoreChatsFromBackup(chats){
+  return (chats || []).map(function(chat){
+    if (!chat || typeof chat !== 'object') return chat;
+    var copy = Object.assign({}, chat);
+    var settings = chat.sessionSettings && typeof chat.sessionSettings === 'object' ? Object.assign({}, chat.sessionSettings) : null;
+    var tone = settings && settings.messageTone;
+    if (tone && typeof tone.dataBase64 === 'string' && tone.dataBase64) {
+      try {
+        var buf = base64ToArrayBuffer(tone.dataBase64);
+        settings.messageTone = Object.assign({}, tone, { data:buf, size:buf.byteLength });
+        delete settings.messageTone.dataBase64;
+        copy.sessionSettings = settings;
+      } catch(e) { console.warn('[岛屿] 会话消息铃声解码失败：', chat.name || '未知会话'); delete settings.messageTone; copy.sessionSettings = settings; }
+    } else if (settings) {
+      /* 兼容旧版导出：ArrayBuffer 经 JSON 序列化后可能变成空对象，避免误显示成已设置。 */
+      if (tone && !(tone.data instanceof ArrayBuffer) && !ArrayBuffer.isView(tone.data)) delete settings.messageTone;
+      copy.sessionSettings = settings;
+    }
+    return copy;
+  });
+}
+
 function restoreSettingsFromBackup(settings){
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return settings;
   if (settings.sounds && typeof IslandSounds !== 'undefined') settings.sounds = IslandSounds.fromBackup(settings.sounds);
@@ -82,7 +125,7 @@ function buildBackupPayload(){
     exportedAt: Date.now(),
     data: {
       settings: cloneSettingsForBackup(State.settings),
-      chats: clone(CHATS || []),
+      chats: cloneChatsForBackup(CHATS || []),
       contacts: clone(CONTACTS || []),
       moments: clone(MOMENTS || []),
       messages: clone(MESSAGES || {}),
@@ -138,7 +181,7 @@ function buildPartialBackupPayload(part){
   switch(part){
     case 'settings': data = { settings: cloneSettingsForBackup(State.settings) }; break;
     case 'chats':
-      data = { chats: clone(CHATS || []), messages: clone(MESSAGES || {}) };
+      data = { chats: cloneChatsForBackup(CHATS || []), messages: clone(MESSAGES || {}) };
       break;
     case 'contacts': data = { contacts: clone(CONTACTS || []) }; break;
     case 'moments': data = { moments: clone(MOMENTS || []) }; break;
@@ -379,7 +422,7 @@ function normalizeImportedBackup(raw){
   if (!found) throw new Error('这不是可识别的岛屿备份文件');
   return {
     settings: data.settings && typeof data.settings === 'object' ? restoreSettingsFromBackup(data.settings) : {},
-    chats: Array.isArray(data.chats) ? data.chats : [],
+    chats: Array.isArray(data.chats) ? restoreChatsFromBackup(data.chats) : [],
     contacts: Array.isArray(data.contacts) ? data.contacts : [],
     moments: Array.isArray(data.moments) ? data.moments : [],
     phoneCalls: Array.isArray(data.phoneCalls) ? data.phoneCalls : [],
@@ -432,7 +475,7 @@ function normalizePartialBackup(raw, requestedPart){
     case 'chats':
       if (!Array.isArray(source.chats)) throw new Error('备份中没有有效的聊天列表');
       if (!source.messages || typeof source.messages !== 'object' || Array.isArray(source.messages)) throw new Error('备份中没有有效的聊天记录');
-      out.chats = source.chats; out.messages = source.messages; break;
+      out.chats = restoreChatsFromBackup(source.chats); out.messages = source.messages; break;
     case 'contacts':
       if (!Array.isArray(source.contacts)) throw new Error('备份中没有有效的通讯录');
       out.contacts = source.contacts; break;

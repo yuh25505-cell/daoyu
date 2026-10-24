@@ -381,7 +381,7 @@ function bindChatEvents(){
   if (setUserPersonaActiveBtn) setUserPersonaActiveBtn.addEventListener('click', setUserPersonaActive);
 
   var pmBack = $('pmBack'); if (pmBack) pmBack.addEventListener('click', function(){
-    if (messageSelectionMode) { clearMessageSelection(); renderMessages(false); }
+    if (messageSelectionMode) { clearMessageSelection(); }
     else closePM();
   });
   var pmMore = $('pmMore'); if (pmMore) pmMore.addEventListener('click', function(){
@@ -1071,21 +1071,6 @@ function bindChatEvents(){
         }
       }
 
-      var popoverAction = e.target.closest('[data-message-action]');
-      if (popoverAction && pmMessageActionPopover && pmMessageActionPopover.contains(popoverAction)) {
-        var action = popoverAction.dataset.messageAction || '';
-        var index = Number(popoverAction.dataset.messageActionIndex);
-        closeVoiceMessageActionMenu();
-        if (action === 'transcribe') toggleVoiceTranscript(index);
-        else if (action === 'copy') copyMessageText(index);
-        else if (action === 'translate') translateMessage(index);
-        else if (action === 'quote') quoteMessage(index);
-        else if (action === 'favorite') toggleMessageFavorite(index);
-        else if (action === 'forward') openForwardPicker(index);
-        else if (action === 'delete') deleteMessageAt(index);
-        else if (action === 'select') enterMessageSelection(index);
-        return;
-      }
       if (messageLongPressState.triggered) { messageLongPressState.triggered = false; return; }
 
       var btn = e.target.closest('[data-voice-index]');
@@ -1120,22 +1105,66 @@ function bindChatEvents(){
       openForwardRecordView(Number(row.dataset.messageIndex));
     });
     if (pmMessageActionPopover) {
+      var pressedMessageAction = null;
+      var pressedMessagePointerId = null;
+      var lastPointerActionAt = 0;
+      function dispatchMessageAction(action, index) {
+        if (!action || !Number.isFinite(index)) return;
+        closeVoiceMessageActionMenu();
+        var run = function(){
+          if (action === 'transcribe') toggleVoiceTranscript(index);
+          else if (action === 'copy') copyMessageText(index);
+          else if (action === 'translate') translateMessage(index);
+          else if (action === 'quote') quoteMessage(index);
+          else if (action === 'favorite') toggleMessageFavorite(index);
+          else if (action === 'forward') openForwardPicker(index);
+          else if (action === 'delete') deleteMessageAt(index);
+          else if (action === 'select') enterMessageSelection(index);
+        };
+        /* 本地折叠/多选操作只改动目标消息节点，直接响应；避免双 RAF 叠加点击延迟。 */
+        if (action === 'copy' || action === 'quote' || action === 'favorite' || action === 'delete' || action === 'translate' || action === 'transcribe' || action === 'select') {
+          run();
+        } else if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(function(){ requestAnimationFrame(run); });
+        } else {
+          setTimeout(run, 16);
+        }
+      }
+      pmMessageActionPopover.addEventListener('pointerdown', function(e){
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        var btn = e.target.closest('[data-message-action]');
+        if (!btn || !pmMessageActionPopover.contains(btn)) return;
+        pressedMessageAction = btn;
+        pressedMessagePointerId = e.pointerId;
+        btn.classList.add('is-pressed');
+      }, { passive:true });
+      pmMessageActionPopover.addEventListener('pointerup', function(e){
+        if (!pressedMessageAction || pressedMessagePointerId !== e.pointerId) return;
+        var releaseTarget = document.elementFromPoint ? document.elementFromPoint(e.clientX, e.clientY) : e.target;
+        var btn = releaseTarget && releaseTarget.closest ? releaseTarget.closest('[data-message-action]') : null;
+        var pressed = pressedMessageAction;
+        pressedMessageAction = null;
+        pressedMessagePointerId = null;
+        pressed.classList.remove('is-pressed');
+        if (!btn || btn !== pressed) return;
+        e.preventDefault();
+        e.stopPropagation();
+        lastPointerActionAt = Date.now();
+        dispatchMessageAction(pressed.dataset.messageAction || '', Number(pressed.dataset.messageActionIndex));
+      });
+      pmMessageActionPopover.addEventListener('pointercancel', function(){
+        if (pressedMessageAction) pressedMessageAction.classList.remove('is-pressed');
+        pressedMessageAction = null;
+        pressedMessagePointerId = null;
+      });
       pmMessageActionPopover.addEventListener('click', function(e){
         var actionBtn = e.target.closest('[data-message-action]');
         if (!actionBtn) return;
         e.preventDefault();
         e.stopPropagation();
-        var action = actionBtn.dataset.messageAction || '';
-        var index = Number(actionBtn.dataset.messageActionIndex);
-        closeVoiceMessageActionMenu();
-        if (action === 'transcribe') toggleVoiceTranscript(index);
-        else if (action === 'copy') copyMessageText(index);
-        else if (action === 'translate') translateMessage(index);
-        else if (action === 'quote') quoteMessage(index);
-        else if (action === 'favorite') toggleMessageFavorite(index);
-        else if (action === 'forward') openForwardPicker(index);
-        else if (action === 'delete') deleteMessageAt(index);
-        else if (action === 'select') enterMessageSelection(index);
+        /* 指针操作已在 pointerup 中执行，忽略随后合成的 click；detail=0 则保留键盘无障碍操作。 */
+        if (e.detail !== 0 && Date.now() - lastPointerActionAt < 800) return;
+        dispatchMessageAction(actionBtn.dataset.messageAction || '', Number(actionBtn.dataset.messageActionIndex));
       });
     }
   }

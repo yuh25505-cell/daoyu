@@ -195,7 +195,7 @@ function bubbleHTML(msg, entering, index){
         '<span class="pm-voice-play" aria-hidden="true"><img src="https://pic.feria.eu.org/DPr1Sfk0/1000125631.png" alt=""></span>' +
         '<span class="pm-voice-duration">' + formatVoiceMessageDuration(duration) + '</span>' +
       '</' + bubbleTag + '>' +
-      (transcriptOpen && transcript ? '<div class="pm-voice-transcript chat-message__transcript">' + escapeHTML(transcript) + '</div>' : '') +
+      (transcript ? '<div class="pm-voice-transcript chat-message__transcript' + (transcriptOpen ? '' : ' is-collapsed') + '">' + escapeHTML(transcript) + '</div>' : '') +
     '</div>';
   } else {
     var messageText = escapeHTML(msg && msg.text != null ? msg.text : '');
@@ -204,8 +204,8 @@ function bubbleHTML(msg, entering, index){
   var translationMarkup = '';
   if (msg && msg.translationLoading) {
     translationMarkup = '<div class="pm-message-translation is-loading">翻译中…</div>';
-  } else if (msg && msg.translation && msg.translationVisible !== false) {
-    translationMarkup = '<div class="pm-message-translation">' + escapeHTML(String(msg.translation)) + '</div>';
+  } else if (msg && msg.translation) {
+    translationMarkup = '<div class="pm-message-translation' + (msg.translationVisible === false ? ' is-collapsed' : '') + '">' + escapeHTML(String(msg.translation)) + '</div>';
   }
   if (msg && msg.replyTo) {
     var replyMediaClass = msg.replyTo && msg.replyTo.kind === 'media' ? ' is-media' : '';
@@ -371,6 +371,101 @@ function renderMessages(enterLast){
     measureWrapClasses(pmScroll.querySelectorAll('.pm-bubble'), 'pm-bubble--multiline', 'pm-bubble--latin-only');
     measureWrapClasses(pmScroll.querySelectorAll('.pm-voice-transcript, .chat-message__transcript'), 'pm-transcript--multiline', 'pm-transcript--latin-only');
   });
+}
+
+/* 只更新指定消息的翻译节点，避免为了展开/收起而重建整条消息列表。 */
+function syncMessageTranslationDOM(index){
+  if (!pmScroll) return null;
+  index = Number(index);
+  var list = MESSAGES[currentName] || [];
+  var msg = Number.isInteger(index) ? list[index] : null;
+  if (!msg) return null;
+  var row = pmScroll.querySelector('.chat-message[data-message-index="' + index + '"]');
+  if (!row) return null;
+
+  var stack = row.querySelector('.pm-message-reply-stack');
+  var translation = row.querySelector('.pm-message-translation');
+  var shouldExist = !!msg.translationLoading || !!msg.translation;
+  if (!shouldExist) {
+    if (translation) translation.remove();
+    if (stack && !stack.querySelector('.pm-bubble-quote')) {
+      var parent = stack.parentNode;
+      if (parent) {
+        while (stack.firstChild) parent.insertBefore(stack.firstChild, stack);
+        stack.remove();
+      }
+    }
+    return null;
+  }
+
+  if (!stack) {
+    var bodyNode = null;
+    for (var i = 0; i < row.children.length; i++) {
+      var child = row.children[i];
+      if (!child.matches('.pm-message-select-check, .chat-message__avatar')) { bodyNode = child; break; }
+    }
+    if (!bodyNode) return null;
+    stack = document.createElement('div');
+    stack.className = 'pm-message-reply-stack';
+    bodyNode.parentNode.insertBefore(stack, bodyNode);
+    stack.appendChild(bodyNode);
+  }
+
+  if (!translation) {
+    translation = document.createElement('div');
+    translation.className = 'pm-message-translation';
+    var quote = stack.querySelector('.pm-bubble-quote');
+    if (quote) stack.insertBefore(translation, quote);
+    else stack.appendChild(translation);
+  }
+  if (msg.translationLoading) {
+    translation.classList.add('is-loading');
+    translation.classList.remove('is-collapsed');
+    translation.textContent = '翻译中…';
+  } else {
+    translation.classList.remove('is-loading');
+    translation.classList.toggle('is-collapsed', msg.translationVisible === false);
+    translation.textContent = String(msg.translation || '');
+  }
+  return translation;
+}
+
+/* 只切换一条语音消息的转写区；文本换行测量也仅作用于该节点。 */
+function syncVoiceTranscriptDOM(index){
+  if (!pmScroll) return null;
+  index = Number(index);
+  var list = MESSAGES[currentName] || [];
+  var msg = Number.isInteger(index) ? list[index] : null;
+  if (!msg || msg.type !== 'voice') return null;
+  var row = pmScroll.querySelector('.chat-message[data-message-index="' + index + '"]');
+  if (!row) return null;
+  var wrap = row.querySelector('.pm-voice-wrap[data-voice-wrap-index="' + index + '"]');
+  if (!wrap) return null;
+  var transcript = getVoiceTranscript(msg);
+  var open = !!transcript && voiceTranscriptOpen[msg.id] === true;
+  wrap.classList.toggle('is-transcript-open', open);
+  var transcriptEl = wrap.querySelector('.pm-voice-transcript');
+  if (!transcript) {
+    if (transcriptEl) transcriptEl.remove();
+    return null;
+  }
+  if (!transcriptEl) {
+    transcriptEl = document.createElement('div');
+    transcriptEl.className = 'pm-voice-transcript chat-message__transcript';
+    var bubble = wrap.querySelector('.pm-voice-bubble');
+    if (bubble && bubble.nextSibling) wrap.insertBefore(transcriptEl, bubble.nextSibling);
+    else wrap.appendChild(transcriptEl);
+  }
+  transcriptEl.textContent = transcript;
+  transcriptEl.classList.toggle('is-collapsed', !open);
+  if (open && typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(function(){
+      if (transcriptEl.isConnected && !transcriptEl.classList.contains('is-collapsed')) {
+        measureWrapClasses([transcriptEl], 'pm-transcript--multiline', 'pm-transcript--latin-only');
+      }
+    });
+  }
+  return transcriptEl;
 }
 
 function measureWrapClasses(list, multiCls, latinCls){
