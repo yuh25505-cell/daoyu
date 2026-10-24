@@ -204,16 +204,42 @@ function updateMessageQuoteBar(){
 
 function clearMessageQuote(){ messageQuoteDraft = null; updateMessageQuoteBar(); }
 
+function focusPMInputForQuote(){
+  if (!pmInput) return;
+  /* 语音输入模式下文字框是隐藏的，先切回文字输入，才能弹出键盘。 */
+  if (pmBar && pmBar.classList.contains('is-voice') && typeof setVoiceMode === 'function') setVoiceMode(false);
+  var doFocus = function(){
+    /* 不加 preventScroll：与手动点输入框一致，让浏览器在键盘弹出时把输入栏一起顶起来。 */
+    try { pmInput.focus(); } catch(err) {}
+    try { pmInput.setSelectionRange(pmInput.value.length, pmInput.value.length); } catch(e) {}
+  };
+  doFocus();   /* 在点击操作的同一个手势里立即聚焦，系统才会允许弹出键盘 */
+  /* 菜单收起 / 布局变化后若焦点被抢走，补一次聚焦。 */
+  setTimeout(function(){ if (document.activeElement !== pmInput && pmView && pmView.classList.contains('is-open')) doFocus(); }, 80);
+  /* 键盘弹出需要一点时间：之后确认输入栏没有被键盘盖住，被盖住就滚到可见位置（等同手动点一次输入框的效果）。 */
+  [160, 380, 700].forEach(function(ms){
+    setTimeout(function(){ if (document.activeElement === pmInput) ensurePMBarVisible(); }, ms);
+  });
+}
+
+function ensurePMBarVisible(){
+  var target = pmBar || pmInput;
+  if (!target) return;
+  var vv = window.visualViewport;
+  var visibleBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+  var rect = target.getBoundingClientRect();
+  if (rect.bottom > visibleBottom + 1) {
+    try { target.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch(e) {}
+  }
+}
+
 function quoteMessage(index){
   var payload = getMessageQuotePayload(index);
   if (!payload) return;
   messageQuoteDraft = payload;
-  updateMessageQuoteBar();
   closeVoiceMessageActionMenu();
-  if (pmInput) {
-    try { pmInput.focus({ preventScroll:true }); } catch(e) { try { pmInput.focus(); } catch(err) {} }
-    try { pmInput.setSelectionRange(pmInput.value.length, pmInput.value.length); } catch(e) {}
-  }
+  updateMessageQuoteBar();
+  focusPMInputForQuote();
 }
 
 function toggleMessageFavorite(index){

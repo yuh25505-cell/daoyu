@@ -1,7 +1,7 @@
 const CACHE_VERSION = '__CACHE_VERSION__';
 const CACHE_NAME = `island-${CACHE_VERSION}`;
 // 由 stamp-version.mjs 自动写入：每次发布内容变化，sw.js 的字节也跟着变，浏览器就能发现新版本。
-const BUILD_STAMP = '1.69.2-a33aed34';
+const BUILD_STAMP = '1.69.2-d4f3a98d';
 const APP_SHELL = [
   './',
   './index.html',
@@ -103,6 +103,12 @@ const APP_SHELL = [
 // files are already bundled in the app, so a service worker is unnecessary and can
 // serve pages without Capacitor's injected native bridge. In that environment this
 // worker removes its caches and unregisters itself instead of intercepting requests.
+// 图标等静态图片：放进独立的长期缓存，缓存优先、不再每次打开都联网重新加载。
+// 它不跟随 CACHE_VERSION 清理；若以后替换了这些图片，把下面的版本号 +1 即可让所有人更新一次。
+const STATIC_CACHE = 'island-static-icons-v2';
+const STATIC_ASSET_RE = /\/(icons\/[^/]+\.png|icon-(?:180|192|512)\.png)$/;
+const STATIC_ASSETS = APP_SHELL.filter(p => /icons\/[^/]+\.png$|icon-(?:180|192|512)\.png$/.test(p));
+
 const IS_CAPACITOR_APP = self.location.hostname === 'localhost';
 
 self.addEventListener('install', event => {
@@ -110,7 +116,12 @@ self.addEventListener('install', event => {
     self.skipWaiting();
     return;
   }
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil(Promise.all([
+    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL.filter(p => !STATIC_ASSETS.includes(p)))),
+    caches.open(STATIC_CACHE).then(cache => Promise.all(STATIC_ASSETS.map(p =>
+      cache.match(p).then(hit => hit || cache.add(p).catch(() => cache.add(p)).catch(() => {}))
+    )))
+  ]));
   self.skipWaiting();
 });
 
@@ -125,7 +136,7 @@ self.addEventListener('activate', event => {
   }
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME && k !== STATIC_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -141,6 +152,21 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
   // 版本文件只走网络、不进缓存：离线时检查更新应当失败，而不是读到旧缓存谎称"已是最新"。
   if (url.pathname.endsWith('/version.json')) { event.respondWith(fetch(request)); return; }
+
+  // 图标：缓存优先，命中就直接用，不联网。
+  if (STATIC_ASSET_RE.test(url.pathname)) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(cache => cache.match(request).then(hit => {
+        if (hit) return hit;
+        // 联网失败时立刻再试一次；仍失败再去所有缓存里找，避免出现破图。
+        return fetch(request).catch(() => fetch(request)).then(response => {
+          if (response && response.ok) cache.put(request, response.clone());
+          return response;
+        }).catch(() => caches.match(request).then(any => any || Response.error()));
+      }))
+    );
+    return;
+  }
 
   event.respondWith(
     fetch(request)

@@ -86,7 +86,30 @@ var FLAT_GLYPHS = {
   '音乐': '<ellipse cx="7" cy="17.8" rx="3.1" ry="2.7"/><ellipse cx="17" cy="15.8" rx="3.1" ry="2.7"/><rect x="8.9" y="5.6" width="2" height="12.2"/><rect x="18.9" y="3.6" width="2" height="12.2"/><path d="M8.9 5.2l12-2.6v4l-12 2.6z"/>'
 };
 
+/* 主屏幕图标缓存：记住上次的图标主题和哪些图标是自定义图片。
+ * 下次启动在存档（IndexedDB）读完之前就先用它把内置图标画好，不再每次打开都等加载后才冒出来。 */
+var HOME_ICON_CACHE_KEY = 'island.homeIconCache';
+var homeIconCacheLast = '';
+function readHomeIconCache(){
+  try {
+    var c = JSON.parse(localStorage.getItem(HOME_ICON_CACHE_KEY) || 'null');
+    if (c && (c.theme === 'default' || c.theme === 'borderless')) return { theme:c.theme, custom:Array.isArray(c.custom) ? c.custom : [] };
+  } catch(e) {}
+  return null;
+}
+function writeHomeIconCache(a){
+  try {
+    var custom = [];
+    HOME_APP_NAMES.forEach(function(name){ if (a.iconData && a.iconData[name]) custom.push(name); });
+    var str = JSON.stringify({ theme:a.iconTheme, custom:custom });
+    if (str === homeIconCacheLast) return;
+    homeIconCacheLast = str;
+    localStorage.setItem(HOME_ICON_CACHE_KEY, str);
+  } catch(e) {}
+}
+
 function getHomeIconTheme(){
+  if (typeof HOME_ICONS_READY !== 'undefined' && !HOME_ICONS_READY) { var cached = readHomeIconCache(); if (cached) return cached.theme; }
   var t = State.settings && State.settings.homeAppearance && State.settings.homeAppearance.iconTheme;
   return ['default','borderless'].indexOf(t) >= 0 ? t : 'default';
 }
@@ -118,6 +141,53 @@ var DEFAULT_ICON_FILES = {
   '栖迟': 'icons/xichi.png'
 };
 
+/* 加载内置图标：偶发的网络失败（移动网络、刚更新 service worker 等）不再留下「问号」破图，
+ * 而是自动重试几次；仍失败就先用线条图标顶上，网络恢复 / 回到前台后再自动补载。 */
+function loadBuiltinIcon(img, src, appName){
+  var tries = 0;
+  img.__iconSrc = src;
+  img.onerror = function(){
+    if (tries < 4) {
+      tries++;
+      setTimeout(function(){
+        if (!img.isConnected) return;
+        img.src = src + (src.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now();
+      }, 500 * tries);
+      return;
+    }
+    img.__iconFailed = true;
+    img.style.visibility = 'hidden';
+    var host = img.parentNode;
+    if (host && !host.querySelector('.flat-glyph') && FLAT_GLYPHS[appName]) {
+      var fh = document.createElement('span');
+      fh.className = 'flat-glyph';
+      fh.setAttribute('aria-hidden', 'true');
+      fh.style.cssText = 'position:absolute;inset:0;color:var(--fg,#fff);';
+      fh.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor">' + FLAT_GLYPHS[appName] + '</svg>';
+      host.style.position = 'relative';
+      host.appendChild(fh);
+    }
+  };
+  img.onload = function(){
+    img.__iconFailed = false;
+    img.style.visibility = '';
+    var host = img.parentNode;
+    var g = host && host.querySelector('.flat-glyph');
+    if (g && host.classList.contains('is-default-icon')) g.remove();
+  };
+  img.src = src;
+}
+function retryFailedHomeIcons(){
+  $$('.app-icon.is-default-icon img').forEach(function(img){
+    if (img.__iconFailed || (img.complete && img.naturalWidth === 0 && img.__iconSrc)) {
+      img.__iconFailed = false;
+      loadBuiltinIcon(img, img.__iconSrc, (img.closest('.app') && img.closest('.app').getAttribute('data-app')) || '');
+    }
+  });
+}
+window.addEventListener('online', retryFailedHomeIcons);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) retryFailedHomeIcons(); });
+
 function setAppIconVisual(iconEl, appName, imageData){
   if (!iconEl) return;
   var theme = getHomeIconTheme();
@@ -131,15 +201,34 @@ function setAppIconVisual(iconEl, appName, imageData){
   iconEl.classList.toggle('has-custom-image', !!imageData);
   iconEl.classList.toggle('is-flat', flat && !imageData);
   iconEl.classList.toggle('is-default-icon', builtin);
+  iconEl.classList.remove('is-icon-fallback');
   iconEl.innerHTML = '';
   if (builtin) {
     var dimg = document.createElement('img');
-    dimg.src = DEFAULT_ICON_FILES[appName];
+    var src = DEFAULT_ICON_FILES[appName];
+    var retried = false;
     dimg.alt = '';
+    dimg.width = 192; dimg.height = 192;
     dimg.decoding = 'async';
     dimg.draggable = false;
     dimg.setAttribute('aria-hidden', 'true');
+    /* 加载成功前图片保持透明，不会露出浏览器的「破图」占位；失败时先重试一次，仍失败就用符号占位。 */
+    dimg.onload = function(){ dimg.classList.add('is-loaded'); };
+    dimg.onerror = function(){
+      if (!retried) { retried = true; dimg.src = src + (src.indexOf('?') < 0 ? '?r=' : '&r=') + Date.now(); return; }
+      dimg.onerror = null;
+      iconEl.classList.add('is-icon-fallback');
+      iconEl.innerHTML = '';
+      var fb = document.createElement('span');
+      fb.className = 'flat-glyph';
+      fb.setAttribute('aria-hidden', 'true');
+      if (FLAT_GLYPHS[appName]) fb.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor">' + FLAT_GLYPHS[appName] + '</svg>';
+      else fb.textContent = String(appName || '?').charAt(0);
+      iconEl.appendChild(fb);
+    };
+    dimg.src = src;
     iconEl.appendChild(dimg);
+    if (dimg.complete && dimg.naturalWidth > 0) dimg.classList.add('is-loaded');
   } else if (imageData) {
     var img = document.createElement('img');
     img.src = imageData;
@@ -162,7 +251,17 @@ function setAppIconVisual(iconEl, appName, imageData){
 var HOME_ICONS_READY = false;
 
 function renderHomeAppIcons(){
-  if (!HOME_ICONS_READY) return;
+  if (!HOME_ICONS_READY) {
+    /* 存档还没读完：先用缓存画出内置图标（自定义图片的图标等存档读完后再画），之后相同内容不会重建。 */
+    var cache = readHomeIconCache();
+    if (!cache) return;
+    $$('.home .app').forEach(function(app){
+      var icon = app.querySelector('.app-icon');
+      var name = app.getAttribute('data-app') || '';
+      if (icon && HOME_APP_NAMES.indexOf(name) >= 0 && cache.custom.indexOf(name) < 0) setAppIconVisual(icon, name, '');
+    });
+    return;
+  }
   var a = normalizeHomeAppearance();
   $$('.home .app').forEach(function(app){
     var icon = app.querySelector('.app-icon');
@@ -273,7 +372,7 @@ function applyHomeAppearance(){
   var wallpaper = document.querySelector('.wallpaper');
   applyIslandScale(a);
   if (home) {
-    home.setAttribute('data-icon-theme', a.iconTheme);
+    home.setAttribute('data-icon-theme', HOME_ICONS_READY ? a.iconTheme : getHomeIconTheme());
     home.setAttribute('data-dock-bg', a.dockNoBackground ? 'off' : 'on');
     applyIconLabelStyle(a);
     home.setAttribute('data-icon-labels', a.iconLabels ? 'on' : 'off');
@@ -299,6 +398,7 @@ function applyHomeAppearance(){
     dock.style.setProperty('--dock-effective-alpha', String(Math.max(0, Math.min(1, effectiveAlpha))));
   }
   applyHomeVars(a);
+  if (HOME_ICONS_READY) writeHomeIconCache(a);
   renderHomeAppIcons();
   renderCalendarPhoto();
   renderMusicCover();

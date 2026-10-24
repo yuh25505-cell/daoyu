@@ -62,7 +62,7 @@ function openTransferModal(){
   updateTransferHint('请输入 0.01～99,999,999.99 元。', false);
   pmTransferModal.classList.add('is-open');
   pmTransferModal.setAttribute('aria-hidden','false');
-  requestAnimationFrame(function(){ if (pmTransferAmount) pmTransferAmount.focus(); });
+  /* 打开转账面板时不自动弹出键盘，点击金额框后才弹出。 */
 }
 
 function closeTransferModal(){

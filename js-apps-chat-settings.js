@@ -108,7 +108,7 @@ function openChatRecordSearch(){
   renderChatRecordSearchResults();
   pmChatRecordSearchView.classList.add('is-open');
   pmChatRecordSearchView.setAttribute('aria-hidden', 'false');
-  setTimeout(function(){ if (search) { try { search.focus({preventScroll:true}); } catch(e) { search.focus(); } } }, 40);
+  /* 进入查找聊天记录页面时不自动弹出键盘，点击搜索框后才弹出。 */
 }
 
 function closeChatRecordSearch(){
