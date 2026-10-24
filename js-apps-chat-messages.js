@@ -479,22 +479,40 @@ delete replyInFlight[name];
 if (currentName === name) hideTypingStatus();
 }
 
+/* 正在看这个聊天：聊天页就是它，并且应用在前台。 */
+function chatIsBeingViewed(name){
+  return !!name && currentName === name && !document.hidden;
+}
+
+/* 角色发来的非文字消息（图片、语音、转账、位置、拍一拍等）：从 fromIndex 起新增的 char 消息计入未读。 */
+function bumpUnreadForNewMessages(name, fromIndex){
+  if (!name || chatIsBeingViewed(name)) return;
+  var list = MESSAGES[name]; if (!Array.isArray(list)) return;
+  var added = 0;
+  for (var k = Math.max(0, fromIndex | 0); k < list.length; k++) if (list[k] && list[k].from === 'them') added++;
+  if (!added) return;
+  for (var i = 0; i < CHATS.length; i++) {
+    if (CHATS[i].name === name) { CHATS[i].unread = (Number(CHATS[i].unread) || 0) + added; break; }
+  }
+  renderChats(); saveChats();
+}
+
 /* 角色的一条新消息已写入：不在该聊天页（或应用在后台）时，更新聊天列表未读并逐条弹系统通知。 */
 function announceIncomingMessage(name, msg){
 if (!name || !msg) return;
 var text = String(msg.text || '').trim();
-if (!text) return;
-var viewing = currentName === name && !document.hidden;
-if (currentName !== name) {
+var viewing = chatIsBeingViewed(name);
+if (!viewing) {
   for (var i = 0; i < CHATS.length; i++) {
     if (CHATS[i].name === name) {
-      CHATS[i].preview = text; CHATS[i].time = '刚刚'; CHATS[i].unread = (Number(CHATS[i].unread) || 0) + 1;
+      if (text) CHATS[i].preview = text;
+      CHATS[i].time = '刚刚'; CHATS[i].unread = (Number(CHATS[i].unread) || 0) + 1;
       break;
     }
   }
   renderChats(); saveChats();
 }
-if (viewing) return;
+if (!text || viewing) return;
 var avatar; try { avatar = getAvatar(name); } catch(e) { avatar = undefined; }
 try { Promise.resolve(showCharacterNotification(name, text, avatar, { unique:true })).catch(function(){}); } catch(e){}
 }

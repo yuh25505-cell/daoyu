@@ -36,8 +36,9 @@ function openPM(name){
   syncPMChrome();
   pmView.setAttribute('aria-hidden', 'false');
   var cleared = false;
+  try { updatePMBackBadge(); } catch (e) {}
   for (var i = 0; i < CHATS.length; i++) {
-    if (CHATS[i].name === name && CHATS[i].unread) { CHATS[i].unread = 0; cleared = true; break; }
+    if (CHATS[i].name === name && (CHATS[i].unread || CHATS[i].markedUnread)) { CHATS[i].unread = 0; CHATS[i].markedUnread = false; cleared = true; break; }
   }
   if (cleared) { renderChats(); saveChats(); }
   autoResizeInput();
@@ -157,6 +158,7 @@ function scheduleReply(delay){
       var autoExpandTranslation = getCharAutoExpandTranslation(personaAtRequest);
       var transferResult;
       var segmentItems;
+      var beforeReplyCount = Array.isArray(MESSAGES[nameAtRequest]) ? MESSAGES[nameAtRequest].length : 0;
       if (autoExpandTranslation) {
         var parsedItems = parseCharacterAutoTranslationResponse(text);
         if (!parsedItems) {
@@ -169,6 +171,7 @@ function scheduleReply(delay){
         transferResult = processAiChatDirectives(nameAtRequest, text);
         segmentItems = splitReply(transferResult.text).map(function(item){ return { text:item, translation:'' }; });
       }
+      bumpUnreadForNewMessages(nameAtRequest, beforeReplyCount);
       if (!segmentItems.length) {
         if (transferResult.changed) {
           saveMessages(nameAtRequest); if (currentName === nameAtRequest) { renderMessages(true); scrollBottom(true); } renderChats(); saveChats(); maybeSummarizeShortTermMemory(nameAtRequest);
