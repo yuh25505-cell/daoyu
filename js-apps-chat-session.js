@@ -33,20 +33,29 @@ function openPM(name){
   if (replyInFlight[name]) showTypingStatus();
   if (!Array.isArray(MESSAGES[name])) { MESSAGES[name] = []; saveMessages(name); }
   clearVoiceTranscriptStates();
+  /* 只渲染最近一批消息（更早的向上滑动时再补），再立即显示页面并直接定位到底部，避免进入时卡顿 / 闪动。 */
+  pmRenderLimit = PM_INITIAL_RENDER;
   renderMessages(); closePanel(); setVoiceMode(false);
   pmView.classList.add('is-open');
   document.documentElement.classList.add('pm-open');
-  syncPMChrome();
   pmView.setAttribute('aria-hidden', 'false');
+  if (pmScroll) pmScroll.scrollTop = pmScroll.scrollHeight;
   var cleared = false;
   try { updatePMBackBadge(); } catch (e) {}
   for (var i = 0; i < CHATS.length; i++) {
     if (CHATS[i].name === name && (CHATS[i].unread || CHATS[i].markedUnread)) { CHATS[i].unread = 0; CHATS[i].markedUnread = false; cleared = true; break; }
   }
-  if (cleared) { renderChats(); saveChats(); }
-  autoResizeInput();
   updateAiButtonVisibility();
-  scrollBottom(false);
+  /* 非首屏必需的工作放到下一帧 / 转场之后：读样式、输入框测高、重绘会话列表与落盘。 */
+  requestAnimationFrame(function(){
+    if (currentName !== name) return;
+    syncPMChrome();
+    autoResizeInput();
+    scrollBottom(false);
+  });
+  if (cleared) {
+    setTimeout(function(){ try { renderChats(); saveChats(); } catch (e) {} }, 280);
+  }
 
   // 如果角色之前在别的时间主动发起了语音来电，则进入对应私聊时继续显示系统式来电通知。
   var pendingCall = null;
@@ -1169,6 +1178,9 @@ function bindChatEvents(){
     }
   }
   if (pmScroll) pmScroll.addEventListener('scroll', closeVoiceMessageActionMenu, { passive:true });
+  if (pmScroll) pmScroll.addEventListener('scroll', function(){
+    if (pmScroll.scrollTop < 120 && pmHiddenCount > 0) loadEarlierMessages();
+  }, { passive:true });
   /* 表情包栏 / 加号菜单打开时，点击聊天区任意位置即可收回（不再只能再点一次对应按钮）。
    * 使用捕获阶段且不阻止冒泡，原有的气泡点击行为不受影响；滑动滚动不会触发 click。 */
   if (pmScroll) pmScroll.addEventListener('click', function(){

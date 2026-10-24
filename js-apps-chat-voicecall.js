@@ -36,8 +36,9 @@ function renderVoiceCallAvatar(){
   } else {
     pmVoiceCallAvatar.textContent = name.charAt(0) || '?';
   }
-  if (pmVoiceCallName) pmVoiceCallName.textContent = name;
-  if (pmVoiceCallProfileName) pmVoiceCallProfileName.textContent = name;
+  var shownName = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(name) : name) || name;
+  if (pmVoiceCallName) pmVoiceCallName.textContent = shownName;
+  if (pmVoiceCallProfileName) pmVoiceCallProfileName.textContent = shownName;
 }
 
 

@@ -2,9 +2,27 @@
  * 拆分自原 app.js；所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
 'use strict';
 
+/* 头像 / 图片多为很长的 base64 data URI：每次渲染都内联会让 HTML 解析和图片解码变慢。
+   同一张图只转换一次为 blob URL 并缓存，之后重复使用，浏览器也只解码一次。 */
+var imageSrcCache = Object.create(null);
+function cachedImageSrc(src){
+  src = String(src || '');
+  if (src.length < 4000 || !/^data:image\/[a-z0-9.+-]+;base64,/i.test(src)) return src;
+  var key = src.length + ':' + src.slice(-48) + ':' + src.slice(22, 70);
+  if (imageSrcCache[key]) return imageSrcCache[key];
+  try {
+    var comma = src.indexOf(',');
+    var mime = (src.slice(5, comma).split(';')[0]) || 'image/png';
+    var bin = atob(src.slice(comma + 1));
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return (imageSrcCache[key] = URL.createObjectURL(new Blob([bytes], { type:mime })));
+  } catch(e) { return src; }
+}
+
 function avatarHTML(name, index, avatar, extraClass){
   var deg = 130 + (index * 37) % 120;
-  var inner = avatar ? '<img src="' + avatar + '" alt="">' : escapeHTML(String(name || '?').charAt(0));
+  var inner = avatar ? '<img src="' + cachedImageSrc(avatar) + '" alt="">' : escapeHTML(String(name || '?').charAt(0));
   return '<div class="avatar ' + (extraClass || '') + ' chat-message__avatar" style="--deg:' + deg + 'deg">' + inner + '</div>';
 }
 
@@ -13,7 +31,7 @@ function userAvatarHTML(){
   var u = getActiveUserPersona();
   var sessionAvatar = (typeof getSessionUserAvatar === 'function' && currentName) ? getSessionUserAvatar(currentName) : null;
   var avatar = sessionAvatar || (u && u.avatar) || null;
-  var inner = avatar ? '<img src="' + String(avatar).replace(/"/g, '&quot;') + '" alt="">' : escapeHTML(String(u && (u.name || u.socialId) || '我').charAt(0));
+  var inner = avatar ? '<img src="' + cachedImageSrc(avatar).replace(/"/g, '&quot;') + '" alt="">' : escapeHTML(String(u && (u.name || u.socialId) || '我').charAt(0));
   return '<div class="avatar avatar-sm chat-message__avatar chat-message__user-avatar" data-avatar-owner="user" style="--deg:40deg">' + inner + '</div>';
 }
 

@@ -56,7 +56,7 @@ function updateTransferHint(text, isError){
 function openTransferModal(){
   if (!pmTransferModal || !currentName) return;
   closePanel();
-  if (pmTransferRecipient) pmTransferRecipient.textContent = currentName;
+  if (pmTransferRecipient) pmTransferRecipient.textContent = getSessionCharDisplayName(currentName);
   if (pmTransferAmount) pmTransferAmount.value = '';
   if (pmTransferNote) pmTransferNote.value = '';
   updateTransferHint('请输入 0.01～99,999,999.99 元。', false);

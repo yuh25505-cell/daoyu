@@ -173,7 +173,10 @@ function parseChatRecordDirectiveItems(name, attrs){
 
 function renderMessageQuoteMarkup(quote){
   if (!quote) return '';
-  var author = escapeHTML(quote.from === 'them' ? (quote.author || currentName || '对方') : getActiveUserSocialId());
+  var themAuthor = String(quote.author || '').trim();
+  /* 引用对方消息时：作者是当前 char（或未记录）则始终显示最新备注；备注修改后已有引用也会同步。 */
+  if (!themAuthor || themAuthor === currentName) themAuthor = (currentName ? (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(currentName) : currentName) : '') || '对方';
+  var author = escapeHTML(quote.from === 'them' ? themAuthor : getActiveUserSocialId());
   var content = '';
   if (quote.kind === 'media' && /^(?:data:image\/|https?:\/\/)/i.test(String(quote.mediaUrl || ''))) {
     content = '<span class="pm-quote-media-wrap"><img class="pm-quote-media" src="' + escapeHTML(String(quote.mediaUrl)) + '" alt="图片" loading="lazy"></span>';
@@ -676,7 +679,7 @@ function updateMessageSelectionChrome(){
       back.setAttribute('aria-label', '返回消息');
       back.innerHTML = '<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>';
     }
-    if (title) title.textContent = currentName || '角色';
+    if (title) title.textContent = (currentName ? (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(currentName) : currentName) : '') || '角色';
     if (more) {
       more.setAttribute('aria-label', '设置');
       more.disabled = false;

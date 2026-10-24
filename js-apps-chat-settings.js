@@ -61,7 +61,7 @@ function applySessionWallpaper(name){
   var settings = getSessionChatSettings(name || currentName, false);
   if (settings.wallpaper) {
     view.classList.add('session-has-wallpaper');
-    view.style.setProperty('--pm-session-wallpaper', 'url("' + String(settings.wallpaper).replace(/["\\]/g, '') + '")');
+    view.style.setProperty('--pm-session-wallpaper', 'url("' + cachedImageSrc(settings.wallpaper).replace(/["\\]/g, '') + '")');
   } else {
     view.classList.remove('session-has-wallpaper');
     view.style.removeProperty('--pm-session-wallpaper');
@@ -301,6 +301,7 @@ function jumpToChatRecord(index){
   closePMChatSettings();
   window.setTimeout(function(){
     if (!pmScroll) return;
+    if (typeof ensureMessageRendered === 'function') ensureMessageRendered(index);
     var row = pmScroll.querySelector('[data-message-index="' + Number(index) + '"]');
     if (!row) { toast('这条记录暂时无法定位'); return; }
     try { row.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e) { row.scrollIntoView(); }
@@ -374,7 +375,11 @@ function bindPMChatSettingsEvents(){
       var avatar = $('pmSettingsCharAvatarPreview');
       if (avatar && !settings.charAvatar && !getAvatar(currentName)) avatar.textContent = (settings.charRemark || currentName).slice(0,1);
       clearTimeout(pmChatRecordSearchTimer);
-      pmChatRecordSearchTimer = setTimeout(function(){ persistSessionChat(currentName, true); }, 220);
+      pmChatRecordSearchTimer = setTimeout(function(){
+        persistSessionChat(currentName, true);
+        /* 备注变化后刷新消息列表（引用框里的 char 名、无头像时的首字），并保持当前滚动位置。 */
+        if (pmScroll && typeof renderMessages === 'function') { var keepTop = pmScroll.scrollTop; renderMessages(); pmScroll.scrollTop = keepTop; }
+      }, 220);
     });
     remark.addEventListener('change', function(){ if (currentName) persistSessionChat(currentName, true); });
   }

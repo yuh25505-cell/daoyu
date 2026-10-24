@@ -168,17 +168,14 @@ function bubbleHTML(msg, entering, index){
     }
   } else if (msg && msg.type === 'image' && /^data:image\//i.test(String(msg.url || ''))) {
     var imageViewAttr = msg.from === 'me' ? ' data-media-view-index="' + index + '" role="button" tabindex="0" aria-label="查看图片"' : '';
-    body = '<div class="pm-image-bubble chat-bubble chat-bubble--image' + (msg.from === 'me' ? ' is-media-viewable' : '') + '"' + imageViewAttr + '><img src="' + escapeHTML(String(msg.url)) + '" alt="图片" loading="lazy"></div>';
+    body = '<div class="pm-image-bubble chat-bubble chat-bubble--image' + (msg.from === 'me' ? ' is-media-viewable' : '') + '"' + imageViewAttr + '><img src="' + escapeHTML(cachedImageSrc(msg.url)) + '" alt="图片" loading="lazy" decoding="async"></div>';
   } else if (msg && msg.type === 'image' && String(msg.description || msg.imageText || '').trim()) {
     body = '<button type="button" class="pm-image-text-bubble chat-bubble chat-bubble--image" data-image-text-index="' + index + '" aria-label="查看文字图描述"><span class="pm-image-text-content">文字图</span></button>';
   } else if (msg && msg.type === 'sticker' && /^(?:https?:\/\/|data:image\/)/i.test(String(msg.url || ''))) {
     var stickerViewAttr = msg.from === 'me' ? ' data-media-view-index="' + index + '" role="button" tabindex="0" aria-label="查看表情包"' : '';
-    body = '<div class="pm-sticker-bubble chat-bubble chat-bubble--sticker' + (msg.from === 'me' ? ' is-media-viewable' : '') + '"' + stickerViewAttr + '><img src="' + escapeHTML(String(msg.url)) + '" alt="表情包" loading="lazy"></div>';
+    body = '<div class="pm-sticker-bubble chat-bubble chat-bubble--sticker' + (msg.from === 'me' ? ' is-media-viewable' : '') + '"' + stickerViewAttr + '><img src="' + escapeHTML(cachedImageSrc(msg.url)) + '" alt="表情包" loading="lazy" decoding="async"></div>';
   } else if (msg && msg.type === 'voice') {
-    var blob = getVoiceBlob(msg), audioUrl = '';
-    if (blob && typeof URL !== 'undefined' && URL.createObjectURL) {
-      try { audioUrl = URL.createObjectURL(blob); voiceObjectUrls.push(audioUrl); } catch(e) {}
-    }
+    var audioUrl = getVoiceObjectUrl(msg);
     var duration = Math.max(1, Math.round(Number(msg.duration) || 1));
     var transcript = getVoiceTranscript(msg);
     /* 语音消息默认显示：语音气泡与头像同侧/顶端对齐，识别文字独立放在气泡下方。 */
@@ -195,11 +192,12 @@ function bubbleHTML(msg, entering, index){
         '<span class="pm-voice-play" aria-hidden="true"><img src="https://pic.feria.eu.org/DPr1Sfk0/1000125631.png" alt=""></span>' +
         '<span class="pm-voice-duration">' + formatVoiceMessageDuration(duration) + '</span>' +
       '</' + bubbleTag + '>' +
-      (transcript ? '<div class="pm-voice-transcript chat-message__transcript' + (transcriptOpen ? '' : ' is-collapsed') + '">' + escapeHTML(transcript) + '</div>' : '') +
+      (transcript ? '<div class="pm-voice-transcript chat-message__transcript' + (CJK_TEXT_RE.test(transcript) ? ' pm-transcript--cjk' : '') + (transcriptOpen ? '' : ' is-collapsed') + '">' + escapeHTML(transcript) + '</div>' : '') +
     '</div>';
   } else {
-    var messageText = escapeHTML(msg && msg.text != null ? msg.text : '');
-    body = '<div class="pm-bubble chat-bubble chat-bubble--text">' + messageText + '</div>';
+    var rawMessageText = msg && msg.text != null ? String(msg.text) : '';
+    var messageText = escapeHTML(rawMessageText);
+    body = '<div class="pm-bubble chat-bubble chat-bubble--text' + (CJK_TEXT_RE.test(rawMessageText) ? ' pm-bubble--cjk' : '') + '">' + messageText + '</div>';
   }
   var translationMarkup = '';
   if (msg && msg.translationLoading) {
@@ -308,6 +306,7 @@ function locateQuotedMessage(quoteEl){
   }
   if (targetIndex < 0 && Number.isInteger(index) && index >= 0 && index < list.length) targetIndex = index;
   if (targetIndex < 0) { toast('原消息已不存在'); return; }
+  ensureMessageRendered(targetIndex);
   var row = pmScroll.querySelector('.chat-message[data-message-index="' + targetIndex + '"]');
   if (!row) return;
   try { row.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e) { row.scrollIntoView(); }
@@ -322,6 +321,38 @@ function locateQuotedMessage(quoteEl){
 }
 
 
+/* 私聊首屏只渲染最近一段消息（其余向上滑动时按需补出），进入长聊天记录不再卡顿。 */
+var PM_INITIAL_RENDER = 30, PM_RENDER_STEP = 40;
+var pmRenderLimit = PM_INITIAL_RENDER, pmHiddenCount = 0, pmLoadingEarlier = false;
+var CJK_TEXT_RE = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff\uac00-\ud7af]/;
+
+/* 让指定下标的消息处于已渲染范围内（跳转到较早消息时使用），返回是否成功。 */
+function ensureMessageRendered(index){
+  index = Number(index);
+  var list = MESSAGES[currentName] || [];
+  if (!Number.isInteger(index) || index < 0 || index >= list.length) return false;
+  if (pmScroll && pmScroll.querySelector('.chat-message[data-message-index="' + index + '"]')) return true;
+  var need = 0;
+  for (var i = index; i < list.length; i++) {
+    var it = list[i];
+    if (it && it.type !== 'voice_call' && it.type !== 'voice_call_event') need++;
+  }
+  pmRenderLimit = Math.max(pmRenderLimit, need + 20);
+  renderMessages();
+  return !!(pmScroll && pmScroll.querySelector('.chat-message[data-message-index="' + index + '"]'));
+}
+
+/* 滚动到顶部附近时，向前补出更早的一批消息，并保持当前视觉位置不跳动。 */
+function loadEarlierMessages(){
+  if (!pmScroll || pmLoadingEarlier || pmHiddenCount <= 0) return;
+  pmLoadingEarlier = true;
+  var prevHeight = pmScroll.scrollHeight, prevTop = pmScroll.scrollTop;
+  pmRenderLimit += PM_RENDER_STEP;
+  renderMessages();
+  pmScroll.scrollTop = prevTop + (pmScroll.scrollHeight - prevHeight);
+  requestAnimationFrame(function(){ pmLoadingEarlier = false; });
+}
+
 function renderMessages(enterLast){
   if (!pmScroll) return;
   closeVoiceMessageActionMenu();
@@ -333,8 +364,11 @@ function renderMessages(enterLast){
   });
   pruneMessageSelection();
   updateMessageSelectionChrome();
+  pmHiddenCount = Math.max(0, visibleRows.length - pmRenderLimit);
+  var allVisibleRows = visibleRows;
+  if (pmHiddenCount > 0) visibleRows = visibleRows.slice(pmHiddenCount);
   var aliveVoiceIds = Object.create(null);
-  visibleRows.forEach(function(row){ var item=row.message; if (item && item.type === 'voice' && item.id) aliveVoiceIds[item.id] = true; });
+  allVisibleRows.forEach(function(row){ var item=row.message; if (item && item.type === 'voice' && item.id) aliveVoiceIds[item.id] = true; });
   Object.keys(voiceTranscriptOpen).forEach(function(id){ if (!aliveVoiceIds[id]) delete voiceTranscriptOpen[id]; });
   if (!visibleRows.length) {
     pmScroll.innerHTML = '<div class="pm-empty">还没有消息<br>' +
@@ -364,13 +398,7 @@ function renderMessages(enterLast){
     html += bubbleHTML(msg, !!enterLast && idx === visibleRows.length - 1, row.index);
   });
   pmScroll.innerHTML = html;
-  // 等浏览器完成字体与实际宽度计算后，再判断哪些气泡真的发生了换行。
-  // 这样单行短消息不会被强制两端对齐，多行中文才会按 72% 最大宽度进行视觉上的左右对齐。
-  // 性能：先统一清类、再统一读取、最后统一写入，整批只触发一次排版（原来每个气泡都会强制重排一次）。
-  requestAnimationFrame(function(){
-    measureWrapClasses(pmScroll.querySelectorAll('.pm-bubble'), 'pm-bubble--multiline', 'pm-bubble--latin-only');
-    measureWrapClasses(pmScroll.querySelectorAll('.pm-voice-transcript, .chat-message__transcript'), 'pm-transcript--multiline', 'pm-transcript--latin-only');
-  });
+  /* 气泡换行样式完全由 CSS + 渲染时的文字类型决定，不再逐条测量排版。 */
 }
 
 /* 只更新指定消息的翻译节点，避免为了展开/收起而重建整条消息列表。 */
@@ -458,49 +486,8 @@ function syncVoiceTranscriptDOM(index){
   }
   transcriptEl.textContent = transcript;
   transcriptEl.classList.toggle('is-collapsed', !open);
-  if (open && typeof requestAnimationFrame === 'function') {
-    requestAnimationFrame(function(){
-      if (transcriptEl.isConnected && !transcriptEl.classList.contains('is-collapsed')) {
-        measureWrapClasses([transcriptEl], 'pm-transcript--multiline', 'pm-transcript--latin-only');
-      }
-    });
-  }
+  transcriptEl.classList.toggle('pm-transcript--cjk', CJK_TEXT_RE.test(transcript));
   return transcriptEl;
-}
-
-function measureWrapClasses(list, multiCls, latinCls){
-  var n = list.length, i, el, text, range, rects, tops, r, top, k, found;
-  if (!n) return;
-  var result = new Array(n);
-  for (i = 0; i < n; i++) list[i].classList.remove(multiCls, latinCls);
-  try { range = document.createRange(); } catch(e) { return; }
-  for (i = 0; i < n; i++) {
-    el = list[i];
-    text = el.textContent || '';
-    result[i] = 0;
-    /* 很短又没有换行符的文字不可能折行（气泡最大宽度约 72%），不必测量 */
-    if (text.length <= 6 && text.indexOf('\n') < 0) continue;
-    try {
-      range.selectNodeContents(el);
-      rects = range.getClientRects();
-      tops = [];
-      for (k = 0; k < rects.length; k++) {
-        r = rects[k];
-        if (!(r.width > 0 && r.height > 0)) continue;
-        top = Math.round(r.top * 10) / 10;
-        found = false;
-        for (var q = 0; q < tops.length; q++) { if (tops[q] === top) { found = true; break; } }
-        if (!found) tops.push(top);
-        if (tops.length > 1) break;
-      }
-      if (tops.length > 1) result[i] = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(text) ? 1 : 2;
-    } catch(e) {}
-  }
-  for (i = 0; i < n; i++) {
-    if (!result[i]) continue;
-    list[i].classList.add(multiCls);
-    if (result[i] === 2) list[i].classList.add(latinCls);
-  }
 }
 
 var charAvatarTapState = { element:null, time:0, x:0, y:0 };

@@ -170,7 +170,7 @@ function savePersonaEdit(){
   saveContacts();
   if (currentName === editingPersonaName) {
     currentAvatar = avatarData;
-    if (pmTitle) pmTitle.textContent = editingPersonaName;
+    if (pmTitle) pmTitle.textContent = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(editingPersonaName) : editingPersonaName);
     renderMessages();
   }
   renderChats(); renderContacts();

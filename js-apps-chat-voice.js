@@ -8,6 +8,20 @@ function revokeVoiceObjectUrls(){
 }
 
 
+/* 语音消息的播放地址按消息缓存：每次进入 / 刷新私聊不再重复 base64 解码并创建 blob。 */
+var voiceUrlCache = (typeof WeakMap === 'function') ? new WeakMap() : null;
+function getVoiceObjectUrl(msg){
+  if (!msg) return '';
+  if (voiceUrlCache && voiceUrlCache.has(msg)) return voiceUrlCache.get(msg);
+  var blob = getVoiceBlob(msg), url = '';
+  if (blob && typeof URL !== 'undefined' && URL.createObjectURL) {
+    try { url = URL.createObjectURL(blob); } catch(e) {}
+  }
+  if (voiceUrlCache && url) voiceUrlCache.set(msg, url);
+  else if (url) voiceObjectUrls.push(url);
+  return url;
+}
+
 function getVoiceBlob(msg){
   if (!msg) return null;
   if (msg.audioBlob instanceof Blob) return msg.audioBlob;
