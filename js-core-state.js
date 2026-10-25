@@ -52,7 +52,7 @@ var DEFAULT_HOME_APPEARANCE = {
 };
 
 var DEFAULT_SETTINGS = {
-  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, vision: clone(DEFAULT_VISION), visionQuickKeys: {}, autoRetry: false, activeUserPersonaId: '',
+  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, vision: clone(DEFAULT_VISION), activeVisionPresetId: '', activeVectorEmbeddingPresetId: '', activeVectorRerankPresetId: '', visionQuickKeys: {}, autoRetry: false, activeUserPersonaId: '',
   homeAppearance: clone(DEFAULT_HOME_APPEARANCE),
   sounds: { volume: 80, message: null, call: null },
   memory: { contextDepth: 40, summaryThreshold: 20 },
@@ -133,9 +133,38 @@ function normalizeApiPresetState(){
       }
     }
   });
-  if (!State.settings.activeApiPresetId || !State.settings.apiPresets.some(function(p){ return p.id === State.settings.activeApiPresetId; })) {
-    State.settings.activeApiPresetId = '';
-  }
+  mergeLegacyPresetPools();
+  /* 共用预设池：六处 API 各自记着自己正在用哪个预设，互不影响；预设被删掉时各自的标记失效 */
+  API_PRESET_ACTIVE_KEYS.forEach(function(key){
+    var id = String(State.settings[key] || '');
+    if (!id || !State.settings.apiPresets.some(function(p){ return p.id === id; })) State.settings[key] = '';
+  });
+}
+
+/* 六处 API 在设置里记录「当前用哪个预设」的字段（预设池本身只有一个：State.settings.apiPresets） */
+var API_PRESET_ACTIVE_KEYS = ['activeApiPresetId', 'activeSecondaryApiPresetId', 'activeSttPresetId', 'activeVisionPresetId', 'activeVectorEmbeddingPresetId', 'activeVectorRerankPresetId'];
+
+/* 兼容旧版：副 API / 语音转文字原来各有一份自己的预设列表，这里一次性并入共用预设池（内容相同的合并，不会丢失，也可重复执行） */
+function mergeLegacyPresetPools(){
+  var S = State.settings, pool = S.apiPresets;
+  function sig(p){ return [String(p.baseUrl || '').toLowerCase(), p.apiKey, p.model].join('\n'); }
+  [['secondaryApiPresets', 'activeSecondaryApiPresetId', '副API'], ['sttPresets', 'activeSttPresetId', '语音']].forEach(function(row){
+    var list = Array.isArray(S[row[0]]) ? S[row[0]] : [];
+    if (!list.length) { S[row[0]] = []; return; }
+    var remap = {};
+    list.forEach(function(raw){
+      var p = normalizeApiPreset(raw, pool.length);
+      var same = null;
+      for (var i = 0; i < pool.length; i++) { if (pool[i].id === p.id || sig(pool[i]) === sig(p)) { same = pool[i]; break; } }
+      if (same) { remap[p.id] = same.id; return; }
+      var clash = pool.some(function(q){ return q.name === p.name; });
+      if (clash) p.name = (p.name + '（' + row[2] + '）').slice(0, 40);
+      pool.push(p);
+    });
+    var act = String(S[row[1]] || '');
+    if (act && remap[act]) S[row[1]] = remap[act];
+    S[row[0]] = [];
+  });
 }
 
 function getSecondaryApiConfig(){ return (State.settings && State.settings.secondaryApi) || clone(DEFAULT_API); }
@@ -164,16 +193,15 @@ function normalizeSecondaryApiPreset(raw, index){
 function normalizeSecondaryApiPresetState(){
   if (!State.settings.secondaryApi || typeof State.settings.secondaryApi !== 'object') State.settings.secondaryApi = clone(DEFAULT_API);
   else State.settings.secondaryApi = Object.assign({}, DEFAULT_API, State.settings.secondaryApi);
-  var raw = State.settings && Array.isArray(State.settings.secondaryApiPresets) ? State.settings.secondaryApiPresets : [];
-  State.settings.secondaryApiPresets = raw.map(normalizeSecondaryApiPreset);
+  var pool = State.settings.apiPresets || [];
   var quickKeys = State.settings && State.settings.secondaryApiQuickKeys && typeof State.settings.secondaryApiQuickKeys === 'object'
     ? State.settings.secondaryApiQuickKeys : {};
   State.settings.secondaryApiQuickKeys = quickKeys;
   Object.keys(PRESETS).forEach(function(key){
     if (key === 'custom' || quickKeys[key]) return;
     var p = PRESETS[key];
-    for (var i = 0; i < State.settings.secondaryApiPresets.length; i++) {
-      var saved = State.settings.secondaryApiPresets[i];
+    for (var i = 0; i < pool.length; i++) {
+      var saved = pool[i];
       if (saved && saved.baseUrl && p.baseUrl && saved.baseUrl.toLowerCase() === p.baseUrl.toLowerCase() && saved.apiKey) {
         quickKeys[key] = saved.apiKey;
         break;
@@ -182,7 +210,7 @@ function normalizeSecondaryApiPresetState(){
   });
 
   var activeId = String(State.settings.activeSecondaryApiPresetId || '');
-  var active = State.settings.secondaryApiPresets.find(function(p){ return p.id === activeId; }) || null;
+  var active = pool.find(function(p){ return p.id === activeId; }) || null;
   var current = State.settings.secondaryApi;
   var currentReady = !!(current && String(current.baseUrl || '').trim() && String(current.apiKey || '').trim() && String(current.model || '').trim());
   if (!active && activeId) {
@@ -198,18 +226,6 @@ function normalizeSecondaryApiPresetState(){
     };
     current = State.settings.secondaryApi;
     currentReady = true;
-  }
-  // 没有有效 activeId 时，如果只有已保存的完整副API预设，也恢复第一条。
-  if (!currentReady && !activeId) {
-    var fallback = State.settings.secondaryApiPresets.find(function(p){ return p.baseUrl && p.apiKey && p.model; });
-    if (fallback) {
-      State.settings.activeSecondaryApiPresetId = fallback.id;
-      State.settings.secondaryApi = {
-        enabled: true,
-        baseUrl: fallback.baseUrl, apiKey: fallback.apiKey, model: fallback.model,
-        temperature: fallback.temperature, maxTokens: fallback.maxTokens
-      };
-    }
   }
   State.settings.secondaryApi.enabled = !!(State.settings.secondaryApi.baseUrl && State.settings.secondaryApi.apiKey && State.settings.secondaryApi.model);
 }
@@ -247,10 +263,7 @@ function normalizeSttPreset(raw, index){
 function normalizeSttState(){
   if (!State.settings.stt || typeof State.settings.stt !== 'object') State.settings.stt = clone(DEFAULT_STT);
   else State.settings.stt = Object.assign({}, DEFAULT_STT, State.settings.stt);
-  var raw = State.settings && Array.isArray(State.settings.sttPresets) ? State.settings.sttPresets : [];
-  State.settings.sttPresets = raw.map(normalizeSttPreset);
   State.settings.sttQuickKeys = State.settings && State.settings.sttQuickKeys && typeof State.settings.sttQuickKeys === 'object' ? State.settings.sttQuickKeys : {};
-  if (!State.settings.activeSttPresetId || !State.settings.sttPresets.some(function(p){ return p.id === State.settings.activeSttPresetId; })) State.settings.activeSttPresetId = '';
 }
 
 function isSttReady(){

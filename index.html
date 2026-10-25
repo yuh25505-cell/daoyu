@@ -1358,7 +1358,7 @@
 <div class="settings-section-title">请求</div>
 <div class="appearance-menu">
 <button aria-checked="false" class="appearance-row" id="autoRetryToggle" role="switch" type="button">
-<span class="appearance-copy"><strong>自动重试</strong><em id="autoRetryHint">关闭 · 请求失败时不会自动重发</em></span>
+<span class="appearance-copy"><strong>自动重试</strong></span>
 <span aria-hidden="true" class="appearance-switch"></span>
 </button>
 </div>
@@ -1710,25 +1710,22 @@
 <button class="chip" data-preset="openrouter" type="button">OpenRouter</button>
 <button class="chip" data-preset="custom" type="button">自定义</button>
 </div>
-<div class="api-hint">快捷预设只用于快速填充接口和模型；下面的已保存预设会连同 API Key、温度一起切换。</div>
 </div>
-<div class="api-field saved-preset-field">
+<div class="api-field saved-preset-field api-shared-preset-field">
 <div class="api-field-head">
-<span class="api-label">已保存预设</span>
+<span class="api-label">预设（共用预设池）</span>
 <span class="api-preset-actions">
 <button class="api-hint-btn" id="apiNewPreset" type="button">＋新建预设</button>
 <button class="api-hint-btn" disabled="" id="apiUpdatePreset" type="button">更新当前</button>
 </span>
 </div>
-<div class="saved-preset-list" id="savedPresetList"></div>
-<div class="api-hint" id="savedPresetHint">还没有保存的预设。填写下面的接口信息后，点击“＋新建预设”。选择已有预设后可编辑下面的接口信息，再点击“更新当前”覆盖该预设。</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="apiPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">Base URL</span></div>
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="apiBaseUrl" placeholder="https://api.openai.com/v1" spellcheck="false" type="url"/>
 </div>
-<div class="api-hint" id="apiUrlHint">填写中转站的接口地址。若以 /v1 结尾会自动补 /chat/completions，其他情况补 /v1/chat/completions。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">API Key</span></div>
@@ -1738,7 +1735,6 @@
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
-<div class="api-hint">仅保存在本机 IndexedDB，不会上传到任何服务器。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head">
@@ -1751,7 +1747,6 @@
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="apiModel" placeholder="gpt-4o-mini" spellcheck="false" type="text"/>
 </div>
-<div class="api-hint" id="apiModelHint">如 gpt-4o-mini、deepseek-chat、moonshot-v1-8k、glm-4-flash 等。点右上角可直接拉取该站支持的模型列表。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">温度</span></div>
@@ -1759,14 +1754,12 @@
 <input class="api-slider" id="apiTemp" max="2" min="0" step="0.05" type="range" value="0.85"/>
 <span class="api-slider-value" id="apiTempVal">0.85</span>
 </div>
-<div class="api-hint">越高越有创造力，越低越稳定。角色扮演建议 0.8 ~ 1.1。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">最大回复长度（tokens）</span></div>
 <div class="api-input-wrap">
 <input class="api-input" id="apiMaxTokens" inputmode="numeric" max="32000" min="0" placeholder="0 = 不限制" step="64" type="number"/>
 </div>
-<div class="api-hint">留空或 0 表示不传该字段，由服务端决定。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">输出方式</span></div>
@@ -1776,7 +1769,6 @@
 <option value="on">流式（边生成边接收）</option>
 </select>
 </div>
-<div class="api-hint">中转站常因网关超时（504 / 524）掐断较慢的长回复，遇到这种情况建议改用流式。个别中转站不支持流式时，会自动退回非流式重试。聊天里仍按气泡逐条显示。</div>
 </div>
 <div class="api-actions">
 <button class="api-btn secondary" id="apiTest" type="button">测试连接</button>
@@ -1795,20 +1787,28 @@
 </header>
 <div class="panel-scroll">
 <div class="api-form">
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="sttNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="sttUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="sttPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+</div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">快捷预设</span></div>
 <div class="chips" id="sttPresetChips">
 <button class="chip" data-preset="openai" type="button">OpenAI</button>
 <button class="chip" data-preset="custom" type="button">自定义</button>
 </div>
-<div class="api-hint">这里独立配置“语音 → 文字”的识别服务，不使用聊天 AI 接口。默认按 OpenAI-compatible 的音频转写协议调用。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">Base URL</span></div>
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="sttBaseUrl" placeholder="https://api.openai.com/v1" spellcheck="false" type="url"/>
 </div>
-<div class="api-hint" id="sttUrlHint">填写 API 根地址。若以 /v1 结尾，会自动请求 /audio/transcriptions。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">API Key</span></div>
@@ -1818,7 +1818,6 @@
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
-<div class="api-hint">仅保存在本机 IndexedDB；真正识别时音频会直接从当前设备请求到这里。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head">
@@ -1831,7 +1830,6 @@
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="sttModel" placeholder="gpt-4o-mini-transcribe" spellcheck="false" type="text"/>
 </div>
-<div class="api-hint">推荐选择服务端明确标注为 Speech-to-Text / Transcribe 的模型。模型列表不会自动筛选，以兼容不同中转站。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">语言</span></div>
@@ -1844,21 +1842,18 @@
 <option value="ko">한국어</option>
 </select>
 </div>
-<div class="api-hint">有明确语言时建议指定 ISO-639-1 代码，通常能减少识别延迟并提高准确度。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">提示词（可选）</span></div>
 <div class="api-input-wrap">
 <textarea autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="sttPrompt" placeholder="例如：角色名有“林澈”“小岛”；专有名词尽量保留原写法。" rows="3" spellcheck="false"></textarea>
 </div>
-<div class="api-hint">可放人名、术语、品牌名等，帮助模型理解上下文；不填写时不会上传 prompt 字段。</div>
 </div>
 <div class="api-actions">
 <button class="api-btn secondary" id="sttTest" type="button">测试接口</button>
 <button class="api-btn primary" id="sttSave" type="button">保存</button>
 </div>
 <div class="api-status" id="sttStatus"></div>
-<div class="api-hint stt-note">识别请求使用 multipart/form-data 上传当前录音。浏览器 / APK WebView 必须允许麦克风，并且你的 STT 服务需要允许当前页面的跨域请求（CORS）。</div>
 </div>
 </div>
 </section><section class="settings-panel" data-panel="vision">
@@ -1871,6 +1866,16 @@
 </header>
 <div class="panel-scroll">
 <div class="api-form">
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="visionNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="visionUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="visionPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+</div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">快捷预设</span></div>
 <div class="chips" id="visionPresetChips">
@@ -1879,7 +1884,6 @@
 <button class="chip" data-preset="gemini" type="button">Gemini</button>
 <button class="chip" data-preset="custom" type="button">自定义</button>
 </div>
-<div class="api-hint">独立配置“看图”的模型，用来识别私聊中的表情包和图片。配置并启用后，聊天主模型不再直接收到图片，只收到识图模型给出的文字描述；识别结果会缓存在消息里，同一张图只识别一次。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">识图开关</span></div>
@@ -1895,7 +1899,6 @@
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="visionBaseUrl" placeholder="https://api.openai.com/v1" spellcheck="false" type="url"/>
 </div>
-<div class="api-hint" id="visionUrlHint">填写 API 根地址（可省略 https://）。以 /v1 结尾会自动补 /chat/completions；末尾加 # 表示原样使用。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">API Key</span></div>
@@ -1905,7 +1908,6 @@
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
-<div class="api-hint">仅保存在本机 IndexedDB；识图时图片会直接从当前设备发送到这里。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head">
@@ -1918,7 +1920,6 @@
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="visionModel" placeholder="gpt-4o-mini" spellcheck="false" type="text"/>
 </div>
-<div class="api-hint">必须选择支持图片输入的多模态模型（名称里常带 vision / VL / 4o / gemini 等）。模型列表不会自动筛选，以兼容不同中转站。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">识别范围</span></div>
@@ -1929,21 +1930,18 @@
 <option value="image">只识别图片</option>
 </select>
 </div>
-<div class="api-hint">不在范围内的类型，仍按原来的方式把图片直接发给聊天主模型。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">识别提示词（可选）</span></div>
 <div class="api-input-wrap">
 <textarea autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="visionPrompt" placeholder="留空使用内置提示词：简洁描述画面主体、表情动作、图中文字，并概括表情包想表达的情绪。" rows="4" spellcheck="false"></textarea>
 </div>
-<div class="api-hint">自定义后会同时用于表情包和图片。建议要求“用中文、150 字以内、只描述画面”。</div>
 </div>
 <div class="api-actions">
 <button class="api-btn secondary" id="visionTest" type="button">测试识图</button>
 <button class="api-btn primary" id="visionSave" type="button">保存</button>
 </div>
 <div class="api-status" id="visionStatus"></div>
-<div class="api-hint stt-note">表情包链接需要识图服务能访问，或本设备能跨域读取（会先缩到 1024px 再发送）；读取失败时才会把原链接交给识图服务。识图失败时，聊天模型会收到“未能识别”的提示而不是原图。</div>
 </div>
 </div>
 </section><section class="settings-panel" data-panel="secondaryApi">
@@ -1967,25 +1965,22 @@
 <button class="chip" data-preset="openrouter" type="button">OpenRouter</button>
 <button class="chip" data-preset="custom" type="button">自定义</button>
 </div>
-<div class="api-hint">副API独立保存，与主API互不影响；已保存预设会连同 API Key、温度一起切换。</div>
 </div>
-<div class="api-field saved-preset-field">
+<div class="api-field saved-preset-field api-shared-preset-field">
 <div class="api-field-head">
-<span class="api-label">已保存预设</span>
+<span class="api-label">预设（共用预设池）</span>
 <span class="api-preset-actions">
 <button class="api-hint-btn" id="secondaryNewPreset" type="button">＋新建预设</button>
 <button class="api-hint-btn" disabled="" id="secondaryUpdatePreset" type="button">更新当前</button>
 </span>
 </div>
-<div class="saved-preset-list" id="secondarySavedPresetList"></div>
-<div class="api-hint" id="secondarySavedPresetHint">还没有保存的预设。填写下面的接口信息后，点击“＋新建预设”。选择已有预设后可编辑下面的接口信息，再点击“更新当前”覆盖该副API预设。</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="secondaryPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">Base URL</span></div>
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="secondaryApiBaseUrl" placeholder="https://api.openai.com/v1" spellcheck="false" type="url"/>
 </div>
-<div class="api-hint" id="secondaryApiUrlHint">填写中转站的接口地址。若以 /v1 结尾会自动补 /chat/completions，其他情况补 /v1/chat/completions。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">API Key</span></div>
@@ -1995,7 +1990,6 @@
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 </button>
 </div>
-<div class="api-hint">仅保存在本机 IndexedDB，不会上传到任何服务器。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head">
@@ -2008,7 +2002,6 @@
 <div class="api-input-wrap">
 <input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="secondaryApiModel" placeholder="gpt-4o-mini" spellcheck="false" type="text"/>
 </div>
-<div class="api-hint" id="secondaryApiModelHint">如 gpt-4o-mini、deepseek-chat、moonshot-v1-8k、glm-4-flash 等。点右上角可直接拉取该站支持的模型列表。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">温度</span></div>
@@ -2016,14 +2009,12 @@
 <input class="api-slider" id="secondaryApiTemp" max="2" min="0" step="0.05" type="range" value="0.85"/>
 <span class="api-slider-value" id="secondaryApiTempVal">0.85</span>
 </div>
-<div class="api-hint">越高越有创造力，越低越稳定。角色扮演建议 0.8 ~ 1.1。</div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">最大回复长度（tokens）</span></div>
 <div class="api-input-wrap">
 <input class="api-input" id="secondaryApiMaxTokens" inputmode="numeric" max="32000" min="0" placeholder="0 = 不限制" step="64" type="number"/>
 </div>
-<div class="api-hint">留空或 0 表示不传该字段，由服务端决定。</div>
 </div>
 <div class="api-actions">
 <button class="api-btn secondary" id="secondaryApiTest" type="button">测试连接</button>
@@ -2035,10 +2026,20 @@
 </section><section class="settings-panel" data-panel="vectorMemoryApi">
 <header class="panel-head"><button aria-label="返回设置" class="ph-btn js-vector-memory-api-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">向量记忆 API</h1><div class="ph-actions"></div></header>
 <div class="panel-scroll"><div class="api-form">
-<div class="api-field"><div class="api-field-head"><span class="api-label">接口地址</span></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorEmbeddingApiBaseUrl" placeholder="https://api.openai.com/v1/embeddings" spellcheck="false" type="url"/></div><div class="api-hint" id="vectorEmbeddingApiUrlHint">可填写完整 /embeddings 地址；若填写到 /v1，系统会自动补 /embeddings。</div></div>
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="vectorEmbeddingNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="vectorEmbeddingUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="vectorEmbeddingPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+</div>
+<div class="api-field"><div class="api-field-head"><span class="api-label">接口地址</span></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorEmbeddingApiBaseUrl" placeholder="https://api.openai.com/v1/embeddings" spellcheck="false" type="url"/></div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">API Key</span></div><div class="api-input-wrap"><input autocomplete="off" class="api-input" id="vectorEmbeddingApiKey" placeholder="sk-…" type="password"/></div></div>
-<div class="api-field"><div class="api-field-head"><span class="api-label">Embedding 模型</span><button class="api-hint-btn" id="vectorEmbeddingFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorEmbeddingApiModel" placeholder="text-embedding-3-small"/></div><div class="api-hint">支持返回 OpenAI 风格 <code>/models</code> 列表的服务；模型列表不会强制筛选，可兼容中转站和自建接口。</div></div>
-<div class="api-field"><div class="api-field-head"><span class="api-label">召回参数</span></div><div class="vector-memory-setting-grid"><label><span>最终条数</span><input class="api-input" id="vectorMemoryTopK" inputmode="numeric" min="1" max="30" type="number" value="8"/></label><label><span>候选条数</span><input class="api-input" id="vectorMemoryCandidateK" inputmode="numeric" min="1" max="100" type="number" value="24"/></label><label><span>相似度阈值</span><input class="api-input" id="vectorMemorySimilarityThreshold" inputmode="decimal" min="-1" max="1" step="0.01" type="number" value="0.18"/></label></div><div class="api-hint">先从向量库取候选，再可调用重排 API；候选数量应大于等于最终条数。</div></div>
+<div class="api-field"><div class="api-field-head"><span class="api-label">Embedding 模型</span><button class="api-hint-btn" id="vectorEmbeddingFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorEmbeddingApiModel" placeholder="text-embedding-3-small"/></div></div>
+<div class="api-field"><div class="api-field-head"><span class="api-label">召回参数</span></div><div class="vector-memory-setting-grid"><label><span>最终条数</span><input class="api-input" id="vectorMemoryTopK" inputmode="numeric" min="1" max="30" type="number" value="8"/></label><label><span>候选条数</span><input class="api-input" id="vectorMemoryCandidateK" inputmode="numeric" min="1" max="100" type="number" value="24"/></label><label><span>相似度阈值</span><input class="api-input" id="vectorMemorySimilarityThreshold" inputmode="decimal" min="-1" max="1" step="0.01" type="number" value="0.18"/></label></div></div>
 <div class="api-actions"><button class="api-btn secondary" id="vectorEmbeddingApiTest" type="button">测试连接</button><button class="api-btn primary" id="vectorEmbeddingApiSave" type="button">保存设置</button></div>
 <div class="api-status" id="vectorEmbeddingApiStatus"></div>
 </div></div>
@@ -2046,10 +2047,19 @@
 <section class="settings-panel" data-panel="vectorRerankApi">
 <header class="panel-head"><button aria-label="返回设置" class="ph-btn js-vector-rerank-api-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">重排 API</h1><div class="ph-actions"></div></header>
 <div class="panel-scroll"><div class="api-form">
-<div class="api-field"><div class="api-field-head"><span class="api-label">接口地址</span></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorRerankApiBaseUrl" placeholder="https://your-rerank-service/v1/rerank" spellcheck="false" type="url"/></div><div class="api-hint" id="vectorRerankApiUrlHint">支持常见 rerank 接口：POST {model, query, documents, top_n}，兼容 /rerank 结尾地址。</div></div>
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="vectorRerankNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="vectorRerankUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="vectorRerankPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+</div>
+<div class="api-field"><div class="api-field-head"><span class="api-label">接口地址</span></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorRerankApiBaseUrl" placeholder="https://your-rerank-service/v1/rerank" spellcheck="false" type="url"/></div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">API Key</span></div><div class="api-input-wrap"><input autocomplete="off" class="api-input" id="vectorRerankApiKey" placeholder="sk-…" type="password"/></div></div>
-<div class="api-field"><div class="api-field-head"><span class="api-label">重排模型</span><button class="api-hint-btn" id="vectorRerankFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorRerankApiModel" placeholder="BAAI/bge-reranker-v2-m3"/></div><div class="api-hint">支持返回 OpenAI 风格 <code>/models</code> 列表的服务；模型列表不会强制筛选，便于兼容不同 Rerank 服务。</div></div>
-<div class="api-field"><div class="api-note-card">聊天时会把向量召回的候选记忆交给该接口重新排序；未配置重排 API 时，系统自动使用向量相似度排序，不影响基本功能。</div></div>
+<div class="api-field"><div class="api-field-head"><span class="api-label">重排模型</span><button class="api-hint-btn" id="vectorRerankFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorRerankApiModel" placeholder="BAAI/bge-reranker-v2-m3"/></div></div>
 <div class="api-actions"><button class="api-btn secondary" id="vectorRerankApiTest" type="button">测试连接</button><button class="api-btn primary" id="vectorRerankApiSave" type="button">保存设置</button></div>
 <div class="api-status" id="vectorRerankApiStatus"></div>
 </div></div>
