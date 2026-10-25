@@ -339,6 +339,13 @@ function testVisionConnection(){
 }
 
 
+function renderAutoRetryToggle(){
+  var on = !!(State.settings && State.settings.autoRetry === true);
+  var t = $('autoRetryToggle'), h = $('autoRetryHint');
+  if (t) { t.classList.toggle('is-on', on); t.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  if (h) h.textContent = on ? '已开启 · 遇到 429 / 502 / 503 / 504 或网络抖动时自动重发一次' : '关闭 · 请求失败时不会自动重发';
+}
+
 function fillApiForm(){
   var c = getApiConfig();
   var elUrl = $('apiBaseUrl'), elKey = $('apiKey'), elModel = $('apiModel');
@@ -351,7 +358,6 @@ function fillApiForm(){
   if (elTempV) elTempV.textContent = Number(elTemp ? elTemp.value : 0.85).toFixed(2);
   if (elMax) elMax.value = (c.maxTokens && c.maxTokens > 0) ? c.maxTokens : '';
   var elStream = $('apiStream'); if (elStream) elStream.value = c.stream ? 'on' : 'off';
-  var elRetry = $('apiAutoRetry'); if (elRetry) elRetry.value = (State.settings && State.settings.autoRetry === true) ? 'on' : 'off';
   updateApiUrlHint(); highlightPreset(); renderSavedPresets(); updateSavedPresetButton(); setApiStatus('', '');
 }
 
@@ -1026,7 +1032,13 @@ function bindSettingsApiEvents(){
   var sttTest = $('sttTest'); if (sttTest) sttTest.addEventListener('click', testSttConnection);
   var sttSave = $('sttSave'); if (sttSave) sttSave.addEventListener('click', saveSttForm);
   var sttFetch = $('sttFetchModels'); if (sttFetch) sttFetch.addEventListener('click', function(){ fetchModels('stt'); });
-  var apiAutoRetry = $('apiAutoRetry'); if (apiAutoRetry) apiAutoRetry.addEventListener('change', function(){ State.settings.autoRetry = apiAutoRetry.value === 'on'; saveSettings().then(function(){ toast(State.settings.autoRetry ? '自动重试已开启' : '自动重试已关闭'); }); });
+  var autoRetryToggle = $('autoRetryToggle');
+  if (autoRetryToggle) autoRetryToggle.addEventListener('click', function(){
+    State.settings.autoRetry = !(State.settings.autoRetry === true);
+    renderAutoRetryToggle();
+    saveSettings().then(function(){ toast(State.settings.autoRetry ? '自动重试已开启' : '自动重试已关闭'); });
+  });
+  enhanceSettingsSelects();
   var gotoVision = $('gotoVision');
   if (gotoVision) gotoVision.addEventListener('click', function(){ fillVisionForm(); switchSettingsPanel('vision'); });
   $$('.js-vision-back').forEach(function(btn){ btn.addEventListener('click', function(){ closeModelSheet(); switchSettingsPanel('main'); }); });

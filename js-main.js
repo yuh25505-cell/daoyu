@@ -333,6 +333,7 @@ function init(){
     refreshVectorMemoryApiState();
     refreshSttState();
     refreshVisionState();
+    renderAutoRetryToggle();
     renderNotificationSettings();
     return yieldToPaint();
   }).then(function(){
@@ -357,6 +358,7 @@ function init(){
     refreshVectorMemoryApiState();
     refreshSttState();
     refreshVisionState();
+    renderAutoRetryToggle();
   });
 }
 

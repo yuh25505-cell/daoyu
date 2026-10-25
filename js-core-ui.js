@@ -170,3 +170,114 @@ function closeIslandDialog(result){
     showNextIslandDialog();
   }, 190);
 }
+
+
+/* ---------- 岛屿专属单选弹窗（替代系统 <select> 下拉）----------
+ * islandSelect([{value,label}], {title, value}).then(function(v){ v === null 表示取消 })
+ * enhanceIslandSelect(selectEl, title)：隐藏原生 <select>，换成一个点击后弹出岛屿弹窗的按钮；
+ * 原 select 仍留在 DOM 里，value / change 事件照常工作，代码里直接 select.value = 'x' 也会同步显示。 */
+var islandSelectEl = null, islandSelectResolve = null, islandSelectHideTimer = 0;
+
+function ensureIslandSelect(){
+  if (islandSelectEl) return islandSelectEl;
+  var el = document.createElement('div');
+  el.className = 'island-dialog island-select-dialog';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML =
+    '<div class="island-dialog-backdrop"></div>' +
+    '<section class="island-dialog-panel island-select-panel" role="dialog" aria-modal="true">' +
+      '<h3 class="island-dialog-title"></h3>' +
+      '<div class="island-select-list" role="listbox"></div>' +
+      '<div class="island-dialog-actions"><button type="button" class="island-dialog-btn is-cancel">取消</button></div>' +
+    '</section>';
+  document.body.appendChild(el);
+  el.querySelector('.island-dialog-backdrop').addEventListener('click', function(){ closeIslandSelect(null); });
+  el.querySelector('.is-cancel').addEventListener('click', function(){ closeIslandSelect(null); });
+  el.querySelector('.island-select-list').addEventListener('click', function(e){
+    var item = e.target.closest('.island-select-item');
+    if (item) closeIslandSelect(item.dataset.value);
+  });
+  document.addEventListener('keydown', function(e){
+    if (islandSelectResolve && (e.key === 'Escape' || e.key === 'Esc')) { e.preventDefault(); closeIslandSelect(null); }
+  });
+  islandSelectEl = el;
+  return el;
+}
+
+function islandSelect(options, opts){
+  opts = opts || {};
+  if (islandSelectResolve) closeIslandSelect(null);
+  return new Promise(function(resolve){
+    var el = ensureIslandSelect();
+    clearTimeout(islandSelectHideTimer);
+    var title = el.querySelector('.island-dialog-title');
+    title.textContent = opts.title || ''; title.hidden = !opts.title;
+    var cur = opts.value == null ? '' : String(opts.value);
+    el.querySelector('.island-select-list').innerHTML = (options || []).map(function(o){
+      var on = String(o.value) === cur;
+      return '<button type="button" class="island-select-item' + (on ? ' is-on' : '') + '" role="option" aria-selected="' + (on ? 'true' : 'false') + '" data-value="' + escapeHTML(String(o.value)) + '">' +
+        '<span>' + escapeHTML(String(o.label)) + '</span>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>' +
+      '</button>';
+    }).join('');
+    islandSelectResolve = resolve;
+    el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
+    void el.offsetWidth; el.classList.add('is-show');
+  });
+}
+
+function closeIslandSelect(value){
+  var resolve = islandSelectResolve;
+  if (!resolve || !islandSelectEl) return;
+  islandSelectResolve = null;
+  var el = islandSelectEl;
+  el.classList.remove('is-show'); el.setAttribute('aria-hidden', 'true');
+  try { resolve(value); } catch(e) {}
+  clearTimeout(islandSelectHideTimer);
+  islandSelectHideTimer = setTimeout(function(){ if (!islandSelectResolve) el.classList.remove('is-open'); }, 190);
+}
+
+function enhanceIslandSelect(sel, title){
+  if (!sel || sel.__islandSelect) return;
+  sel.__islandSelect = true;
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'island-select-trigger';
+  btn.innerHTML = '<span class="island-select-trigger-text"></span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg>';
+  var text = btn.querySelector('.island-select-trigger-text');
+  function sync(){
+    var o = sel.options[sel.selectedIndex];
+    text.textContent = o ? o.textContent : '';
+  }
+  sel.style.display = 'none';
+  sel.parentNode.insertBefore(btn, sel.nextSibling);
+  /* 代码里给 select.value 赋值时同步按钮文字 */
+  try {
+    var desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    Object.defineProperty(sel, 'value', {
+      configurable: true,
+      get: function(){ return desc.get.call(sel); },
+      set: function(v){ desc.set.call(sel, v); sync(); }
+    });
+  } catch(e) {}
+  sel.addEventListener('change', sync);
+  btn.addEventListener('click', function(e){
+    e.preventDefault(); e.stopPropagation();
+    var label = sel.closest('label'); 
+    var heading = title || (label && label.querySelector('span') ? label.querySelector('span').textContent : '');
+    if (!heading) { var f = sel.closest('.api-field'); var l = f && f.querySelector('.api-label'); heading = l ? l.textContent : ''; }
+    var options = Array.prototype.map.call(sel.options, function(o){ return { value: o.value, label: o.textContent }; });
+    islandSelect(options, { title: heading, value: sel.value }).then(function(v){
+      if (v === null || v === sel.value) return;
+      sel.value = v;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+  sync();
+}
+
+function enhanceSettingsSelects(){
+  ['apiStream','sttLanguage','visionEnabled','visionScope','notificationMinInterval','notificationMaxInterval'].forEach(function(id){
+    var el = document.getElementById(id); if (el) enhanceIslandSelect(el);
+  });
+}

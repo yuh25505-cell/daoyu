@@ -110,6 +110,7 @@ function switchSettingsPanel(name){
   if (name === 'main' || name === 'vectorMemoryApi' || name === 'vectorRerankApi') refreshVectorMemoryApiState();
   if (name === 'stt') refreshSttState();
   if (name === 'vision') refreshVisionState();
+  if (name === 'main') renderAutoRetryToggle();
   if (name === 'about') refreshChangelog(true);
 }
 

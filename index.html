@@ -1355,6 +1355,13 @@
 <svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
 </button>
 </div>
+<div class="settings-section-title">请求</div>
+<div class="appearance-menu">
+<button aria-checked="false" class="appearance-row" id="autoRetryToggle" role="switch" type="button">
+<span class="appearance-copy"><strong>自动重试</strong><em id="autoRetryHint">关闭 · 请求失败时不会自动重发</em></span>
+<span aria-hidden="true" class="appearance-switch"></span>
+</button>
+</div>
 <div class="settings-section-title">系统</div>
 <div class="me-menu">
 <button class="me-item" id="openAppearance" type="button">
@@ -1770,16 +1777,6 @@
 </select>
 </div>
 <div class="api-hint">中转站常因网关超时（504 / 524）掐断较慢的长回复，遇到这种情况建议改用流式。个别中转站不支持流式时，会自动退回非流式重试。聊天里仍按气泡逐条显示。</div>
-</div>
-<div class="api-field">
-<div class="api-field-head"><span class="api-label">自动重试</span></div>
-<div class="api-input-wrap">
-<select class="api-input api-select" id="apiAutoRetry">
-<option value="off">关闭（默认）</option>
-<option value="on">开启</option>
-</select>
-</div>
-<div class="api-hint">开启后，遇到 429、502、503、504 或网络抖动时自动重发一次。对所有 AI 请求生效，切换后立即保存。</div>
 </div>
 <div class="api-actions">
 <button class="api-btn secondary" id="apiTest" type="button">测试连接</button>

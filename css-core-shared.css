@@ -168,3 +168,19 @@ html[data-theme="dark"] .island-dialog-btn.is-cancel{ background:#303034; color:
 /* ===== 日间纯白弹窗（通用）：对话框 / 底部抽屉。夜间 --pop-bg 为 initial，回退到原来的 var(--bg)，夜间不变。 ===== */
 .island-dialog-panel{ background:var(--pop-bg, var(--bg)); }
 .sheet{ background:var(--pop-bg, var(--bg)); }
+
+
+/* ---------- 岛屿专属单选弹窗 ---------- */
+.island-select-panel{ text-align:left; padding:20px 14px 14px; }
+.island-select-panel .island-dialog-title{ text-align:center; margin-bottom:10px; }
+.island-select-list{ display:flex; flex-direction:column; gap:2px; max-height:52vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.island-select-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; box-sizing:border-box; padding:13px 12px; border:0; border-radius:12px; background:transparent; color:var(--fg); font:inherit; font-size:calc(15px * var(--island-font-size-scale)); text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.island-select-item:active{ background:var(--bubble-bg); }
+.island-select-item svg{ width:18px; height:18px; flex:none; opacity:0; }
+.island-select-item.is-on{ font-weight:var(--island-fw-600); background:var(--bubble-bg); }
+.island-select-item.is-on svg{ opacity:1; }
+.island-select-panel .island-dialog-actions{ margin-top:12px; }
+.island-select-trigger{ display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; box-sizing:border-box; padding:12px 12px 12px 14px; border:0; background:transparent; color:var(--fg); font:inherit; text-align:left; cursor:pointer; outline:none; -webkit-tap-highlight-color:transparent; }
+.island-select-trigger-text{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.island-select-trigger-chev{ width:16px; height:16px; flex:none; opacity:.55; }
+.notification-field .island-select-trigger{ width:auto; padding:0; justify-content:flex-end; text-align:right; }
