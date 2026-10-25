@@ -591,8 +591,7 @@ function ensureApiPresetPicker(){
     '<section class="island-dialog-panel island-select-panel" role="dialog" aria-modal="true">' +
       '<h3 class="island-dialog-title"></h3>' +
       '<div class="api-pp-list" role="listbox"></div>' +
-      '<div class="api-pp-note"></div>' +
-      '<div class="island-dialog-actions"><button type="button" class="island-dialog-btn is-cancel">关闭</button></div>' +
+            '<div class="island-dialog-actions"><button type="button" class="island-dialog-btn is-cancel">关闭</button></div>' +
     '</section>';
   document.body.appendChild(el);
   el.querySelector('.island-dialog-backdrop').addEventListener('click', closeApiPresetPicker);
@@ -634,7 +633,6 @@ function openApiPresetPicker(kind){
       '</div>';
     }).join('');
   }
-  el.querySelector('.api-pp-note').textContent = '共用预设池 · 选中后只对' + sec.label + '生效；删除预设会从所有 API 的预设列表里移除。';
   clearTimeout(apiPresetPickerHideTimer);
   el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
   void el.offsetWidth; el.classList.add('is-show');
