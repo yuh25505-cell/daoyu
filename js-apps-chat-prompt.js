@@ -192,6 +192,25 @@ function buildMessages(name, options){
       return;
     }
     var role = m.from === 'me' ? 'user' : 'assistant';
+    if (m && (m.type === 'image' || m.type === 'sticker') && isVisionReady() && visionScopeAllows(m.type) && /^(?:data:image\/|https?:\/\/)/i.test(String(m.url || ''))) {
+      /* 已配置识图 API：聊天主模型只收到文字描述，不再直接收到图片 */
+      var visWho = role === 'user' ? '用户' : '角色';
+      var visKind = m.type === 'sticker' ? '表情包' : '图片';
+      var visName = m.type === 'sticker' ? findStickerNameByUrl(String(m.url || '')) : '';
+      var visText;
+      if (m.visionText) {
+        visText = '【' + visWho + '发送了一' + (m.type === 'sticker' ? '个' : '张') + visKind + '】\n' +
+          (visName ? visKind + '名称：' + visName + '\n' : '') +
+          '画面内容（由识图模型识别）：' + m.visionText + '\n' +
+          '请把它当作真实聊天中收到的' + visKind + '来理解其情绪与含义并自然回应；不要说自己看不到图片，也不要提及“识图”“描述”这些幕后过程。';
+      } else {
+        visText = '【' + visWho + '发送了一' + (m.type === 'sticker' ? '个' : '张') + visKind + '】' +
+          (visName ? '（' + visKind + '名称：' + visName + '）' : '') +
+          '当前没能识别出画面内容，请不要猜测具体画面；可以自然地回应对方发来了' + visKind + '这件事。';
+      }
+      out.push({ role: role, content: visText });
+      return;
+    }
     if (m && m.type === 'image') {
       var imageUrl = String(m.url || '').trim();
       var imageDesc = String(m.description || m.imageText || '').trim();

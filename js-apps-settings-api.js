@@ -198,7 +198,7 @@ function testSttConnection(){
   var url = normalizeModelsUrl(draft.baseUrl);
   setSttStatus('warn','正在测试模型接口 ' + url + ' …');
   if (btn) { btn.disabled = true; btn.textContent = '测试中…'; }
-  fetch(url, { method:'GET', headers:{ 'Authorization':'Bearer ' + draft.apiKey, 'Accept':'application/json' } }).then(function(res){
+  fetch(url, { method:'GET', headers:{ 'Authorization':'Bearer ' + cleanApiKey(draft.apiKey), 'Accept':'application/json' } }).then(function(res){
     return res.text().then(function(text){
       if (!res.ok) throw new Error(httpErrorText(res.status, text));
       var json; try { json = JSON.parse(text); } catch(e){ throw new Error('响应不是合法 JSON\n' + text.slice(0, 220)); }
@@ -207,6 +207,135 @@ function testSttConnection(){
       toast('STT 接口连接成功');
     });
   }).catch(function(err){ setSttStatus('err','✗ 测试失败：\n' + (err && err.message ? err.message : '未知错误')); toast('STT 接口连接失败'); }).then(function(){ if(btn){btn.disabled=false;btn.textContent='测试接口';} });
+}
+
+
+/* ───────────── 识图 API（独立配置，用来识别私聊里的表情包 / 图片） ───────────── */
+
+function fillVisionForm(){
+  normalizeVisionState();
+  var c = getVisionConfig();
+  var elUrl = $('visionBaseUrl'), elKey = $('visionApiKey'), elModel = $('visionModel'), elScope = $('visionScope'), elPrompt = $('visionPrompt'), elOn = $('visionEnabled');
+  if (elUrl) elUrl.value = c.baseUrl || '';
+  if (elKey) elKey.value = c.apiKey || '';
+  if (elModel) elModel.value = c.model || '';
+  if (elScope) elScope.value = c.scope || 'all';
+  if (elPrompt) elPrompt.value = c.prompt || '';
+  if (elOn) elOn.value = (c.enabled || !(c.baseUrl && c.apiKey && c.model)) ? 'on' : 'off';
+  updateVisionUrlHint(); highlightVisionPreset(); setVisionStatus('', '');
+}
+
+function readVisionForm(){
+  var c = getVisionConfig();
+  var elUrl = $('visionBaseUrl'), elKey = $('visionApiKey'), elModel = $('visionModel'), elScope = $('visionScope'), elPrompt = $('visionPrompt'), elOn = $('visionEnabled');
+  c.baseUrl = elUrl ? elUrl.value.trim() : '';
+  c.apiKey = elKey ? elKey.value.trim() : '';
+  c.model = elModel ? elModel.value.trim() : '';
+  c.scope = elScope ? elScope.value : 'all';
+  if (c.scope !== 'all' && c.scope !== 'sticker' && c.scope !== 'image') c.scope = 'all';
+  c.prompt = elPrompt ? elPrompt.value.trim() : '';
+  c.enabled = !!(c.baseUrl && c.apiKey && c.model) && (!elOn || elOn.value === 'on');
+  return c;
+}
+
+function updateVisionUrlHint(){
+  var el = $('visionUrlHint'), input = $('visionBaseUrl');
+  if (!el || !input) return;
+  var raw = input.value.trim();
+  el.textContent = raw ? ('将请求：' + previewEndpoint(raw)) : '填写 API 根地址（可省略 https://）。以 /v1 结尾会自动补 /chat/completions；末尾加 # 表示原样使用。';
+}
+
+function setVisionStatus(kind, text){
+  var el = $('visionStatus'); if (!el) return;
+  el.className = 'api-status';
+  if (!text) { el.textContent = ''; return; }
+  el.classList.add('show');
+  if (kind) el.classList.add(kind);
+  el.textContent = text;
+}
+
+function highlightVisionPreset(){
+  var c = getVisionConfig(), hit = null;
+  Object.keys(VISION_PRESETS).forEach(function(k){
+    if (k === 'custom') return;
+    var p = VISION_PRESETS[k];
+    if (p.baseUrl && c.baseUrl && p.baseUrl.toLowerCase() === c.baseUrl.toLowerCase()) hit = k;
+  });
+  $$('#visionPresetChips .chip').forEach(function(chip){ chip.classList.toggle('is-on', chip.dataset.preset === hit); });
+}
+
+function applyVisionPreset(key){
+  var p = VISION_PRESETS[key]; if (!p) return;
+  var elUrl = $('visionBaseUrl'), elKey = $('visionApiKey'), elModel = $('visionModel');
+  if (key === 'custom') {
+    if (elUrl) elUrl.value = '';
+    if (elModel) elModel.value = '';
+    if (elKey) elKey.value = '';
+  } else {
+    if (elUrl) elUrl.value = p.baseUrl || '';
+    if (elModel) elModel.value = p.model || '';
+    var quickKey = State.settings && State.settings.visionQuickKeys ? String(State.settings.visionQuickKeys[key] || '') : '';
+    if (elKey) elKey.value = quickKey;
+  }
+  updateVisionUrlHint(); highlightVisionPreset(); releaseInputFocus();
+}
+
+function rememberVisionQuickKey(){
+  var c = getVisionConfig();
+  if (!c || !c.baseUrl || !c.apiKey || !State.settings) return;
+  if (!State.settings.visionQuickKeys || typeof State.settings.visionQuickKeys !== 'object') State.settings.visionQuickKeys = {};
+  Object.keys(VISION_PRESETS).forEach(function(key){
+    if (key === 'custom') return;
+    var p = VISION_PRESETS[key];
+    if (p.baseUrl && c.baseUrl && p.baseUrl.toLowerCase() === c.baseUrl.toLowerCase()) State.settings.visionQuickKeys[key] = c.apiKey;
+  });
+}
+
+function saveVisionForm(){
+  var c = readVisionForm();
+  if (!c.baseUrl || !c.apiKey || !c.model) { setVisionStatus('err', '三项必填：Base URL、API Key、识图模型。'); return; }
+  State.settings.vision = c;
+  rememberVisionQuickKey();
+  saveSettings().then(function(){
+    refreshVisionState(); highlightVisionPreset();
+    setVisionStatus('ok', c.enabled
+      ? '✓ 已保存并启用。私聊里的' + (c.scope === 'sticker' ? '表情包' : c.scope === 'image' ? '图片' : '表情包和图片') + '会先由识图模型转成文字，再交给聊天模型。'
+      : '✓ 已保存（当前为关闭状态，聊天仍按原方式直接发图给主模型）。');
+    toast('识图 API 已保存');
+  });
+}
+
+/* 现画一张测试图（蓝底白字 OK + 红圆），不依赖任何外部图片 */
+function makeVisionTestImage(){
+  var canvas = document.createElement('canvas'); canvas.width = 192; canvas.height = 192;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#2563eb'; ctx.fillRect(0, 0, 192, 192);
+  ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(96, 70, 38, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 56px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('OK', 96, 148);
+  return canvas.toDataURL('image/png');
+}
+
+function testVisionConnection(){
+  var btn = $('visionTest'), draft = readVisionForm();
+  if (!draft.baseUrl || !draft.apiKey || !draft.model) { setVisionStatus('err', '请先填写 Base URL、API Key 和识图模型。'); return; }
+  var url = normalizeBaseUrl(draft.baseUrl);
+  setVisionStatus('warn', '正在用一张测试图请求 ' + url + ' …');
+  if (btn) { btn.disabled = true; btn.textContent = '测试中…'; }
+  var started = Date.now();
+  var messages = [{ role: 'user', content: [
+    { type: 'text', text: '请用一句中文描述这张图片（颜色、形状、文字）。' },
+    { type: 'image_url', image_url: { url: makeVisionTestImage() } }
+  ] }];
+  callApiOnce(messages, buildVisionConfig(draft)).then(function(text){
+    var ms = Date.now() - started; text = String(text || '').trim();
+    if (!text) setVisionStatus('warn', '接口通了（' + ms + 'ms），但模型返回为空。该模型可能不支持图片输入。');
+    else setVisionStatus('ok', '✓ 识图可用（' + ms + 'ms）\n模型看到的：' + text.slice(0, 160));
+    toast('识图 API 连接成功');
+  }).catch(function(err){
+    setVisionStatus('err', '✗ 测试失败：\n' + (err && err.message ? err.message : '未知错误') + '\n\n请确认所选模型支持图片输入（vision / VL / 多模态）。');
+    toast('识图 API 连接失败');
+  }).then(function(){ if (btn) { btn.disabled = false; btn.textContent = '测试识图'; } });
 }
 
 
@@ -221,6 +350,8 @@ function fillApiForm(){
   if (elTemp) elTemp.value = (typeof c.temperature === 'number' ? c.temperature : 0.85);
   if (elTempV) elTempV.textContent = Number(elTemp ? elTemp.value : 0.85).toFixed(2);
   if (elMax) elMax.value = (c.maxTokens && c.maxTokens > 0) ? c.maxTokens : '';
+  var elStream = $('apiStream'); if (elStream) elStream.value = c.stream ? 'on' : 'off';
+  var elRetry = $('apiAutoRetry'); if (elRetry) elRetry.value = (State.settings && State.settings.autoRetry === true) ? 'on' : 'off';
   updateApiUrlHint(); highlightPreset(); renderSavedPresets(); updateSavedPresetButton(); setApiStatus('', '');
 }
 
@@ -235,6 +366,7 @@ function readApiForm(){
   if (isNaN(c.temperature)) c.temperature = 0.85;
   var maxV = elMax ? parseInt(elMax.value, 10) : 0;
   c.maxTokens = (maxV && maxV > 0) ? maxV : 0;
+  var elStream = $('apiStream'); if (elStream) c.stream = elStream.value === 'on';
   c.enabled = !!(c.baseUrl && c.apiKey && c.model);
   return c;
 }
@@ -243,7 +375,7 @@ function updateApiUrlHint(){
   var el = $('apiUrlHint'), input = $('apiBaseUrl');
   if (!el || !input) return;
   var raw = input.value.trim();
-  if (!raw) { el.textContent = '填写中转站的接口地址。若以 /v1 结尾会自动补 /chat/completions，其他情况补 /v1/chat/completions。'; return; }
+  if (!raw) { el.textContent = '填写中转站的接口地址，可省略 https://。以 /v1 结尾会自动补 /chat/completions，其他情况补 /v1/chat/completions；地址末尾加 # 表示原样使用、不再自动补全。'; return; }
   el.textContent = '将请求：' + previewEndpoint(raw);
 }
 
@@ -336,7 +468,8 @@ function activateSavedPreset(id){
     apiKey: cfg.apiKey,
     model: cfg.model,
     temperature: cfg.temperature,
-    maxTokens: cfg.maxTokens
+    maxTokens: cfg.maxTokens,
+    stream: !!cfg.stream
   };
   State.settings.activeApiPresetId = hit.id;
   fillApiForm();
@@ -369,7 +502,7 @@ function updateActivePresetFromForm(){
   presets[index] = preset;
   State.settings.api = {
     enabled: c.enabled, baseUrl: c.baseUrl, apiKey: c.apiKey, model: c.model,
-    temperature: c.temperature, maxTokens: c.maxTokens
+    temperature: c.temperature, maxTokens: c.maxTokens, stream: !!c.stream
   };
   rememberQuickPresetKey();
   renderSavedPresets();
@@ -395,7 +528,7 @@ function saveCurrentAsPreset(){
     State.settings.activeApiPresetId = preset.id;
     State.settings.api = {
       enabled: c.enabled, baseUrl: c.baseUrl, apiKey: c.apiKey, model: c.model,
-      temperature: c.temperature, maxTokens: c.maxTokens
+      temperature: c.temperature, maxTokens: c.maxTokens, stream: !!c.stream
     };
     rememberQuickPresetKey();
     renderSavedPresets();
@@ -449,7 +582,7 @@ function testConnection(){
     var ms = Date.now() - startedAt;
     var text = String(content || '').trim();
     if (!text) setApiStatus('warn', '连接成功（' + ms + 'ms），但模型返回为空。可能该模型不支持当前参数。');
-    else setApiStatus('ok', '✓ 连接成功（' + ms + 'ms）\n模型返回：' + text.slice(0, 120));
+    else setApiStatus('ok', '✓ 连接成功（' + ms + 'ms · ' + (tempCfg.stream ? '流式' : '非流式') + '）\n模型返回：' + text.slice(0, 120));
     toast('连接成功');
   }).catch(function(err){
     var msg = (err && err.message) ? err.message : '未知错误';
@@ -680,12 +813,13 @@ var modelSheetClose = $('modelSheetClose'), apiFetchModels = $('apiFetchModels')
 var fetchedModels = [], modelSearchKey = '', activeModelContext = 'primary';
 
 function normalizeModelContext(context){
-  return context === 'secondary' || context === 'stt' || context === 'vectorEmbedding' || context === 'vectorRerank' ? context : 'primary';
+  return context === 'secondary' || context === 'stt' || context === 'vision' || context === 'vectorEmbedding' || context === 'vectorRerank' ? context : 'primary';
 }
 
 function modelFieldId(){
   if (activeModelContext === 'secondary') return 'secondaryApiModel';
   if (activeModelContext === 'stt') return 'sttModel';
+  if (activeModelContext === 'vision') return 'visionModel';
   if (activeModelContext === 'vectorEmbedding') return 'vectorEmbeddingApiModel';
   if (activeModelContext === 'vectorRerank') return 'vectorRerankApiModel';
   return 'apiModel';
@@ -694,6 +828,7 @@ function modelFieldId(){
 function modelFetchButton(){
   if (activeModelContext === 'secondary') return $('secondaryApiFetchModels');
   if (activeModelContext === 'stt') return $('sttFetchModels');
+  if (activeModelContext === 'vision') return $('visionFetchModels');
   if (activeModelContext === 'vectorEmbedding') return $('vectorEmbeddingFetchModels');
   if (activeModelContext === 'vectorRerank') return $('vectorRerankFetchModels');
   return apiFetchModels;
@@ -702,6 +837,7 @@ function modelFetchButton(){
 function modelStatusSetter(){
   if (activeModelContext === 'secondary') return function(status,text){ return setSecondaryApiStatus(status,text); };
   if (activeModelContext === 'stt') return function(status,text){ return setSttStatus(status,text); };
+  if (activeModelContext === 'vision') return function(status,text){ return setVisionStatus(status,text); };
   if (activeModelContext === 'vectorEmbedding') return function(status,text){ return setVectorApiStatus('embedding',status,text); };
   if (activeModelContext === 'vectorRerank') return function(status,text){ return setVectorApiStatus('rerank',status,text); };
   return function(status,text){ return setApiStatus(status,text); };
@@ -710,6 +846,7 @@ function modelStatusSetter(){
 function modelFormReader(){
   if (activeModelContext === 'secondary') return readSecondaryApiForm;
   if (activeModelContext === 'stt') return readSttForm;
+  if (activeModelContext === 'vision') return readVisionForm;
   if (activeModelContext === 'vectorEmbedding') return readVectorEmbeddingApiForm;
   if (activeModelContext === 'vectorRerank') return readVectorRerankApiForm;
   return readApiForm;
@@ -779,7 +916,7 @@ function fetchModels(context){
   if (modelCountEl) modelCountEl.textContent = '';
   openModelSheet(activeModelContext);
   var headers = { 'Accept': 'application/json' };
-  if (draft.apiKey) headers.Authorization = 'Bearer ' + draft.apiKey;
+  if (cleanApiKey(draft.apiKey)) headers.Authorization = 'Bearer ' + cleanApiKey(draft.apiKey);
   fetch(url, { method: 'GET', headers: headers })
     .then(function(res){
       return res.text().then(function(text){
@@ -799,7 +936,7 @@ function fetchModels(context){
           else if (item.id) id = item.id;
           else if (item.name) id = item.name;
           else if (item.model) id = item.model;
-          if (id) ids.push(String(id).trim());
+          if (id) ids.push(String(id).trim().replace(/^models\//, ''));
         });
         var seen = {};
         ids = ids.filter(function(v){ if (!v || seen[v]) return false; seen[v] = true; return true; });
@@ -889,6 +1026,17 @@ function bindSettingsApiEvents(){
   var sttTest = $('sttTest'); if (sttTest) sttTest.addEventListener('click', testSttConnection);
   var sttSave = $('sttSave'); if (sttSave) sttSave.addEventListener('click', saveSttForm);
   var sttFetch = $('sttFetchModels'); if (sttFetch) sttFetch.addEventListener('click', function(){ fetchModels('stt'); });
+  var apiAutoRetry = $('apiAutoRetry'); if (apiAutoRetry) apiAutoRetry.addEventListener('change', function(){ State.settings.autoRetry = apiAutoRetry.value === 'on'; saveSettings().then(function(){ toast(State.settings.autoRetry ? '自动重试已开启' : '自动重试已关闭'); }); });
+  var gotoVision = $('gotoVision');
+  if (gotoVision) gotoVision.addEventListener('click', function(){ fillVisionForm(); switchSettingsPanel('vision'); });
+  $$('.js-vision-back').forEach(function(btn){ btn.addEventListener('click', function(){ closeModelSheet(); switchSettingsPanel('main'); }); });
+  var visionChips = $('visionPresetChips');
+  if (visionChips) visionChips.addEventListener('click', function(e){ var chip = e.target.closest('.chip'); if (chip) applyVisionPreset(chip.dataset.preset); });
+  var visionUrl = $('visionBaseUrl'); if (visionUrl) { visionUrl.addEventListener('input', updateVisionUrlHint); visionUrl.addEventListener('change', updateVisionUrlHint); }
+  var visionEye = $('visionApiKeyEye'), visionKey = $('visionApiKey'); if (visionEye && visionKey) visionEye.addEventListener('click', function(){ var isPwd = visionKey.type === 'password'; visionKey.type = isPwd ? 'text' : 'password'; });
+  var visionTest = $('visionTest'); if (visionTest) visionTest.addEventListener('click', testVisionConnection);
+  var visionSave = $('visionSave'); if (visionSave) visionSave.addEventListener('click', saveVisionForm);
+  var visionFetch = $('visionFetchModels'); if (visionFetch) visionFetch.addEventListener('click', function(){ fetchModels('vision'); });
 
   var gotoApi = $('gotoApi');
   if (gotoApi) {

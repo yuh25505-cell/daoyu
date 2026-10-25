@@ -332,6 +332,7 @@ function init(){
     refreshSecondaryApiState();
     refreshVectorMemoryApiState();
     refreshSttState();
+    refreshVisionState();
     renderNotificationSettings();
     return yieldToPaint();
   }).then(function(){
@@ -344,6 +345,7 @@ function init(){
     normalizeApiPresetState();
     normalizeSecondaryApiPresetState();
     normalizeSttState();
+    normalizeVisionState();
     normalizeHomeAppearance();
     applyChatAppearance();
     applyThemePreference();
@@ -354,6 +356,7 @@ function init(){
     refreshSecondaryApiState();
     refreshVectorMemoryApiState();
     refreshSttState();
+    refreshVisionState();
   });
 }
 
@@ -383,7 +386,7 @@ window.Island = {
   },
   chat: function(name, text){
     if (!isApiReady()) return Promise.reject(new Error('API 未配置'));
-    return prepareMemoryForContext(name).then(function(){
+    return prepareMemoryForContext(name).then(function(){ return prepareVisionForContext(name); }).then(function(){
       var msgs = buildMessages(name);
       msgs.push({ role: 'user', content: text });
       return callApiOnce(msgs);
@@ -391,6 +394,7 @@ window.Island = {
   },
   endpoint: function(url){ return normalizeBaseUrl(url || (getApiConfig().baseUrl)); },
   modelsEndpoint: function(url){ return normalizeModelsUrl(url || (getApiConfig().baseUrl)); },
+  visionEndpoint: function(url){ return normalizeBaseUrl(url || (getVisionConfig().baseUrl)); },
   sttEndpoint: function(url){ return normalizeTranscriptionsUrl(url || (getSttConfig().baseUrl)); },
   notifications: { test: function(){ return requestNotificationPermission().then(function(ok){ return ok ? showCharacterNotification('岛屿','这是一条通知测试消息。') : false; }); }, runNow: function(){ return runProactiveMessage(true); }, config: function(){ return clone(getNotificationConfig()); } }
 };

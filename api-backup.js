@@ -2,11 +2,12 @@
   'use strict';
 
   // Every setting that belongs to an API configuration: main API, secondary API,
-  // speech-to-text, and vector-memory embedding / rerank APIs (plus their saved presets).
+  // speech-to-text, vision (image recognition), and vector-memory embedding / rerank APIs (plus their saved presets).
   var API_SETTING_KEYS = [
     'api', 'apiPresets', 'activeApiPresetId', 'apiQuickKeys',
     'secondaryApi', 'secondaryApiPresets', 'activeSecondaryApiPresetId', 'secondaryApiQuickKeys',
     'stt', 'sttPresets', 'activeSttPresetId', 'sttQuickKeys',
+    'vision', 'visionQuickKeys', 'autoRetry',
     'vectorMemory'
   ];
 

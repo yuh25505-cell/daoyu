@@ -479,7 +479,7 @@ function requestVoiceCallReply(name, sessionId){
   if (!name || !isApiReady()) {
     return Promise.reject(new Error('请先在设置中配置 AI 接口'));
   }
-  return prepareMemoryForContext(name).then(function(){
+  return prepareMemoryForContext(name).then(function(){ return prepareVisionForContext(name); }).then(function(){
     var messages = buildMessages(name, {
       excludeMessageId: getLatestUserMessageId(name)
     });

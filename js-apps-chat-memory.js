@@ -266,8 +266,9 @@ function isVectorRerankReady(){
 }
 
 function normalizeVectorEndpoint(raw, kind){
-  var url = String(raw || '').trim().replace(/\/+$/,'');
+  var url = cleanUrlInput(raw).replace(/\/+$/,'');
   if (!url) return '';
+  if (/#$/.test(url)) return url.replace(/#+$/,'');   /* 末尾加 # = 原样使用 */
   if (kind === 'embedding') {
     if (/\/embeddings$/i.test(url)) return url;
     if (/\/v1$/i.test(url)) return url + '/embeddings';
@@ -280,7 +281,7 @@ function normalizeVectorEndpoint(raw, kind){
 
 function vectorFetch(url, cfg, body){
   var headers = { 'Content-Type':'application/json', 'Accept':'application/json' };
-  if (cfg.apiKey) headers.Authorization = 'Bearer ' + cfg.apiKey;
+  if (cleanApiKey(cfg.apiKey)) headers.Authorization = 'Bearer ' + cleanApiKey(cfg.apiKey);
   return fetch(url, { method:'POST', headers:headers, body:JSON.stringify(body) }).then(function(res){
     return res.text().then(function(text){
       var parsed = null;
@@ -662,8 +663,12 @@ function memoryMessageText(msg){
   if (msg.type === 'file') {
     return timePrefix + who + '：[文件] ' + String(msg.name || msg.text || '未命名文件') + '（' + String(msg.mime || '未知类型') + '，' + formatFileSize(msg.size) + ')' + (msg.content ? '\n文件内容：' + clampFileText(msg.content, 6000) : '\n文件正文未成功读取');
   }
-  if (msg.type === 'image') return timePrefix + who + '：[图片消息] 发送了一张图片；总结器当前收到的是图片已发送这一事实，不得凭空猜测图片细节。';
-  if (msg.type === 'sticker') return timePrefix + who + '：[表情包] 发送了一个表情包；不得凭空猜测表情包画面、文字或情绪含义。';
+  if (msg.type === 'image') return msg.visionText
+    ? timePrefix + who + '：[图片消息] 发送了一张图片，画面内容（识图结果）：' + String(msg.visionText).slice(0, 200)
+    : timePrefix + who + '：[图片消息] 发送了一张图片；总结器当前收到的是图片已发送这一事实，不得凭空猜测图片细节。';
+  if (msg.type === 'sticker') return msg.visionText
+    ? timePrefix + who + '：[表情包] 发送了一个表情包，画面内容（识图结果）：' + String(msg.visionText).slice(0, 200)
+    : timePrefix + who + '：[表情包] 发送了一个表情包；不得凭空猜测表情包画面、文字或情绪含义。';
   if (msg.type === 'system' && msg.systemType === 'poke') return timePrefix + '【拍一拍】' + String(msg.text || '').trim();
   var text = String(msg.text || '').trim();
   if (text) return timePrefix + who + '：' + text;

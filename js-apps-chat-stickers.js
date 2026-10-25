@@ -400,8 +400,10 @@ function sendSticker(url){
   url = String(url || '').trim();
   if ((!/^https?:\/\//i.test(url) && !/^data:image\//i.test(url)) || !currentName) return;
   if (!Array.isArray(MESSAGES[currentName])) MESSAGES[currentName] = [];
-  MESSAGES[currentName].push({ from:'me', type:'sticker', url:url, text:'[表情包]', createdAt:Date.now() });
+  var stickerMsg = { from:'me', type:'sticker', url:url, text:'[表情包]', createdAt:Date.now() };
+  MESSAGES[currentName].push(stickerMsg);
   saveMessages(currentName);
+  visionPrewarm(currentName, stickerMsg);   /* 配置了识图 API 时在后台先识别，回复时直接复用 */
   renderMessages(true); scrollBottom(true);
   for (var i = 0; i < CHATS.length; i++) {
     if (CHATS[i].name === currentName) { CHATS[i].preview = '[表情包]'; CHATS[i].time = '刚刚'; break; }
@@ -443,8 +445,10 @@ function compressChatImage(file){
 function sendChatImageData(dataUrl){
   if (!dataUrl || !/^data:image\//i.test(dataUrl) || !currentName) return false;
   if (!Array.isArray(MESSAGES[currentName])) MESSAGES[currentName] = [];
-  MESSAGES[currentName].push({ from:'me', type:'image', url:dataUrl, text:'[图片]', createdAt:Date.now() });
+  var imageMsg = { from:'me', type:'image', url:dataUrl, text:'[图片]', createdAt:Date.now() };
+  MESSAGES[currentName].push(imageMsg);
   saveMessages(currentName);
+  visionPrewarm(currentName, imageMsg);
   renderMessages(true); scrollBottom(true);
   for (var i = 0; i < CHATS.length; i++) {
     if (CHATS[i].name === currentName) { CHATS[i].preview = '[图片]'; CHATS[i].time = '刚刚'; break; }

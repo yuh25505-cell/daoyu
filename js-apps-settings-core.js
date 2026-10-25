@@ -109,6 +109,7 @@ function switchSettingsPanel(name){
   if (name === 'secondaryApi') refreshSecondaryApiState();
   if (name === 'main' || name === 'vectorMemoryApi' || name === 'vectorRerankApi') refreshVectorMemoryApiState();
   if (name === 'stt') refreshSttState();
+  if (name === 'vision') refreshVisionState();
   if (name === 'about') refreshChangelog(true);
 }
 
@@ -120,6 +121,14 @@ function refreshSecondaryApiState(){
   else { el.textContent = '未配置'; el.classList.remove('ok','err'); }
 }
 
+
+function refreshVisionState(){
+  var el = $('visionState'); if (!el) return;
+  var c = getVisionConfig();
+  if (isVisionReady()) { el.textContent = '已启用'; el.classList.add('ok'); el.classList.remove('err'); }
+  else if (c && c.baseUrl && c.apiKey && c.model) { el.textContent = '已关闭'; el.classList.remove('ok','err'); }
+  else { el.textContent = '未配置'; el.classList.remove('ok','err'); }
+}
 
 function refreshSttState(){
   var el = $('sttState'); if (!el) return;

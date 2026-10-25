@@ -152,17 +152,14 @@ function scheduleReply(delay){
     function startAiReply(){
       if (finished) return;
       prepareMemoryForContext(nameAtRequest).then(function(){
+        /* 若配置了识图 API，先把上下文里的表情包 / 图片识别成文字（已识别过的直接复用） */
+        return prepareVisionForContext(nameAtRequest);
+      }).then(function(){
       if (finished) return;
       var messages = buildMessages(nameAtRequest, {
         excludeMessageId: getLatestUserMessageId(nameAtRequest)
       });
-      timeoutTimer = setTimeout(function(){
-        if (finished) return;
-        finished = true;
-        finishTyping(nameAtRequest);
-        toast('AI 接口超时，请稍后重试');
-      }, 60000);
-
+      /* 不再设置 60 秒超时：非流式会一直等到服务端返回；流式由请求层的“长时间无数据”保护兜底 */
       callApiOnce(messages).then(function(text){
       if (finished) return;
       finished = true;

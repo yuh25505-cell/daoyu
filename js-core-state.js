@@ -4,11 +4,16 @@
 
 var DEFAULT_API = {
   enabled: false, baseUrl: '', apiKey: '', model: '',
-  temperature: 0.85, maxTokens: 0
+  temperature: 0.85, maxTokens: 0, stream: false
 };
 
 var DEFAULT_STT = {
   enabled: false, baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o-mini-transcribe', language: 'auto', prompt: ''
+};
+
+/* 识图 API：把私聊里的表情包 / 图片先转成文字描述，再交给聊天主模型 */
+var DEFAULT_VISION = {
+  enabled: false, baseUrl: '', apiKey: '', model: '', scope: 'all', prompt: '', maxTokens: 0
 };
 
 var HOME_APP_NAMES = ['聊天','屿年','相册','日历','备忘录','天气','时钟','设置','电话','倒数日','世界书','音乐',
@@ -47,7 +52,7 @@ var DEFAULT_HOME_APPEARANCE = {
 };
 
 var DEFAULT_SETTINGS = {
-  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, activeUserPersonaId: '',
+  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, vision: clone(DEFAULT_VISION), visionQuickKeys: {}, autoRetry: false, activeUserPersonaId: '',
   homeAppearance: clone(DEFAULT_HOME_APPEARANCE),
   sounds: { volume: 80, message: null, call: null },
   memory: { contextDepth: 40, summaryThreshold: 20 },
@@ -106,6 +111,7 @@ function normalizeApiPreset(raw, index){
     model: String(src.model || '').trim(),
     temperature: temperature,
     maxTokens: maxTokens,
+    stream: !!src.stream,
     updatedAt: Number(src.updatedAt || Date.now())
   };
 }
@@ -249,6 +255,37 @@ function normalizeSttState(){
 
 function isSttReady(){
   var c = getSttConfig();
+  return !!(c && c.enabled && c.baseUrl && c.apiKey && c.model);
+}
+
+var VISION_PRESETS = {
+  openai: { baseUrl:'https://api.openai.com/v1', model:'gpt-4o-mini' },
+  zhipu:  { baseUrl:'https://open.bigmodel.cn/api/paas/v4', model:'glm-4v-flash' },
+  gemini: { baseUrl:'https://generativelanguage.googleapis.com/v1beta/openai', model:'gemini-2.5-flash' },
+  custom: { baseUrl:'', model:'' }
+};
+
+function getVisionConfig(){
+  var c = (State.settings && State.settings.vision && typeof State.settings.vision === 'object') ? State.settings.vision : clone(DEFAULT_VISION);
+  return Object.assign({}, DEFAULT_VISION, c);
+}
+
+function normalizeVisionState(){
+  if (!State.settings.vision || typeof State.settings.vision !== 'object' || Array.isArray(State.settings.vision)) State.settings.vision = clone(DEFAULT_VISION);
+  else State.settings.vision = Object.assign({}, DEFAULT_VISION, State.settings.vision);
+  var v = State.settings.vision;
+  v.baseUrl = String(v.baseUrl || '').trim();
+  v.apiKey = String(v.apiKey || '');
+  v.model = String(v.model || '').trim();
+  v.prompt = String(v.prompt || '').trim();
+  if (v.scope !== 'all' && v.scope !== 'sticker' && v.scope !== 'image') v.scope = 'all';
+  var mt = parseInt(v.maxTokens, 10); v.maxTokens = (Number.isFinite(mt) && mt > 0) ? mt : 0;
+  v.enabled = !!v.enabled;
+  State.settings.visionQuickKeys = State.settings.visionQuickKeys && typeof State.settings.visionQuickKeys === 'object' ? State.settings.visionQuickKeys : {};
+}
+
+function isVisionReady(){
+  var c = getVisionConfig();
   return !!(c && c.enabled && c.baseUrl && c.apiKey && c.model);
 }
 
@@ -435,6 +472,7 @@ function loadState(){
     normalizeApiPresetState();
     normalizeSecondaryApiPresetState();
     normalizeSttState();
+    normalizeVisionState();
     normalizeHomeAppearance();
     normalizeMemorySettings();
     normalizeVectorMemorySettings();

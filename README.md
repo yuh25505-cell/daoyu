@@ -1,3 +1,8 @@
+## 更新 · 中转站兼容 / 流式输出 / 识图 API
+- **中转站兼容**：`js-core-ai.js` 统一处理 Base URL（可省 https://、识别 /v1 /v1beta/openai 等，末尾 `#` = 原样使用）、API Key 清洗、多种响应格式解析，以及 400/429/5xx 的自动降级重试（max_completion_tokens、temperature、system 角色、图片、流式互相回退）。
+- **流式输出**：设置 → AI 接口 → 输出方式。`callApiOnce(messages, cfg, { onProgress })` 在流式下内部累计后返回完整文本，所有调用方无需改动。
+- **识图 API**：设置 → 识图 API（`settings.vision`）。启用后私聊的表情包 / 图片先识别成文字（缓存于 `msg.visionText`），聊天主模型只收到文字描述；入口见 `prepareVisionForContext` / `visionPrewarm`。
+
 > **开发新界面 / 新 App 前请先读 [DESIGN.md](./DESIGN.md)：配色只用纯黑纯白（日间白黑、夜间黑白），不使用其他主颜色。**
 
 # Island WorldBook v1.40 — Voice Message Layout

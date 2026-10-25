@@ -1348,6 +1348,12 @@
 <span class="me-state" id="sttState">未配置</span>
 <svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
 </button>
+<button class="me-item" id="gotoVision" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+<span>识图 API</span>
+<span class="me-state" id="visionState">未配置</span>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
 </div>
 <div class="settings-section-title">系统</div>
 <div class="me-menu">
@@ -1755,6 +1761,26 @@
 </div>
 <div class="api-hint">留空或 0 表示不传该字段，由服务端决定。</div>
 </div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">输出方式</span></div>
+<div class="api-input-wrap">
+<select class="api-input api-select" id="apiStream">
+<option value="off">非流式（一次性返回）</option>
+<option value="on">流式（边生成边接收）</option>
+</select>
+</div>
+<div class="api-hint">中转站常因网关超时（504 / 524）掐断较慢的长回复，遇到这种情况建议改用流式。个别中转站不支持流式时，会自动退回非流式重试。聊天里仍按气泡逐条显示。</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">自动重试</span></div>
+<div class="api-input-wrap">
+<select class="api-input api-select" id="apiAutoRetry">
+<option value="off">关闭（默认）</option>
+<option value="on">开启</option>
+</select>
+</div>
+<div class="api-hint">开启后，遇到 429、502、503、504 或网络抖动时自动重发一次。对所有 AI 请求生效，切换后立即保存。</div>
+</div>
 <div class="api-actions">
 <button class="api-btn secondary" id="apiTest" type="button">测试连接</button>
 <button class="api-btn primary" id="apiSave" type="button">保存</button>
@@ -1836,6 +1862,91 @@
 </div>
 <div class="api-status" id="sttStatus"></div>
 <div class="api-hint stt-note">识别请求使用 multipart/form-data 上传当前录音。浏览器 / APK WebView 必须允许麦克风，并且你的 STT 服务需要允许当前页面的跨域请求（CORS）。</div>
+</div>
+</div>
+</section><section class="settings-panel" data-panel="vision">
+<header class="panel-head">
+<button aria-label="返回设置" class="ph-btn js-vision-back" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
+</button>
+<h1 class="ph-title">识图 API</h1>
+<div class="ph-actions"></div>
+</header>
+<div class="panel-scroll">
+<div class="api-form">
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">快捷预设</span></div>
+<div class="chips" id="visionPresetChips">
+<button class="chip" data-preset="openai" type="button">OpenAI</button>
+<button class="chip" data-preset="zhipu" type="button">智谱 GLM-4V</button>
+<button class="chip" data-preset="gemini" type="button">Gemini</button>
+<button class="chip" data-preset="custom" type="button">自定义</button>
+</div>
+<div class="api-hint">独立配置“看图”的模型，用来识别私聊中的表情包和图片。配置并启用后，聊天主模型不再直接收到图片，只收到识图模型给出的文字描述；识别结果会缓存在消息里，同一张图只识别一次。</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">识图开关</span></div>
+<div class="api-input-wrap">
+<select class="api-input api-select" id="visionEnabled">
+<option value="on">开启</option>
+<option value="off">关闭（沿用原来的直接发图方式）</option>
+</select>
+</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">Base URL</span></div>
+<div class="api-input-wrap">
+<input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="visionBaseUrl" placeholder="https://api.openai.com/v1" spellcheck="false" type="url"/>
+</div>
+<div class="api-hint" id="visionUrlHint">填写 API 根地址（可省略 https://）。以 /v1 结尾会自动补 /chat/completions；末尾加 # 表示原样使用。</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">API Key</span></div>
+<div class="api-input-wrap has-eye">
+<input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="visionApiKey" placeholder="sk-…" spellcheck="false" type="password"/>
+<button aria-label="显示 / 隐藏" class="api-eye" id="visionApiKeyEye" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+<div class="api-hint">仅保存在本机 IndexedDB；识图时图片会直接从当前设备发送到这里。</div>
+</div>
+<div class="api-field">
+<div class="api-field-head">
+<span class="api-label">识图模型</span>
+<button class="api-hint-btn" id="visionFetchModels" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>
+                  拉取模型
+                </button>
+</div>
+<div class="api-input-wrap">
+<input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="visionModel" placeholder="gpt-4o-mini" spellcheck="false" type="text"/>
+</div>
+<div class="api-hint">必须选择支持图片输入的多模态模型（名称里常带 vision / VL / 4o / gemini 等）。模型列表不会自动筛选，以兼容不同中转站。</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">识别范围</span></div>
+<div class="api-input-wrap">
+<select class="api-input api-select" id="visionScope">
+<option value="all">表情包和图片</option>
+<option value="sticker">只识别表情包</option>
+<option value="image">只识别图片</option>
+</select>
+</div>
+<div class="api-hint">不在范围内的类型，仍按原来的方式把图片直接发给聊天主模型。</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">识别提示词（可选）</span></div>
+<div class="api-input-wrap">
+<textarea autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="visionPrompt" placeholder="留空使用内置提示词：简洁描述画面主体、表情动作、图中文字，并概括表情包想表达的情绪。" rows="4" spellcheck="false"></textarea>
+</div>
+<div class="api-hint">自定义后会同时用于表情包和图片。建议要求“用中文、150 字以内、只描述画面”。</div>
+</div>
+<div class="api-actions">
+<button class="api-btn secondary" id="visionTest" type="button">测试识图</button>
+<button class="api-btn primary" id="visionSave" type="button">保存</button>
+</div>
+<div class="api-status" id="visionStatus"></div>
+<div class="api-hint stt-note">表情包链接需要识图服务能访问，或本设备能跨域读取（会先缩到 1024px 再发送）；读取失败时才会把原链接交给识图服务。识图失败时，聊天模型会收到“未能识别”的提示而不是原图。</div>
 </div>
 </div>
 </section><section class="settings-panel" data-panel="secondaryApi">

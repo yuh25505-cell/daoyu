@@ -209,7 +209,7 @@ function getProactiveCandidate(){
 }
 
 function buildProactiveMessages(name){
-  return prepareMemoryForContext(name).then(function(){
+  return prepareMemoryForContext(name).then(function(){ return prepareVisionForContext(name); }).then(function(){
     var msgs = buildMessages(name);
     msgs.push({ role:'user', content:'【后台主动消息任务】现在用户没有主动发消息。请根据角色设定、最近对话、时间上下文与已经发生的聊天内容，自然地发起一条短消息。时间只用于选择合适的节奏、场景和话题；不要报时间数字，不要解释为什么主动联系，不要提及 AI、任务、后台、系统或时间变量。不得仅凭时间流逝创造已发生的现实事件。只输出角色真正会发给用户的话。' });
     return msgs;

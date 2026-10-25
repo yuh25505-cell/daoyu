@@ -412,7 +412,7 @@ function callSttOnce(blob, overrideCfg){
   if (cfg.language && cfg.language !== 'auto') form.append('language', cfg.language);
   if (cfg.prompt) form.append('prompt', cfg.prompt);
   form.append('response_format', 'json');
-  return fetch(url, { method:'POST', headers:{ 'Authorization':'Bearer ' + cfg.apiKey, 'Accept':'application/json' }, body:form }).then(function(res){
+  return fetch(url, { method:'POST', headers:{ 'Authorization':'Bearer ' + cleanApiKey(cfg.apiKey), 'Accept':'application/json' }, body:form }).then(function(res){
     return res.text().then(function(text){
       if (!res.ok) throw new Error(httpErrorText(res.status, text));
       var json = null;
