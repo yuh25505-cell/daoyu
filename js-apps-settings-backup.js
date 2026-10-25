@@ -154,7 +154,7 @@ function downloadBackup(){
     a.click();
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    toast('完整备份已导出');
+    islandBackupDone('导出成功', '完整备份已导出。');
   } catch(e){
     console.error('[岛屿] 备份导出失败：', e);
     toast('备份导出失败');
@@ -221,7 +221,7 @@ function downloadPartialBackup(part){
     a.click();
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    toast(meta.label + '已导出');
+    islandBackupDone('导出成功', meta.label + '已导出。');
   } catch(e){
     console.error('[岛屿] 分项备份导出失败：', e);
     toast(meta.label + '导出失败');
@@ -309,7 +309,7 @@ function downloadSelectedPartialBackups(){
       a.click();
       a.remove();
       setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-      toast('已导出 ' + parts.length + ' 个模块');
+      islandBackupDone('导出成功', '已导出 ' + parts.length + ' 个模块。');
     }).catch(function(err){
       console.error('[岛屿] 批量备份导出失败：', err);
       toast('批量导出失败');
@@ -404,7 +404,7 @@ function importSelectedPartialBackupFiles(fileList){
           });
         });
       }, Promise.resolve()).then(function(){
-        location.reload();
+        return islandImportDone('已导入 ' + entries.length + ' 个分项备份，软件将自动重启。');
       });
     });
   }).catch(function(err){
@@ -534,6 +534,12 @@ function applyPartialBackup(part, data){
 }
 
 
+/* 导入成功：先弹窗告知，点“知道了”后重启 */
+function islandImportDone(msg){
+  var go = function(){ location.reload(); };
+  return islandAlert(msg, { title: '导入成功' }).then(go, go);
+}
+
 function importPartialBackupFile(part, file){
   if (!file) return;
   var meta = BACKUP_PART_META[part];
@@ -548,7 +554,7 @@ function importPartialBackupFile(part, file){
       if (!ok) return;
       applyPartialBackup(part, data).then(function(saved){
         if (!saved) throw new Error('本机存储写入失败');
-        location.reload();
+        return islandImportDone(meta.label + '导入成功，软件将自动重启。');
       }).catch(function(err){
         console.error('[岛屿] 分项备份导入失败：', err);
         toast(meta.label + '导入失败：' + (err && err.message ? err.message : '本机存储写入失败'));
@@ -572,7 +578,7 @@ function importBackupFile(file){
       if (!ok) return;
       IslandDB.replaceAll(buildBackupRows(data)).then(function(saved){
         if (!saved) throw new Error('本机存储写入失败');
-        location.reload();
+        return islandImportDone('完整备份导入成功，软件将自动重启。');
       }).catch(function(err){
         console.error('[岛屿] 备份导入失败：', err);
         toast('备份导入失败：' + (err && err.message ? err.message : '本机存储写入失败'));

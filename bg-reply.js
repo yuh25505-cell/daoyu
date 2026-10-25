@@ -27,14 +27,7 @@
   var REPLY_GRACE_MS = 90000; // messages keep arriving (one by one) for a while after the request ends
 
   function toast(msg) {
-    try {
-      var el = document.getElementById('toast');
-      if (!el) return;
-      el.textContent = msg;
-      el.classList.add('is-show');
-      clearTimeout(toast._t);
-      toast._t = setTimeout(function () { el.classList.remove('is-show'); }, 2400);
-    } catch (e) {}
+    try { if (typeof window.islandNotify === 'function') window.islandNotify(msg); } catch (e) {}
   }
 
   function nativePlugin() {

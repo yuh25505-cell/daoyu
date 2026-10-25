@@ -28,23 +28,11 @@
   if (typeof C.registerPlugin !== 'function') return;
   var Native = C.registerPlugin('IslandNative');
   var CHUNK_BYTES = 3 * 256 * 1024; // multiple of 3 so every base64 chunk decodes on its own
-  var toastEl = null;
-  var toastTimer = null;
 
   function notify(msg) {
     try {
-      if (!toastEl) {
-        toastEl = document.createElement('div');
-        toastEl.style.cssText = 'position:fixed;left:50%;bottom:12%;transform:translateX(-50%);' +
-          'max-width:86%;padding:12px 20px;border-radius:999px;background:#111;color:#fff;' +
-          'font-size:14px;line-height:1.4;text-align:center;z-index:2147483647;pointer-events:none;' +
-          'word-break:break-all;transition:opacity .2s;opacity:0;';
-        document.body.appendChild(toastEl);
-      }
-      toastEl.textContent = msg;
-      toastEl.style.opacity = '1';
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(function () { toastEl.style.opacity = '0'; }, 3800);
+      if (/^已保存到/.test(String(msg)) && typeof window.islandAlert === 'function') { window.islandAlert(msg, { title: '导出成功' }); return; }
+      if (typeof window.islandNotify === 'function') window.islandNotify(msg);
     } catch (e) {}
   }
 

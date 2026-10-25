@@ -52,12 +52,16 @@ function readVectorRerankApiForm(){
 }
 
 function setVectorApiStatus(kind, status, text){
-  var id=kind==='rerank'?'vectorRerankApiStatus':'vectorEmbeddingApiStatus';
-  var el=$(id); if(!el)return;
-  el.className='api-status';
-  if(text) el.classList.add('show');
-  if(status) el.classList.add(status);
-  el.textContent=text||'';
+  apiNotify(status, text);
+}
+
+/* API 提示统一出口：报错、测试结果用弹窗；保存/切换/进度等其余提示一律不显示 */
+function apiNotify(kind, text){
+  text = String(text == null ? '' : text).trim();
+  if (!text) return;
+  if (kind === 'err') { islandAlert(text, { title: '出错了' }); return; }
+  if (kind === 'warn') { if (/^正在/.test(text)) return; islandAlert(text, { title: '测试结果' }); return; }
+  if (kind === 'ok' && /连接成功|接口可访问|识图可用/.test(text)) { islandAlert(text.replace(/^✓\s*/, ''), { title: '测试结果' }); }
 }
 
 function updateVectorApiHints(){
@@ -69,13 +73,13 @@ function updateVectorApiHints(){
 function saveVectorEmbeddingApiForm(){
   var s=readVectorEmbeddingApiForm();
   if(!s.embeddingApi.baseUrl||!s.embeddingApi.apiKey||!s.embeddingApi.model){setVectorApiStatus('embedding','err','接口地址、API Key、模型均为必填。');return;}
-  renderPresetTrigger('vectorEmbedding');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('embedding','ok','✓ 向量记忆 API 已保存并使用（预设池里的预设未改动）。');toast('向量记忆 API 已保存');});
+  renderPresetTrigger('vectorEmbedding');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('embedding','ok','✓ 向量记忆 API 已保存并使用（预设池里的预设未改动）。');});
 }
 
 function saveVectorRerankApiForm(){
   var s=readVectorRerankApiForm();
   if(!s.rerankApi.baseUrl||!s.rerankApi.apiKey||!s.rerankApi.model){setVectorApiStatus('rerank','err','接口地址、API Key、模型均为必填。');return;}
-  renderPresetTrigger('vectorRerank');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('rerank','ok','✓ 重排 API 已保存并使用（预设池里的预设未改动）。');toast('重排 API 已保存');});
+  renderPresetTrigger('vectorRerank');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('rerank','ok','✓ 重排 API 已保存并使用（预设池里的预设未改动）。');});
 }
 
 function testVectorEmbeddingApi(){
@@ -87,8 +91,8 @@ function testVectorEmbeddingApi(){
   callVectorEmbedding('向量记忆连接测试：你好世界').then(function(rows){
     if(!rows[0]||!rows[0].length)throw ApiError('vector_parse','接口没有返回有效向量');
     setVectorApiStatus('embedding','ok','✓ 连接成功（'+(Date.now()-started)+'ms），向量维度 '+rows[0].length+'。');
-    toast('向量记忆 API 连接成功');
-  }).catch(function(err){setVectorApiStatus('embedding','err','✗ 连接失败：'+(err&&err.message||'未知错误'));toast('向量记忆 API 连接失败');}).then(function(){if(btn)btn.disabled=false;});
+    
+  }).catch(function(err){setVectorApiStatus('embedding','err','✗ 连接失败：'+(err&&err.message||'未知错误'));}).then(function(){if(btn)btn.disabled=false;});
 }
 
 function testVectorRerankApi(){
@@ -100,8 +104,8 @@ function testVectorRerankApi(){
   callVectorRerank('测试记忆', ['测试记忆一','完全无关内容']).then(function(rows){
     if(!rows||!rows.length)throw ApiError('vector_parse','接口没有返回可解析的重排结果');
     setVectorApiStatus('rerank','ok','✓ 连接成功（'+(Date.now()-started)+'ms），返回 '+rows.length+' 条排序结果。');
-    toast('重排 API 连接成功');
-  }).catch(function(err){setVectorApiStatus('rerank','err','✗ 连接失败：'+(err&&err.message||'未知错误'));toast('重排 API 连接失败');}).then(function(){if(btn)btn.disabled=false;});
+    
+  }).catch(function(err){setVectorApiStatus('rerank','err','✗ 连接失败：'+(err&&err.message||'未知错误'));}).then(function(){if(btn)btn.disabled=false;});
 }
 
 
@@ -138,12 +142,7 @@ function updateSttUrlHint(){
 }
 
 function setSttStatus(kind, text){
-  var el = $('sttStatus'); if (!el) return;
-  el.className = 'api-status';
-  if (!text) { el.textContent = ''; return; }
-  el.classList.add('show');
-  if (kind) el.classList.add(kind);
-  el.textContent = text;
+  apiNotify(kind, text);
 }
 
 function highlightSttPreset(){
@@ -190,7 +189,7 @@ function saveSttForm(){
   State.settings.stt = c;
   rememberSttQuickKey();
   renderPresetTrigger('stt');
-  saveSettings().then(function(){ refreshSttState(); highlightSttPreset(); setSttStatus('ok','✓ 已保存并使用（预设池里的预设未改动）。聊天语音会优先使用该 STT 接口进行转写。'); toast('语音转文字已保存'); });
+  saveSettings().then(function(){ refreshSttState(); highlightSttPreset(); setSttStatus('ok','✓ 已保存并使用（预设池里的预设未改动）。聊天语音会优先使用该 STT 接口进行转写。');  });
 }
 
 function testSttConnection(){
@@ -205,9 +204,9 @@ function testSttConnection(){
       var json; try { json = JSON.parse(text); } catch(e){ throw new Error('响应不是合法 JSON\n' + text.slice(0, 220)); }
       var arr = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : (Array.isArray(json.models) ? json.models : []));
       setSttStatus('ok','✓ 接口可访问，模型列表返回 ' + arr.length + ' 项。实际录音转写时将请求：\n' + normalizeTranscriptionsUrl(draft.baseUrl));
-      toast('STT 接口连接成功');
+      
     });
-  }).catch(function(err){ setSttStatus('err','✗ 测试失败：\n' + (err && err.message ? err.message : '未知错误')); toast('STT 接口连接失败'); }).then(function(){ if(btn){btn.disabled=false;btn.textContent='测试接口';} });
+  }).catch(function(err){ setSttStatus('err','✗ 测试失败：\n' + (err && err.message ? err.message : '未知错误'));  }).then(function(){ if(btn){btn.disabled=false;btn.textContent='测试接口';} });
 }
 
 
@@ -247,12 +246,7 @@ function updateVisionUrlHint(){
 }
 
 function setVisionStatus(kind, text){
-  var el = $('visionStatus'); if (!el) return;
-  el.className = 'api-status';
-  if (!text) { el.textContent = ''; return; }
-  el.classList.add('show');
-  if (kind) el.classList.add(kind);
-  el.textContent = text;
+  apiNotify(kind, text);
 }
 
 function highlightVisionPreset(){
@@ -303,7 +297,7 @@ function saveVisionForm(){
     setVisionStatus('ok', c.enabled
       ? '✓ 已保存并启用。私聊里的' + (c.scope === 'sticker' ? '表情包' : c.scope === 'image' ? '图片' : '表情包和图片') + '会先由识图模型转成文字，再交给聊天模型。'
       : '✓ 已保存（当前为关闭状态，聊天仍按原方式直接发图给主模型）。');
-    toast('识图 API 已保存');
+    
   });
 }
 
@@ -333,10 +327,10 @@ function testVisionConnection(){
     var ms = Date.now() - started; text = String(text || '').trim();
     if (!text) setVisionStatus('warn', '接口通了（' + ms + 'ms），但模型返回为空。该模型可能不支持图片输入。');
     else setVisionStatus('ok', '✓ 识图可用（' + ms + 'ms）\n模型看到的：' + text.slice(0, 160));
-    toast('识图 API 连接成功');
+    
   }).catch(function(err){
     setVisionStatus('err', '✗ 测试失败：\n' + (err && err.message ? err.message : '未知错误') + '\n\n请确认所选模型支持图片输入（vision / VL / 多模态）。');
-    toast('识图 API 连接失败');
+    
   }).then(function(){ if (btn) { btn.disabled = false; btn.textContent = '测试识图'; } });
 }
 
@@ -388,12 +382,7 @@ function updateApiUrlHint(){
 }
 
 function setApiStatus(kind, text){
-  var el = $('apiStatus'); if (!el) return;
-  el.className = 'api-status';
-  if (!text) { el.textContent = ''; return; }
-  el.classList.add('show');
-  if (kind) el.classList.add(kind);
-  el.textContent = text;
+  apiNotify(kind, text);
 }
 
 function highlightPreset(){
@@ -657,7 +646,7 @@ function selectApiPreset(kind, id){
   releaseInputFocus();
   saveSettings().then(function(){
     sec.refresh();
-    toast('已切换 · ' + hit.name + '（' + sec.label + '）');
+    
   });
 }
 
@@ -675,7 +664,7 @@ function createApiPresetFromForm(kind){
   islandPrompt('给这个预设起个名字（所有 API 共用）', { title: '新建预设', defaultValue: '新预设', maxLength: 40, confirmText: '保存' }).then(function(name){
     if (name === null) return;
     name = String(name).trim().slice(0, 40);
-    if (!name) { toast('预设名称不能为空'); return; }
+    if (!name) { islandAlert('预设名称不能为空', { title: '无法保存' }); return; }
     var pool = apiPresetPool();
     var preset = normalizeApiPreset(Object.assign({}, apiPresetFields(kind, c), { id: genId('api_'), name: name, updatedAt: Date.now() }), pool.length);
     pool.unshift(preset);
@@ -686,7 +675,7 @@ function createApiPresetFromForm(kind){
     saveSettings().then(function(){
       sec.refresh();
       sec.status('ok', '✓ 已把预设“' + preset.name + '”存入共用预设池，' + sec.label + '正在使用它。其他 API 的配置不受影响，但它们的预设弹窗里已经能选到这个预设。');
-      toast('预设已保存到共用预设池');
+      
     });
   });
 }
@@ -707,7 +696,7 @@ function updateApiPresetFromForm(kind){
   saveSettings().then(function(){
     sec.refresh();
     sec.status('ok', '✓ 已更新共用预设“' + preset.name + '”。其他 API 当前在用的配置不会被改动，它们下次选择这个预设时才会采用新内容。');
-    toast('预设已更新（共用预设池）');
+    
   });
   return true;
 }
@@ -723,7 +712,7 @@ function confirmDeleteApiPreset(kind, id){
       for (var i = 0; i < pool.length; i++) if (pool[i].id === id) { pool.splice(i, 1); break; }
       API_PRESET_ACTIVE_KEYS.forEach(function(key){ if (State.settings[key] === id) State.settings[key] = ''; });
       renderAllPresetTriggers();
-      saveSettings().then(function(){ toast('已删除预设'); });
+      saveSettings();
     }
     openApiPresetPicker(kind);
   });
@@ -758,11 +747,11 @@ function testConnection(){
     var text = String(content || '').trim();
     if (!text) setApiStatus('warn', '连接成功（' + ms + 'ms），但模型返回为空。可能该模型不支持当前参数。');
     else setApiStatus('ok', '✓ 连接成功（' + ms + 'ms · ' + (tempCfg.stream ? '流式' : '非流式') + '）\n模型返回：' + text.slice(0, 120));
-    toast('连接成功');
+    
   }).catch(function(err){
     var msg = (err && err.message) ? err.message : '未知错误';
     setApiStatus('err', '✗ 连接失败：\n' + msg);
-    toast('连接失败');
+    
   }).then(function(){
     if (btn) { btn.disabled = false; btn.textContent = '测试连接'; }
   });
@@ -781,7 +770,7 @@ function saveApiForm(){
     setApiStatus('ok', activePreset
       ? '✓ 已保存并使用。预设“' + activePreset.name + '”未改动；如需覆盖它，请点「更新当前」。'
       : '✓ 已保存。聊天时会自动调用该接口。');
-    toast('AI 接口已保存');
+    
   });
 }
 
@@ -824,12 +813,7 @@ function updateSecondaryApiUrlHint(){
 }
 
 function setSecondaryApiStatus(kind, text){
-  var el = $('secondaryApiStatus'); if (!el) return;
-  el.className = 'api-status';
-  if (!text) { el.textContent = ''; return; }
-  el.classList.add('show');
-  if (kind) el.classList.add(kind);
-  el.textContent = text;
+  apiNotify(kind, text);
 }
 
 function highlightSecondaryPreset(){
@@ -879,7 +863,7 @@ function testSecondaryConnection(){
   var url=normalizeBaseUrl(draft.baseUrl); setSecondaryApiStatus('warn','正在测试 '+url+' …'); if(btn){btn.disabled=true;btn.textContent='测试中…';}
   var testMessages=[{role:'system',content:'你是一个测试助手，只需回复“连接成功”四个字。'},{role:'user',content:'请回复：连接成功'}];
   var tempCfg=Object.assign({},draft); tempCfg.maxTokens=Math.min(tempCfg.maxTokens||32,32); var startedAt=Date.now();
-  callApiOnce(testMessages,tempCfg).then(function(content){var ms=Date.now()-startedAt;var text=String(content||'').trim();if(!text)setSecondaryApiStatus('warn','连接成功（'+ms+'ms），但模型返回为空。可能该模型不支持当前参数。');else setSecondaryApiStatus('ok','✓ 连接成功（'+ms+'ms）\\n模型返回：'+text.slice(0,120));toast('副API连接成功');}).catch(function(err){var msg=(err&&err.message)?err.message:'未知错误';setSecondaryApiStatus('err','✗ 连接失败：\\n'+msg);toast('副API连接失败');}).then(function(){if(btn){btn.disabled=false;btn.textContent='测试连接';}});
+  callApiOnce(testMessages,tempCfg).then(function(content){var ms=Date.now()-startedAt;var text=String(content||'').trim();if(!text)setSecondaryApiStatus('warn','连接成功（'+ms+'ms），但模型返回为空。可能该模型不支持当前参数。');else setSecondaryApiStatus('ok','✓ 连接成功（'+ms+'ms）\\n模型返回：'+text.slice(0,120));}).catch(function(err){var msg=(err&&err.message)?err.message:'未知错误';setSecondaryApiStatus('err','✗ 连接失败：\\n'+msg);}).then(function(){if(btn){btn.disabled=false;btn.textContent='测试连接';}});
 }
 
 function saveSecondaryApiForm(){
@@ -894,7 +878,7 @@ function saveSecondaryApiForm(){
     setSecondaryApiStatus('ok', activePreset
       ? '✓ 已保存并使用。副API预设“' + activePreset.name + '”未改动；如需覆盖它，请点「更新当前」。'
       : '✓ 已保存副API。当前仅作为备用接口保存。');
-    toast('副API已保存');
+    
   });
 }
 
@@ -1041,16 +1025,14 @@ function fetchModels(context){
     })
     .then(function(ids){
       fetchedModels = ids; renderModelList();
-      if (!ids.length) {
-        toast('没有拉取到模型');
-        if (modelListEl) modelListEl.innerHTML = '<div class="model-empty">拉取成功，但返回的列表为空。\n该中转站可能未开放 /models 接口。</div>';
-      } else toast('已拉取 ' + ids.length + ' 个模型');
+      if (!ids.length && modelListEl) modelListEl.innerHTML = '<div class="model-empty">拉取成功，但返回的列表为空。\n该中转站可能未开放 /models 接口。</div>';
     })
     .catch(function(err){
       console.error('[岛屿] 拉取模型失败：', err);
       var msg = (err && err.message) ? err.message : '未知错误';
       if (modelListEl) modelListEl.innerHTML = '<div class="model-empty">拉取失败\n' + escapeHTML(msg) + '</div>';
-      toast('拉取失败');
+      closeModelSheet();
+      islandAlert(msg, { title: '拉取模型失败' });
     })
     .then(function(){
       if (fetchBtn) {
@@ -1121,7 +1103,7 @@ function bindSettingsApiEvents(){
   if (autoRetryToggle) autoRetryToggle.addEventListener('click', function(){
     State.settings.autoRetry = !(State.settings.autoRetry === true);
     renderAutoRetryToggle();
-    saveSettings().then(function(){ toast(State.settings.autoRetry ? '自动重试已开启' : '自动重试已关闭'); });
+    saveSettings();
   });
   enhanceSettingsSelects();
   var gotoVision = $('gotoVision');
@@ -1202,7 +1184,7 @@ function bindSettingsApiEvents(){
       var modelField = $(modelFieldId());
       if (modelField) modelField.value = model;
       $$('.model-item', modelListEl).forEach(function(el){ el.classList.toggle('is-on', el.dataset.model === model); });
-      toast('已选择 · ' + model);
+      
       setTimeout(closeModelSheet, 200);
     });
   }

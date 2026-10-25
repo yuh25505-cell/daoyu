@@ -1774,7 +1774,6 @@
 <button class="api-btn secondary" id="apiTest" type="button">测试连接</button>
 <button class="api-btn primary" id="apiSave" type="button">保存</button>
 </div>
-<div class="api-status" id="apiStatus"></div>
 </div>
 </div>
 </section><section class="settings-panel" data-panel="stt">
@@ -1853,7 +1852,6 @@
 <button class="api-btn secondary" id="sttTest" type="button">测试接口</button>
 <button class="api-btn primary" id="sttSave" type="button">保存</button>
 </div>
-<div class="api-status" id="sttStatus"></div>
 </div>
 </div>
 </section><section class="settings-panel" data-panel="vision">
@@ -1941,7 +1939,6 @@
 <button class="api-btn secondary" id="visionTest" type="button">测试识图</button>
 <button class="api-btn primary" id="visionSave" type="button">保存</button>
 </div>
-<div class="api-status" id="visionStatus"></div>
 </div>
 </div>
 </section><section class="settings-panel" data-panel="secondaryApi">
@@ -2020,7 +2017,6 @@
 <button class="api-btn secondary" id="secondaryApiTest" type="button">测试连接</button>
 <button class="api-btn primary" id="secondaryApiSave" type="button">保存</button>
 </div>
-<div class="api-status" id="secondaryApiStatus"></div>
 </div>
 </div>
 </section><section class="settings-panel" data-panel="vectorMemoryApi">
@@ -2041,7 +2037,6 @@
 <div class="api-field"><div class="api-field-head"><span class="api-label">Embedding 模型</span><button class="api-hint-btn" id="vectorEmbeddingFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorEmbeddingApiModel" placeholder="text-embedding-3-small"/></div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">召回参数</span></div><div class="vector-memory-setting-grid"><label><span>最终条数</span><input class="api-input" id="vectorMemoryTopK" inputmode="numeric" min="1" max="30" type="number" value="8"/></label><label><span>候选条数</span><input class="api-input" id="vectorMemoryCandidateK" inputmode="numeric" min="1" max="100" type="number" value="24"/></label><label><span>相似度阈值</span><input class="api-input" id="vectorMemorySimilarityThreshold" inputmode="decimal" min="-1" max="1" step="0.01" type="number" value="0.18"/></label></div></div>
 <div class="api-actions"><button class="api-btn secondary" id="vectorEmbeddingApiTest" type="button">测试连接</button><button class="api-btn primary" id="vectorEmbeddingApiSave" type="button">保存设置</button></div>
-<div class="api-status" id="vectorEmbeddingApiStatus"></div>
 </div></div>
 </section>
 <section class="settings-panel" data-panel="vectorRerankApi">
@@ -2061,7 +2056,6 @@
 <div class="api-field"><div class="api-field-head"><span class="api-label">API Key</span></div><div class="api-input-wrap"><input autocomplete="off" class="api-input" id="vectorRerankApiKey" placeholder="sk-…" type="password"/></div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">重排模型</span><button class="api-hint-btn" id="vectorRerankFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorRerankApiModel" placeholder="BAAI/bge-reranker-v2-m3"/></div></div>
 <div class="api-actions"><button class="api-btn secondary" id="vectorRerankApiTest" type="button">测试连接</button><button class="api-btn primary" id="vectorRerankApiSave" type="button">保存设置</button></div>
-<div class="api-status" id="vectorRerankApiStatus"></div>
 </div></div>
 </section>
 
@@ -2156,7 +2150,6 @@
 <input accept="image/*" hidden="" id="userAvatarInput" type="file"/>
 <input accept=".txt,.md,.markdown,.json,.text,text/plain,text/markdown,application/json" hidden="" id="userPersonaFileInput" type="file"/>
 </div>
-<div class="toast" id="toast"></div>
 <script defer="" src="./jszip.min.js"></script>
 <script defer="" src="./han-pinyin-initials.js"></script>
 <script defer="" src="./js-core-version.js"></script>

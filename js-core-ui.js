@@ -2,15 +2,30 @@
  * 拆分自原 app.js；所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
 'use strict';
 
-var toastEl = $('toast'), toastTimer = null;
+/* 全应用不再显示底部气泡提示：报错 / 校验失败类消息用弹窗，其余（保存成功、已切换、进度等）一律不显示。
+ * 所有旧的 toast(msg) 调用保持不变，统一走这里分流。 */
+var ISLAND_NOTICE_ERR_RE = /失败|错误|出错|异常|无法|不能|未能|不支持|仅支持|只支持|请先|请至少|请输入|请选择|请填写|请检查|请确认|请允许|请控制|超时|无效|失效|必填|不可|被拒|拒绝|不存在|已经存在|至少保留|需要至少|需要先|需要以|未找到|没有找到|没有读到|没有识别到|没有可(?!清理)|没有权限|没有任何|缺少|未配置|未开启|未加载|未知的|不足|被禁|被阻|不一致|冲突|限制|上限|过大|太大|太长|太短|不合法|格式|为空|损坏|未授权|没有 Notification/;
+var islandNoticeLast = { msg: '', t: 0 };
 
-function toast(msg){
-  if (!toastEl) return;
-  toastEl.textContent = msg;
-  toastEl.classList.add('is-show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ toastEl.classList.remove('is-show'); }, 1800);
+function islandNotify(msg){
+  var text = String(msg == null ? '' : msg).trim();
+  if (!text || !ISLAND_NOTICE_ERR_RE.test(text)) return;
+  var now = Date.now();
+  if (islandNoticeLast.msg === text && now - islandNoticeLast.t < 1500) return;
+  islandNoticeLast = { msg: text, t: now };
+  islandAlert(text, { title: /失败|错误|出错|异常/.test(text) ? '出错了' : '提示' });
 }
+window.islandNotify = islandNotify;
+
+/* 备份导出成功弹窗（APK 里由原生桥弹出“已保存到…”，这里不重复弹） */
+function islandBackupDone(title, msg){
+  var cap = window.Capacitor;
+  if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) return;
+  islandAlert(msg, { title: title || '导出成功' });
+}
+window.islandBackupDone = islandBackupDone;
+
+function toast(msg){ islandNotify(msg); }
 
 
 function showMemorySummaryNotice(title, text, busy, duration){
@@ -84,6 +99,12 @@ function islandConfirm(message, opts){
   });
 }
 
+function islandAlert(message, opts){
+  opts = Object.assign({}, opts || {}, { hideCancel: true });
+  if (!opts.confirmText) opts.confirmText = '知道了';
+  return islandConfirm(message, opts).then(function(){ return true; });
+}
+
 function islandPrompt(message, opts){
   opts = opts || {};
   return new Promise(function(resolve){
@@ -143,6 +164,7 @@ function showNextIslandDialog(){
     item.field = field;
   }
   el.querySelector('.is-cancel').textContent = o.cancelText || '取消';
+  el.querySelector('.is-cancel').hidden = !!o.hideCancel;
   var confirmBtn = el.querySelector('.is-confirm');
   confirmBtn.textContent = o.confirmText || (item.kind === 'prompt' ? '保存' : '确定');
   confirmBtn.classList.toggle('is-danger', !!o.danger);

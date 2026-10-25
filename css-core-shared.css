@@ -77,18 +77,6 @@
 
 .sheet h2{ font-size:calc(19px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); margin-bottom:18px; }
 
-.toast{
-  position:fixed; left:50%; bottom: calc(16% + env(safe-area-inset-bottom, 0px));
-  z-index:200; padding:10px 20px; border-radius:999px;
-  background: var(--fg); color: var(--bg);
-  font-size:calc(13px * var(--island-font-size-scale)); font-weight:var(--island-fw-500); letter-spacing:.02em;
-  white-space:nowrap; opacity:0; transform: translate(-50%, 16px);
-  pointer-events:none;
-  transition: opacity .25s ease, transform .25s cubic-bezier(.22,1,.36,1);
-}
-
-.toast.is-show{ opacity:1; transform: translate(-50%, 0); }
-
 .wallpaper{ background:var(--wallpaper-bg); }
 
 .wallpaper::before{ background:radial-gradient(circle, var(--wp-a), rgba(255,255,255,0) 68%); }
