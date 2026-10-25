@@ -184,3 +184,10 @@ html[data-theme="dark"] .island-dialog-btn.is-cancel{ background:#303034; color:
 .island-select-trigger-text{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .island-select-trigger-chev{ width:16px; height:16px; flex:none; opacity:.55; }
 .notification-field .island-select-trigger{ width:auto; padding:0; justify-content:flex-end; text-align:right; }
+
+.island-select-trigger:disabled{ opacity:.45; cursor:default; }
+.island-select-trigger[hidden]{ display:none; }
+.pm-memory-preset.island-select-trigger,.phone-recent-char-filter.island-select-trigger{ width:auto; }
+.pm-memory-preset.island-select-trigger{ width:132px; }
+.phone-recent-char-filter.island-select-trigger{ flex:1 1 auto; }
+.worldbook-mount-target .island-select-trigger{ height:40px; padding:0 11px; border-radius:12px; border:1px solid var(--card-bd); background:var(--bg); font-size:calc(14px * var(--island-font-size-scale)); }

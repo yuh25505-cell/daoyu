@@ -237,12 +237,12 @@ function closeIslandSelect(value){
   islandSelectHideTimer = setTimeout(function(){ if (!islandSelectResolve) el.classList.remove('is-open'); }, 190);
 }
 
-function enhanceIslandSelect(sel, title){
+function enhanceIslandSelect(sel, title, inheritClass){
   if (!sel || sel.__islandSelect) return;
   sel.__islandSelect = true;
   var btn = document.createElement('button');
   btn.type = 'button';
-  btn.className = 'island-select-trigger';
+  btn.className = 'island-select-trigger' + (inheritClass ? ' ' + sel.className : '');
   btn.innerHTML = '<span class="island-select-trigger-text"></span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg>';
   var text = btn.querySelector('.island-select-trigger-text');
   function sync(){
@@ -261,10 +261,16 @@ function enhanceIslandSelect(sel, title){
     });
   } catch(e) {}
   sel.addEventListener('change', sync);
+  /* 选项被重新渲染（innerHTML）或 disabled 变化时同步按钮 */
+  if (typeof MutationObserver === 'function') {
+    new MutationObserver(function(){ sync(); btn.disabled = !!sel.disabled; btn.hidden = !!sel.hidden; })
+      .observe(sel, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'hidden'] });
+  }
   btn.addEventListener('click', function(e){
     e.preventDefault(); e.stopPropagation();
+    if (btn.disabled) return;
     var label = sel.closest('label'); 
-    var heading = title || (label && label.querySelector('span') ? label.querySelector('span').textContent : '');
+    var heading = title || sel.getAttribute('aria-label') || (label && label.querySelector('span') ? label.querySelector('span').textContent : '');
     if (!heading) { var f = sel.closest('.api-field'); var l = f && f.querySelector('.api-label'); heading = l ? l.textContent : ''; }
     var options = Array.prototype.map.call(sel.options, function(o){ return { value: o.value, label: o.textContent }; });
     islandSelect(options, { title: heading, value: sel.value }).then(function(v){
@@ -279,5 +285,9 @@ function enhanceIslandSelect(sel, title){
 function enhanceSettingsSelects(){
   ['apiStream','sttLanguage','visionEnabled','visionScope','notificationMinInterval','notificationMaxInterval'].forEach(function(id){
     var el = document.getElementById(id); if (el) enhanceIslandSelect(el);
+  });
+  /* 聊天记忆总结预设 / 通话记录 char 筛选 / 世界书局部挂载角色：沿用各自原有样式 */
+  [['pmMemorySummaryPreset','总结格式预设'],['phoneRecentCharFilter','按 char 筛选通话'],['worldbookMountTarget','选择局部挂载角色']].forEach(function(it){
+    var el = document.getElementById(it[0]); if (el) enhanceIslandSelect(el, it[1], true);
   });
 }
