@@ -602,22 +602,23 @@ function testConnection(){
 function saveApiForm(){
   var c = readApiForm();
   if (!c.baseUrl || !c.apiKey || !c.model) { setApiStatus('err', '三项必填：Base URL、API Key、模型。'); return; }
+  // 「保存」只保存并使用当前表单；不会改动任何已保存预设（覆盖预设请点「更新当前」）
   State.settings.api = c;
   rememberQuickPresetKey();
   var activeId = State.settings.activeApiPresetId || '';
+  var activePreset = null;
   if (activeId && Array.isArray(State.settings.apiPresets)) {
     for (var i = 0; i < State.settings.apiPresets.length; i++) {
-      if (State.settings.apiPresets[i].id === activeId) {
-        State.settings.apiPresets[i] = normalizeApiPreset(Object.assign({}, c, { id: activeId, name: State.settings.apiPresets[i].name, updatedAt: Date.now() }), i);
-        break;
-      }
+      if (State.settings.apiPresets[i].id === activeId) { activePreset = State.settings.apiPresets[i]; break; }
     }
   }
   renderSavedPresets();
   updateSavedPresetButton();
   saveSettings().then(function(){
     refreshApiState(); highlightPreset();
-    setApiStatus('ok', activeId ? '✓ 已保存，并同步更新当前预设。聊天时会自动调用该接口。' : '✓ 已保存。聊天时会自动调用该接口。');
+    setApiStatus('ok', activePreset
+      ? '✓ 已保存并使用。预设“' + activePreset.name + '”未改动；如需覆盖它，请点「更新当前」。'
+      : '✓ 已保存。聊天时会自动调用该接口。');
     toast('AI 接口已保存');
   });
 }
@@ -801,12 +802,25 @@ function testSecondaryConnection(){
 }
 
 function saveSecondaryApiForm(){
-  var c=readSecondaryApiForm();
-  if(!c.baseUrl||!c.apiKey||!c.model){setSecondaryApiStatus('err','三项必填：Base URL、API Key、模型。');return;}
-  State.settings.secondaryApi=c; rememberSecondaryQuickPresetKey();
-  var activeId=State.settings.activeSecondaryApiPresetId||'';
-  if(activeId&&Array.isArray(State.settings.secondaryApiPresets)) for(var i=0;i<State.settings.secondaryApiPresets.length;i++) if(State.settings.secondaryApiPresets[i].id===activeId){State.settings.secondaryApiPresets[i]=normalizeSecondaryApiPreset(Object.assign({},c,{id:activeId,name:State.settings.secondaryApiPresets[i].name,updatedAt:Date.now()}),i);break;}
-  renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){refreshSecondaryApiState();highlightSecondaryPreset();setSecondaryApiStatus('ok',activeId?'✓ 已保存，并同步更新当前副API预设。当前仅作为备用接口保存。':'✓ 已保存副API。当前仅作为备用接口保存。');toast('副API已保存');});
+  var c = readSecondaryApiForm();
+  if (!c.baseUrl || !c.apiKey || !c.model) { setSecondaryApiStatus('err', '三项必填：Base URL、API Key、模型。'); return; }
+  // 「保存」只保存并使用当前表单；不会改动任何已保存的副API预设（覆盖预设请点「更新当前」）
+  State.settings.secondaryApi = c; rememberSecondaryQuickPresetKey();
+  var activeId = State.settings.activeSecondaryApiPresetId || '';
+  var activePreset = null;
+  if (activeId && Array.isArray(State.settings.secondaryApiPresets)) {
+    for (var i = 0; i < State.settings.secondaryApiPresets.length; i++) {
+      if (State.settings.secondaryApiPresets[i].id === activeId) { activePreset = State.settings.secondaryApiPresets[i]; break; }
+    }
+  }
+  renderSecondarySavedPresets(); updateSecondarySavedPresetButton();
+  saveSettings().then(function(){
+    refreshSecondaryApiState(); highlightSecondaryPreset();
+    setSecondaryApiStatus('ok', activePreset
+      ? '✓ 已保存并使用。副API预设“' + activePreset.name + '”未改动；如需覆盖它，请点「更新当前」。'
+      : '✓ 已保存副API。当前仅作为备用接口保存。');
+    toast('副API已保存');
+  });
 }
 
 
