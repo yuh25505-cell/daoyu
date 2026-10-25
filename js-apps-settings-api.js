@@ -18,7 +18,7 @@ function fillVectorEmbeddingApiForm(){
   var top=$('vectorMemoryTopK'), cand=$('vectorMemoryCandidateK'), th=$('vectorMemorySimilarityThreshold');
   if(top)top.value=String(s.topK); if(cand)cand.value=String(s.candidateK); if(th)th.value=String(s.similarityThreshold);
   setVectorApiStatus('embedding','','');
-  updateVectorApiHints();
+  updateVectorApiHints(); renderPresetTrigger('vectorEmbedding');
 }
 
 function readVectorEmbeddingApiForm(){
@@ -40,7 +40,7 @@ function fillVectorRerankApiForm(){
   var url=$('vectorRerankApiBaseUrl'), key=$('vectorRerankApiKey'), model=$('vectorRerankApiModel');
   if(url)url.value=c.baseUrl||''; if(key)key.value=c.apiKey||''; if(model)model.value=c.model||'';
   setVectorApiStatus('rerank','','');
-  updateVectorApiHints();
+  updateVectorApiHints(); renderPresetTrigger('vectorRerank');
 }
 
 function readVectorRerankApiForm(){
@@ -69,13 +69,13 @@ function updateVectorApiHints(){
 function saveVectorEmbeddingApiForm(){
   var s=readVectorEmbeddingApiForm();
   if(!s.embeddingApi.baseUrl||!s.embeddingApi.apiKey||!s.embeddingApi.model){setVectorApiStatus('embedding','err','接口地址、API Key、模型均为必填。');return;}
-  saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('embedding','ok','✓ 向量记忆 API 已保存。');toast('向量记忆 API 已保存');});
+  renderPresetTrigger('vectorEmbedding');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('embedding','ok','✓ 向量记忆 API 已保存并使用（预设池里的预设未改动）。');toast('向量记忆 API 已保存');});
 }
 
 function saveVectorRerankApiForm(){
   var s=readVectorRerankApiForm();
   if(!s.rerankApi.baseUrl||!s.rerankApi.apiKey||!s.rerankApi.model){setVectorApiStatus('rerank','err','接口地址、API Key、模型均为必填。');return;}
-  saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('rerank','ok','✓ 重排 API 已保存。');toast('重排 API 已保存');});
+  renderPresetTrigger('vectorRerank');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('rerank','ok','✓ 重排 API 已保存并使用（预设池里的预设未改动）。');toast('重排 API 已保存');});
 }
 
 function testVectorEmbeddingApi(){
@@ -114,7 +114,7 @@ function fillSttForm(){
   if (elModel) elModel.value = c.model || '';
   if (elLanguage) elLanguage.value = c.language || 'auto';
   if (elPrompt) elPrompt.value = c.prompt || '';
-  updateSttUrlHint(); highlightSttPreset(); setSttStatus('', '');
+  updateSttUrlHint(); highlightSttPreset(); renderPresetTrigger('stt'); setSttStatus('', '');
 }
 
 function readSttForm(){
@@ -189,7 +189,8 @@ function saveSttForm(){
   if (!c.baseUrl || !c.apiKey || !c.model) { setSttStatus('err','三项必填：Base URL、API Key、识别模型。'); return; }
   State.settings.stt = c;
   rememberSttQuickKey();
-  saveSettings().then(function(){ refreshSttState(); highlightSttPreset(); setSttStatus('ok','✓ 已保存。聊天语音会优先使用该 STT 接口进行转写。'); toast('语音转文字已保存'); });
+  renderPresetTrigger('stt');
+  saveSettings().then(function(){ refreshSttState(); highlightSttPreset(); setSttStatus('ok','✓ 已保存并使用（预设池里的预设未改动）。聊天语音会优先使用该 STT 接口进行转写。'); toast('语音转文字已保存'); });
 }
 
 function testSttConnection(){
@@ -222,7 +223,7 @@ function fillVisionForm(){
   if (elScope) elScope.value = c.scope || 'all';
   if (elPrompt) elPrompt.value = c.prompt || '';
   if (elOn) elOn.value = (c.enabled || !(c.baseUrl && c.apiKey && c.model)) ? 'on' : 'off';
-  updateVisionUrlHint(); highlightVisionPreset(); setVisionStatus('', '');
+  updateVisionUrlHint(); highlightVisionPreset(); renderPresetTrigger('vision'); setVisionStatus('', '');
 }
 
 function readVisionForm(){
@@ -296,6 +297,7 @@ function saveVisionForm(){
   if (!c.baseUrl || !c.apiKey || !c.model) { setVisionStatus('err', '三项必填：Base URL、API Key、识图模型。'); return; }
   State.settings.vision = c;
   rememberVisionQuickKey();
+  renderPresetTrigger('vision');
   saveSettings().then(function(){
     refreshVisionState(); highlightVisionPreset();
     setVisionStatus('ok', c.enabled
@@ -358,7 +360,7 @@ function fillApiForm(){
   if (elTempV) elTempV.textContent = Number(elTemp ? elTemp.value : 0.85).toFixed(2);
   if (elMax) elMax.value = (c.maxTokens && c.maxTokens > 0) ? c.maxTokens : '';
   var elStream = $('apiStream'); if (elStream) elStream.value = c.stream ? 'on' : 'off';
-  updateApiUrlHint(); highlightPreset(); renderSavedPresets(); updateSavedPresetButton(); setApiStatus('', '');
+  updateApiUrlHint(); highlightPreset(); renderPresetTrigger('primary'); setApiStatus('', '');
 }
 
 function readApiForm(){
@@ -440,132 +442,301 @@ function rememberQuickPresetKey(){
   });
 }
 
-function renderSavedPresets(){
-  var list = $('savedPresetList'), hint = $('savedPresetHint');
-  if (!list) return;
-  var presets = (State.settings && Array.isArray(State.settings.apiPresets)) ? State.settings.apiPresets : [];
-  if (!presets.length) {
-    list.innerHTML = '<div class="saved-preset-empty">暂无预设。保存后会一直显示在这里，点击预设名称即可立即切换接口。</div>';
-    if (hint) hint.style.display = 'none';
-    return;
+/* ───────────── 共用 API 预设池 ─────────────
+ * 主 API / 副 API / 语音转文字 / 识图 / 向量记忆 / 重排 共用同一个预设池（State.settings.apiPresets）。
+ * - 每一项 API 各自记着“自己正在用哪个预设”（activeXxxPresetId），在 A 里切换预设不会影响 B。
+ * - 在任意一项里「新建预设」「更新当前」都是在写共用预设池，其他 API 的预设弹窗里立刻能看到。
+ * - 点「保存」只保存并使用当前表单，不会改动池里的预设；其他 API 当前正在用的配置也不会被动。
+ * - 预设里存的是接口地址 / 密钥 / 模型（主、副 API 另含温度、最大 token，主 API 另含输出方式）；
+ *   每项 API 只读写自己用得到的字段，更新预设时不会冲掉别的 API 用到的字段。 */
+var API_PRESET_SECTIONS = {
+  primary: {
+    label: '主 API', activeKey: 'activeApiPresetId', trigger: 'apiPresetTrigger', newBtn: 'apiNewPreset', updBtn: 'apiUpdatePreset', hint: 'apiPresetHint',
+    extras: ['temperature', 'maxTokens', 'stream'],
+    read: function(){ return readApiForm(); }, live: function(){ return getApiConfig(); },
+    commit: function(){ State.settings.api = readApiForm(); },
+    applyLive: function(p){ State.settings.api = Object.assign({}, getApiConfig(), { enabled: apiPresetReady(p), baseUrl: p.baseUrl, apiKey: p.apiKey, model: p.model, temperature: p.temperature, maxTokens: p.maxTokens, stream: !!p.stream }); },
+    fill: function(){ fillApiForm(); }, refresh: function(){ refreshApiState(); highlightPreset(); },
+    status: function(k, t){ setApiStatus(k, t); }, remember: function(){ rememberQuickPresetKey(); }
+  },
+  secondary: {
+    label: '副 API', activeKey: 'activeSecondaryApiPresetId', trigger: 'secondaryPresetTrigger', newBtn: 'secondaryNewPreset', updBtn: 'secondaryUpdatePreset', hint: 'secondaryPresetHint',
+    extras: ['temperature', 'maxTokens'],
+    read: function(){ return readSecondaryApiForm(); }, live: function(){ return getSecondaryApiConfig(); },
+    commit: function(){ State.settings.secondaryApi = readSecondaryApiForm(); },
+    applyLive: function(p){ State.settings.secondaryApi = Object.assign({}, getSecondaryApiConfig(), { enabled: apiPresetReady(p), baseUrl: p.baseUrl, apiKey: p.apiKey, model: p.model, temperature: p.temperature, maxTokens: p.maxTokens }); },
+    fill: function(){ fillSecondaryApiForm(); }, refresh: function(){ refreshSecondaryApiState(); highlightSecondaryPreset(); },
+    status: function(k, t){ setSecondaryApiStatus(k, t); }, remember: function(){ rememberSecondaryQuickPresetKey(); }
+  },
+  stt: {
+    label: '语音转文字', activeKey: 'activeSttPresetId', trigger: 'sttPresetTrigger', newBtn: 'sttNewPreset', updBtn: 'sttUpdatePreset', hint: 'sttPresetHint',
+    extras: [],
+    read: function(){ return readSttForm(); }, live: function(){ return getSttConfig(); },
+    commit: function(){ State.settings.stt = readSttForm(); },
+    applyLive: function(p){ State.settings.stt = Object.assign({}, getSttConfig(), { enabled: apiPresetReady(p), baseUrl: p.baseUrl, apiKey: p.apiKey, model: p.model }); },
+    fill: function(){ fillSttForm(); }, refresh: function(){ refreshSttState(); highlightSttPreset(); },
+    status: function(k, t){ setSttStatus(k, t); }, remember: function(){ rememberSttQuickKey(); }
+  },
+  vision: {
+    label: '识图 API', activeKey: 'activeVisionPresetId', trigger: 'visionPresetTrigger', newBtn: 'visionNewPreset', updBtn: 'visionUpdatePreset', hint: 'visionPresetHint',
+    extras: [],
+    read: function(){ return readVisionForm(); }, live: function(){ return getVisionConfig(); },
+    commit: function(){ State.settings.vision = readVisionForm(); },
+    applyLive: function(p){
+      var prev = getVisionConfig(), wasReady = !!(prev.baseUrl && prev.apiKey && prev.model), ready = apiPresetReady(p);
+      State.settings.vision = Object.assign({}, prev, { baseUrl: p.baseUrl, apiKey: p.apiKey, model: p.model, enabled: ready && (wasReady ? !!prev.enabled : true) });
+    },
+    fill: function(){ fillVisionForm(); }, refresh: function(){ refreshVisionState(); highlightVisionPreset(); },
+    status: function(k, t){ setVisionStatus(k, t); }, remember: function(){ rememberVisionQuickKey(); }
+  },
+  vectorEmbedding: {
+    label: '向量记忆 API', activeKey: 'activeVectorEmbeddingPresetId', trigger: 'vectorEmbeddingPresetTrigger', newBtn: 'vectorEmbeddingNewPreset', updBtn: 'vectorEmbeddingUpdatePreset', hint: 'vectorEmbeddingPresetHint',
+    extras: [],
+    read: function(){ return readVectorEmbeddingApiForm().embeddingApi; }, live: function(){ return getVectorMemorySettings().embeddingApi; },
+    commit: function(){ readVectorEmbeddingApiForm(); },
+    applyLive: function(p){ var s = getVectorMemorySettings(); s.embeddingApi = { baseUrl: p.baseUrl, apiKey: p.apiKey, model: p.model }; State.settings.vectorMemory = s; },
+    fill: function(){ fillVectorEmbeddingApiForm(); }, refresh: function(){ refreshVectorMemoryApiState(); },
+    status: function(k, t){ setVectorApiStatus('embedding', k, t); }, remember: null
+  },
+  vectorRerank: {
+    label: '重排 API', activeKey: 'activeVectorRerankPresetId', trigger: 'vectorRerankPresetTrigger', newBtn: 'vectorRerankNewPreset', updBtn: 'vectorRerankUpdatePreset', hint: 'vectorRerankPresetHint',
+    extras: [],
+    read: function(){ return readVectorRerankApiForm().rerankApi; }, live: function(){ return getVectorMemorySettings().rerankApi; },
+    commit: function(){ readVectorRerankApiForm(); },
+    applyLive: function(p){ var s = getVectorMemorySettings(); s.rerankApi = { baseUrl: p.baseUrl, apiKey: p.apiKey, model: p.model }; State.settings.vectorMemory = s; },
+    fill: function(){ fillVectorRerankApiForm(); }, refresh: function(){ refreshVectorMemoryApiState(); },
+    status: function(k, t){ setVectorApiStatus('rerank', k, t); }, remember: null
   }
-  if (hint) hint.style.display = '';
-  var activeId = State.settings.activeApiPresetId || '';
-  list.innerHTML = presets.map(function(p){
-    return '<div class="saved-preset-row">' +
-      '<button class="saved-preset-item' + (p.id === activeId ? ' is-active' : '') + '" type="button" data-saved-preset-id="' + escapeHTML(p.id) + '">' +
-        '<span class="saved-preset-main"><span class="saved-preset-name"><span>' + escapeHTML(p.name) + '</span>' + (p.id === activeId ? '<span class="saved-preset-current">当前</span>' : '') + '</span></span>' +
-      '</button>' +
-      '<button class="saved-preset-delete" type="button" data-delete-preset-id="' + escapeHTML(p.id) + '" aria-label="删除 ' + escapeHTML(p.name) + '">×</button>' +
-    '</div>';
-  }).join('');
+};
+
+function apiPresetPool(){
+  if (!State.settings) return [];
+  if (!Array.isArray(State.settings.apiPresets)) State.settings.apiPresets = [];
+  return State.settings.apiPresets;
 }
 
-function activateSavedPreset(id){
-  var presets = State.settings && Array.isArray(State.settings.apiPresets) ? State.settings.apiPresets : [];
-  var hit = null;
-  for (var i = 0; i < presets.length; i++) if (presets[i].id === id) { hit = presets[i]; break; }
-  if (!hit) return;
-  var cfg = normalizeApiPreset(hit);
-  cfg.id = hit.id; cfg.name = hit.name; cfg.updatedAt = Date.now();
-  State.settings.api = {
-    enabled: !!(cfg.baseUrl && cfg.apiKey && cfg.model),
-    baseUrl: cfg.baseUrl,
-    apiKey: cfg.apiKey,
-    model: cfg.model,
-    temperature: cfg.temperature,
-    maxTokens: cfg.maxTokens,
-    stream: !!cfg.stream
-  };
-  State.settings.activeApiPresetId = hit.id;
-  fillApiForm();
-  updateSavedPresetButton();
+function apiPresetReady(p){ return !!(p && String(p.baseUrl || '').trim() && String(p.apiKey || '').trim() && String(p.model || '').trim()); }
+
+function findApiPreset(id){
+  if (!id) return null;
+  var pool = apiPresetPool();
+  for (var i = 0; i < pool.length; i++) if (pool[i].id === id) return pool[i];
+  return null;
+}
+
+/* 取出某项 API 用得到的字段（其余字段不碰） */
+function apiPresetFields(kind, src){
+  src = src || {};
+  var o = { baseUrl: String(src.baseUrl || '').trim(), apiKey: String(src.apiKey || '').trim(), model: String(src.model || '').trim() };
+  API_PRESET_SECTIONS[kind].extras.forEach(function(k){ o[k] = src[k]; });
+  return o;
+}
+
+/* 这项 API 当前生效的配置是否与它选中的预设不一致（比如在别处更新过该预设，或自己改过没点“更新当前”） */
+function apiPresetIsModified(kind, preset){
+  var sec = API_PRESET_SECTIONS[kind];
+  var a = apiPresetFields(kind, sec.live()), b = apiPresetFields(kind, preset);
+  if (a.baseUrl !== b.baseUrl || a.apiKey !== b.apiKey || a.model !== b.model) return true;
+  for (var i = 0; i < sec.extras.length; i++) {
+    var k = sec.extras[i];
+    if (k === 'temperature') { var ta = Number(a[k]), tb = Number(b[k]); if (!Number.isFinite(ta)) ta = 0.85; if (!Number.isFinite(tb)) tb = 0.85; if (Math.abs(ta - tb) > 0.001) return true; }
+    else if (k === 'maxTokens') { if ((parseInt(a[k], 10) || 0) !== (parseInt(b[k], 10) || 0)) return true; }
+    else if (!!a[k] !== !!b[k]) return true;
+  }
+  return false;
+}
+
+function apiPresetHost(url){
+  var u = String(url || '').trim().replace(/^[a-z]+:\/\//i, '');
+  var h = u.split(/[\/?#]/)[0];
+  return h || '未填写地址';
+}
+
+/* 刷新某项 API 里的预设选择按钮（显示当前预设名）和“更新当前”按钮 */
+function renderPresetTrigger(kind){
+  var sec = API_PRESET_SECTIONS[kind]; if (!sec) return;
+  var btn = $(sec.trigger), upd = $(sec.updBtn), hint = $(sec.hint);
+  var pool = apiPresetPool();
+  var hit = findApiPreset(State.settings && State.settings[sec.activeKey]);
+  if (!hit && State.settings && State.settings[sec.activeKey]) State.settings[sec.activeKey] = '';
+  if (btn) {
+    var text = btn.querySelector('.island-select-trigger-text');
+    var label = hit ? (hit.name + (apiPresetIsModified(kind, hit) ? ' · 已修改' : '')) : (pool.length ? '选择预设（共 ' + pool.length + ' 个）' : '暂无预设');
+    if (text) text.textContent = label;
+    btn.classList.toggle('is-empty', !hit);
+  }
+  if (upd) {
+    upd.disabled = !hit;
+    upd.textContent = '更新当前';
+    upd.setAttribute('aria-label', hit ? '更新当前预设' : '请先选择一个预设');
+    upd.title = hit ? '用当前表单内容覆盖所选预设（共用预设池同步更新）' : '请先选择一个预设';
+  }
+  if (hint) hint.textContent = pool.length
+    ? '预设池由主 API、副 API、语音转文字、识图、向量记忆、重排共用。在这里切换预设只影响' + sec.label + '，其他 API 不会跟着变。'
+    : '预设池还是空的。填好下面的接口信息后，点“＋新建预设”，所有 API 的预设弹窗里都能选到它。';
+}
+
+function renderAllPresetTriggers(){ Object.keys(API_PRESET_SECTIONS).forEach(renderPresetTrigger); }
+
+/* ── 预设选择弹窗 ── */
+var apiPresetPickerEl = null, apiPresetPickerKind = '', apiPresetPickerHideTimer = 0;
+
+function ensureApiPresetPicker(){
+  if (apiPresetPickerEl) return apiPresetPickerEl;
+  var el = document.createElement('div');
+  el.className = 'island-dialog island-select-dialog api-preset-picker';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML =
+    '<div class="island-dialog-backdrop"></div>' +
+    '<section class="island-dialog-panel island-select-panel" role="dialog" aria-modal="true">' +
+      '<h3 class="island-dialog-title"></h3>' +
+      '<div class="api-pp-list" role="listbox"></div>' +
+      '<div class="api-pp-note"></div>' +
+      '<div class="island-dialog-actions"><button type="button" class="island-dialog-btn is-cancel">关闭</button></div>' +
+    '</section>';
+  document.body.appendChild(el);
+  el.querySelector('.island-dialog-backdrop').addEventListener('click', closeApiPresetPicker);
+  el.querySelector('.is-cancel').addEventListener('click', closeApiPresetPicker);
+  el.querySelector('.api-pp-list').addEventListener('click', function(e){
+    var del = e.target.closest('[data-pp-del]');
+    if (del) { e.preventDefault(); e.stopPropagation(); confirmDeleteApiPreset(apiPresetPickerKind, del.dataset.ppDel); return; }
+    var item = e.target.closest('[data-pp-id]');
+    if (item) { var kind = apiPresetPickerKind, id = item.dataset.ppId; closeApiPresetPicker(); selectApiPreset(kind, id); }
+  });
+  document.addEventListener('keydown', function(e){
+    if (apiPresetPickerEl && apiPresetPickerEl.classList.contains('is-show') && (e.key === 'Escape' || e.key === 'Esc')) { e.preventDefault(); closeApiPresetPicker(); }
+  });
+  apiPresetPickerEl = el;
+  return el;
+}
+
+function openApiPresetPicker(kind){
+  var sec = API_PRESET_SECTIONS[kind]; if (!sec) return;
+  var el = ensureApiPresetPicker();
+  apiPresetPickerKind = kind;
+  var pool = apiPresetPool();
+  var activeId = State.settings[sec.activeKey] || '';
+  el.querySelector('.island-dialog-title').textContent = '选择预设 · ' + sec.label;
+  var list = el.querySelector('.api-pp-list');
+  if (!pool.length) {
+    list.innerHTML = '<div class="saved-preset-empty">预设池还是空的。关闭弹窗，填好接口信息后点“＋新建预设”。</div>';
+  } else {
+    list.innerHTML = pool.map(function(p){
+      var on = p.id === activeId;
+      var usedBy = Object.keys(API_PRESET_SECTIONS).filter(function(k){ return k !== kind && State.settings[API_PRESET_SECTIONS[k].activeKey] === p.id; }).map(function(k){ return API_PRESET_SECTIONS[k].label; });
+      var sub = (p.model || '未填写模型') + ' · ' + apiPresetHost(p.baseUrl) + (usedBy.length ? ' · ' + usedBy.join('、') + ' 在用' : '');
+      return '<div class="api-pp-row">' +
+        '<button type="button" class="island-select-item api-pp-item' + (on ? ' is-on' : '') + '" role="option" aria-selected="' + (on ? 'true' : 'false') + '" data-pp-id="' + escapeHTML(p.id) + '">' +
+          '<span class="api-pp-text"><span class="api-pp-name">' + escapeHTML(p.name) + '</span><span class="api-pp-sub">' + escapeHTML(sub) + '</span></span>' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>' +
+        '</button>' +
+        '<button type="button" class="saved-preset-delete" data-pp-del="' + escapeHTML(p.id) + '" aria-label="删除预设 ' + escapeHTML(p.name) + '">×</button>' +
+      '</div>';
+    }).join('');
+  }
+  el.querySelector('.api-pp-note').textContent = '共用预设池 · 选中后只对' + sec.label + '生效；删除预设会从所有 API 的预设列表里移除。';
+  clearTimeout(apiPresetPickerHideTimer);
+  el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
+  void el.offsetWidth; el.classList.add('is-show');
+}
+
+function closeApiPresetPicker(){
+  var el = apiPresetPickerEl; if (!el) return;
+  el.classList.remove('is-show'); el.setAttribute('aria-hidden', 'true');
+  clearTimeout(apiPresetPickerHideTimer);
+  apiPresetPickerHideTimer = setTimeout(function(){ if (!el.classList.contains('is-show')) el.classList.remove('is-open'); }, 190);
+}
+
+/* 在某项 API 里切换预设：只改这一项，其他 API 的配置和“当前预设”标记都不动 */
+function selectApiPreset(kind, id){
+  var sec = API_PRESET_SECTIONS[kind], hit = findApiPreset(id);
+  if (!sec || !hit) return;
+  var cfg = normalizeApiPreset(hit, 0);
+  sec.applyLive(cfg);
+  State.settings[sec.activeKey] = hit.id;
+  sec.fill();
+  renderPresetTrigger(kind);
   releaseInputFocus();
   saveSettings().then(function(){
-    refreshApiState();
-    toast('已切换 · ' + hit.name);
+    sec.refresh();
+    toast('已切换 · ' + hit.name + '（' + sec.label + '）');
   });
 }
 
-function updateActivePresetFromForm(){
-  var c = currentApiFormData();
-  if (!c.baseUrl || !c.apiKey || !c.model) { setApiStatus('err', '请先填写 Base URL、API Key 和模型，再更新预设。'); return false; }
-  var presets = State.settings.apiPresets || (State.settings.apiPresets = []);
-  var activeId = State.settings.activeApiPresetId || '';
-  var index = -1, hit = null;
-  for (var i = 0; i < presets.length; i++) {
-    if (presets[i].id === activeId) { index = i; hit = presets[i]; break; }
-  }
-  if (index < 0 || !hit) {
-    State.settings.activeApiPresetId = '';
-    return false;
-  }
-  var preset = normalizeApiPreset(Object.assign({}, c, {
-    id: hit.id,
-    name: hit.name,
-    updatedAt: Date.now()
-  }), index);
-  presets[index] = preset;
-  State.settings.api = {
-    enabled: c.enabled, baseUrl: c.baseUrl, apiKey: c.apiKey, model: c.model,
-    temperature: c.temperature, maxTokens: c.maxTokens, stream: !!c.stream
-  };
-  rememberQuickPresetKey();
-  renderSavedPresets();
-  updateSavedPresetButton();
+function apiPresetFormIncomplete(kind, c, what){
+  if (c && c.baseUrl && c.apiKey && c.model) return false;
+  API_PRESET_SECTIONS[kind].status('err', '请先填写接口地址、API Key 和模型，再' + what + '预设。');
+  return true;
+}
+
+/* 新建预设：写进共用预设池，并让当前这项 API 选中它 */
+function createApiPresetFromForm(kind){
+  var sec = API_PRESET_SECTIONS[kind];
+  var c = sec.read();
+  if (apiPresetFormIncomplete(kind, c, '保存')) return;
+  islandPrompt('给这个预设起个名字（所有 API 共用）', { title: '新建预设', defaultValue: '新预设', maxLength: 40, confirmText: '保存' }).then(function(name){
+    if (name === null) return;
+    name = String(name).trim().slice(0, 40);
+    if (!name) { toast('预设名称不能为空'); return; }
+    var pool = apiPresetPool();
+    var preset = normalizeApiPreset(Object.assign({}, apiPresetFields(kind, c), { id: genId('api_'), name: name, updatedAt: Date.now() }), pool.length);
+    pool.unshift(preset);
+    State.settings[sec.activeKey] = preset.id;
+    sec.commit();
+    if (sec.remember) sec.remember();
+    renderPresetTrigger(kind);
+    saveSettings().then(function(){
+      sec.refresh();
+      sec.status('ok', '✓ 已把预设“' + preset.name + '”存入共用预设池，' + sec.label + '正在使用它。其他 API 的配置不受影响，但它们的预设弹窗里已经能选到这个预设。');
+      toast('预设已保存到共用预设池');
+    });
+  });
+}
+
+/* 更新当前：用这项 API 的表单覆盖所选预设（共用预设池同步更新）；预设里这项 API 用不到的字段保持原样 */
+function updateApiPresetFromForm(kind){
+  var sec = API_PRESET_SECTIONS[kind];
+  var pool = apiPresetPool(), id = State.settings[sec.activeKey] || '', index = -1;
+  for (var i = 0; i < pool.length; i++) if (pool[i].id === id) { index = i; break; }
+  if (index < 0) { State.settings[sec.activeKey] = ''; renderPresetTrigger(kind); return false; }
+  var c = sec.read();
+  if (apiPresetFormIncomplete(kind, c, '更新')) return false;
+  var preset = normalizeApiPreset(Object.assign({}, pool[index], apiPresetFields(kind, c), { id: pool[index].id, name: pool[index].name, updatedAt: Date.now() }), index);
+  pool[index] = preset;
+  sec.commit();
+  if (sec.remember) sec.remember();
+  renderPresetTrigger(kind);
   saveSettings().then(function(){
-    refreshApiState();
-    setApiStatus('ok', '✓ 已更新预设“' + preset.name + '”，聊天将使用最新配置。');
-    toast('预设已更新');
+    sec.refresh();
+    sec.status('ok', '✓ 已更新共用预设“' + preset.name + '”。其他 API 当前在用的配置不会被改动，它们下次选择这个预设时才会采用新内容。');
+    toast('预设已更新（共用预设池）');
   });
   return true;
 }
 
-function saveCurrentAsPreset(){
-  var c = currentApiFormData();
-  if (!c.baseUrl || !c.apiKey || !c.model) { setApiStatus('err', '请先填写 Base URL、API Key 和模型，再保存预设。'); return; }
-  islandPrompt('给这个 API 预设起个名字', {title:'保存 API 预设', defaultValue:'新预设', maxLength:40, confirmText:'保存'}).then(function(name){
-    if (name === null) return;
-    name = String(name).trim().slice(0, 40);
-    if (!name) { toast('预设名称不能为空'); return; }
-    var presets = State.settings.apiPresets || (State.settings.apiPresets = []);
-    var preset = normalizeApiPreset(Object.assign({}, c, { id: genId('api_'), name: name, updatedAt: Date.now() }), presets.length);
-    presets.unshift(preset);
-    State.settings.activeApiPresetId = preset.id;
-    State.settings.api = {
-      enabled: c.enabled, baseUrl: c.baseUrl, apiKey: c.apiKey, model: c.model,
-      temperature: c.temperature, maxTokens: c.maxTokens, stream: !!c.stream
-    };
-    rememberQuickPresetKey();
-    renderSavedPresets();
-    updateSavedPresetButton();
-    saveSettings().then(function(){ refreshApiState(); setApiStatus('ok', '✓ 已保存预设“' + preset.name + '”，现在它就是当前聊天 API。'); toast('预设已保存'); });
+function confirmDeleteApiPreset(kind, id){
+  var hit = findApiPreset(id); if (!hit) return;
+  closeApiPresetPicker();
+  var users = Object.keys(API_PRESET_SECTIONS).filter(function(k){ return State.settings[API_PRESET_SECTIONS[k].activeKey] === id; }).map(function(k){ return API_PRESET_SECTIONS[k].label; });
+  var msg = '删除预设“' + hit.name + '”？\n它属于共用预设池，所有 API 的预设列表里都会删除。' + (users.length ? '\n' + users.join('、') + ' 正在使用的接口配置不会被改动。' : '');
+  islandConfirm(msg, { title: '删除预设', confirmText: '删除', danger: true }).then(function(ok){
+    if (ok) {
+      var pool = apiPresetPool();
+      for (var i = 0; i < pool.length; i++) if (pool[i].id === id) { pool.splice(i, 1); break; }
+      API_PRESET_ACTIVE_KEYS.forEach(function(key){ if (State.settings[key] === id) State.settings[key] = ''; });
+      renderAllPresetTriggers();
+      saveSettings().then(function(){ toast('已删除预设'); });
+    }
+    openApiPresetPicker(kind);
   });
 }
 
-function updateSavedPresetButton(){
-  var btn = $('apiUpdatePreset');
-  if (!btn) return;
-  var activeId = State.settings.activeApiPresetId || '';
-  var hasActive = activeId && Array.isArray(State.settings.apiPresets) && State.settings.apiPresets.some(function(p){ return p.id === activeId; });
-  btn.disabled = !hasActive;
-  btn.textContent = '更新当前';
-  btn.setAttribute('aria-label', hasActive ? '更新当前预设' : '请先选择已保存预设');
-  btn.title = hasActive ? '用当前表单内容覆盖所选预设' : '请先选择一个已保存预设';
-}
-
-function deleteSavedPreset(id){
-  var presets = State.settings && Array.isArray(State.settings.apiPresets) ? State.settings.apiPresets : [];
-  var index = -1, hit = null;
-  for (var i = 0; i < presets.length; i++) if (presets[i].id === id) { index = i; hit = presets[i]; break; }
-  if (index < 0 || !hit) return;
-  islandConfirm('删除预设“' + hit.name + '”？', {title:'删除 API 预设', confirmText:'删除', danger:true}).then(function(ok){
-    if (!ok) return;
-    presets.splice(index, 1);
-    if (State.settings.activeApiPresetId === id) State.settings.activeApiPresetId = '';
-    renderSavedPresets();
-    updateSavedPresetButton();
-    saveSettings().then(function(){ refreshApiState(); toast('已删除预设'); });
+function initApiPresetPickers(){
+  Object.keys(API_PRESET_SECTIONS).forEach(function(kind){
+    var sec = API_PRESET_SECTIONS[kind];
+    var trigger = $(sec.trigger); if (trigger) trigger.addEventListener('click', function(e){ e.preventDefault(); openApiPresetPicker(kind); });
+    var nb = $(sec.newBtn); if (nb) nb.addEventListener('click', function(){ createApiPresetFromForm(kind); });
+    var ub = $(sec.updBtn); if (ub) ub.addEventListener('click', function(){ updateApiPresetFromForm(kind); });
   });
 }
 
@@ -605,15 +776,8 @@ function saveApiForm(){
   // 「保存」只保存并使用当前表单；不会改动任何已保存预设（覆盖预设请点「更新当前」）
   State.settings.api = c;
   rememberQuickPresetKey();
-  var activeId = State.settings.activeApiPresetId || '';
-  var activePreset = null;
-  if (activeId && Array.isArray(State.settings.apiPresets)) {
-    for (var i = 0; i < State.settings.apiPresets.length; i++) {
-      if (State.settings.apiPresets[i].id === activeId) { activePreset = State.settings.apiPresets[i]; break; }
-    }
-  }
-  renderSavedPresets();
-  updateSavedPresetButton();
+  var activePreset = findApiPreset(State.settings.activeApiPresetId);
+  renderPresetTrigger('primary');
   saveSettings().then(function(){
     refreshApiState(); highlightPreset();
     setApiStatus('ok', activePreset
@@ -635,7 +799,7 @@ function fillSecondaryApiForm(){
   if (elTemp) elTemp.value = (typeof c.temperature === 'number' ? c.temperature : 0.85);
   if (elTempV) elTempV.textContent = Number(elTemp ? elTemp.value : 0.85).toFixed(2);
   if (elMax) elMax.value = (c.maxTokens && c.maxTokens > 0) ? c.maxTokens : '';
-  updateSecondaryApiUrlHint(); highlightSecondaryPreset(); renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); setSecondaryApiStatus('', '');
+  updateSecondaryApiUrlHint(); highlightSecondaryPreset(); renderPresetTrigger('secondary'); setSecondaryApiStatus('', '');
 }
 
 function readSecondaryApiForm(){
@@ -711,87 +875,6 @@ function rememberSecondaryQuickPresetKey(){
   });
 }
 
-function renderSecondarySavedPresets(){
-  var list = $('secondarySavedPresetList'), hint = $('secondarySavedPresetHint');
-  if (!list) return;
-  var presets = (State.settings && Array.isArray(State.settings.secondaryApiPresets)) ? State.settings.secondaryApiPresets : [];
-  if (!presets.length) {
-    list.innerHTML = '<div class="saved-preset-empty">暂无预设。保存后会一直显示在这里，点击预设名称即可立即切换副API。</div>';
-    if (hint) hint.style.display = 'none';
-    return;
-  }
-  if (hint) hint.style.display = '';
-  var activeId = State.settings.activeSecondaryApiPresetId || '';
-  list.innerHTML = presets.map(function(p){
-    return '<div class="saved-preset-row">' +
-      '<button class="saved-preset-item' + (p.id === activeId ? ' is-active' : '') + '" type="button" data-secondary-saved-preset-id="' + escapeHTML(p.id) + '">' +
-        '<span class="saved-preset-main"><span class="saved-preset-name"><span>' + escapeHTML(p.name) + '</span>' + (p.id === activeId ? '<span class="saved-preset-current">当前</span>' : '') + '</span></span>' +
-      '</button>' +
-      '<button class="saved-preset-delete" type="button" data-delete-secondary-preset-id="' + escapeHTML(p.id) + '" aria-label="删除 ' + escapeHTML(p.name) + '">×</button>' +
-    '</div>';
-  }).join('');
-}
-
-function activateSecondarySavedPreset(id){
-  var presets = State.settings && Array.isArray(State.settings.secondaryApiPresets) ? State.settings.secondaryApiPresets : [];
-  var hit = null;
-  for (var i = 0; i < presets.length; i++) if (presets[i].id === id) { hit = presets[i]; break; }
-  if (!hit) return;
-  var cfg = normalizeSecondaryApiPreset(hit);
-  State.settings.secondaryApi = { enabled:!!(cfg.baseUrl && cfg.apiKey && cfg.model), baseUrl:cfg.baseUrl, apiKey:cfg.apiKey, model:cfg.model, temperature:cfg.temperature, maxTokens:cfg.maxTokens };
-  State.settings.activeSecondaryApiPresetId = hit.id;
-  fillSecondaryApiForm(); updateSecondarySavedPresetButton(); releaseInputFocus();
-  saveSettings().then(function(){ refreshSecondaryApiState(); toast('已切换副API · ' + hit.name); });
-}
-
-function updateSecondaryActivePresetFromForm(){
-  var c = currentSecondaryApiFormData();
-  if (!c.baseUrl || !c.apiKey || !c.model) { setSecondaryApiStatus('err','请先填写 Base URL、API Key 和模型，再更新预设。'); return false; }
-  var presets = State.settings.secondaryApiPresets || (State.settings.secondaryApiPresets = []);
-  var activeId = State.settings.activeSecondaryApiPresetId || '', index = -1, hit = null;
-  for (var i=0;i<presets.length;i++) if (presets[i].id === activeId) { index=i; hit=presets[i]; break; }
-  if (index < 0 || !hit) { State.settings.activeSecondaryApiPresetId=''; return false; }
-  var preset = normalizeSecondaryApiPreset(Object.assign({}, c, {id:hit.id,name:hit.name,updatedAt:Date.now()}), index);
-  presets[index] = preset;
-  State.settings.secondaryApi = {enabled:c.enabled,baseUrl:c.baseUrl,apiKey:c.apiKey,model:c.model,temperature:c.temperature,maxTokens:c.maxTokens};
-  rememberSecondaryQuickPresetKey(); renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){ refreshSecondaryApiState(); setSecondaryApiStatus('ok','✓ 已更新副API预设“'+preset.name+'”。当前仅作为备用接口保存。'); toast('副API预设已更新'); });
-  return true;
-}
-
-function saveSecondaryCurrentAsPreset(){
-  var c = currentSecondaryApiFormData();
-  if (!c.baseUrl || !c.apiKey || !c.model) { setSecondaryApiStatus('err','请先填写 Base URL、API Key 和模型，再保存预设。'); return; }
-  islandPrompt('给这个副 API 预设起个名字', {title:'保存副 API 预设', defaultValue:'新预设', maxLength:40, confirmText:'保存'}).then(function(name){
-    if (name === null) return;
-    name = String(name).trim().slice(0,40);
-    if (!name) { toast('预设名称不能为空'); return; }
-    var presets = State.settings.secondaryApiPresets || (State.settings.secondaryApiPresets=[]);
-    var preset = normalizeSecondaryApiPreset(Object.assign({},c,{id:genId('subapi_'),name:name,updatedAt:Date.now()}),presets.length);
-    presets.unshift(preset); State.settings.activeSecondaryApiPresetId=preset.id;
-    State.settings.secondaryApi={enabled:c.enabled,baseUrl:c.baseUrl,apiKey:c.apiKey,model:c.model,temperature:c.temperature,maxTokens:c.maxTokens};
-    rememberSecondaryQuickPresetKey(); renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){refreshSecondaryApiState();setSecondaryApiStatus('ok','✓ 已保存副API预设“'+preset.name+'”，现在它就是当前选中的副API预设。');toast('副API预设已保存');});
-  });
-}
-
-function updateSecondarySavedPresetButton(){
-  var btn=$('secondaryUpdatePreset'); if(!btn) return;
-  var id=State.settings.activeSecondaryApiPresetId||'', has=id&&Array.isArray(State.settings.secondaryApiPresets)&&State.settings.secondaryApiPresets.some(function(p){return p.id===id;});
-  btn.disabled=!has; btn.textContent='更新当前'; btn.setAttribute('aria-label',has?'更新当前副API预设':'请先选择已保存预设'); btn.title=has?'用当前表单内容覆盖所选副API预设':'请先选择一个已保存副API预设';
-}
-
-function deleteSecondarySavedPreset(id){
-  var presets = State.settings && Array.isArray(State.settings.secondaryApiPresets) ? State.settings.secondaryApiPresets : [];
-  var index=-1; for(var i=0;i<presets.length;i++) if(presets[i].id===id){index=i;break;}
-  if(index<0) return;
-  var name=presets[index].name||'预设';
-  islandConfirm('删除副API预设“'+name+'”？', {title:'删除副 API 预设', confirmText:'删除', danger:true}).then(function(ok){
-    if (!ok) return;
-    presets.splice(index,1);
-    if(State.settings.activeSecondaryApiPresetId===id){State.settings.activeSecondaryApiPresetId='';}
-    renderSecondarySavedPresets(); updateSecondarySavedPresetButton(); saveSettings().then(function(){refreshSecondaryApiState();toast('已删除副API预设');});
-  });
-}
-
 function testSecondaryConnection(){
   var btn=$('secondaryApiTest'), draft=readSecondaryApiForm();
   if(!draft.baseUrl||!draft.apiKey||!draft.model){setSecondaryApiStatus('err','请先填写 Base URL、API Key 和模型名称。');return;}
@@ -806,14 +889,8 @@ function saveSecondaryApiForm(){
   if (!c.baseUrl || !c.apiKey || !c.model) { setSecondaryApiStatus('err', '三项必填：Base URL、API Key、模型。'); return; }
   // 「保存」只保存并使用当前表单；不会改动任何已保存的副API预设（覆盖预设请点「更新当前」）
   State.settings.secondaryApi = c; rememberSecondaryQuickPresetKey();
-  var activeId = State.settings.activeSecondaryApiPresetId || '';
-  var activePreset = null;
-  if (activeId && Array.isArray(State.settings.secondaryApiPresets)) {
-    for (var i = 0; i < State.settings.secondaryApiPresets.length; i++) {
-      if (State.settings.secondaryApiPresets[i].id === activeId) { activePreset = State.settings.secondaryApiPresets[i]; break; }
-    }
-  }
-  renderSecondarySavedPresets(); updateSecondarySavedPresetButton();
+  var activePreset = findApiPreset(State.settings.activeSecondaryApiPresetId);
+  renderPresetTrigger('secondary');
   saveSettings().then(function(){
     refreshSecondaryApiState(); highlightSecondaryPreset();
     setSecondaryApiStatus('ok', activePreset
@@ -1005,10 +1082,6 @@ function bindSettingsApiEvents(){
   if ($('vectorRerankApiTest')) $('vectorRerankApiTest').addEventListener('click', testVectorRerankApi);
   var secondaryChips = $('secondaryPresetChips');
   if (secondaryChips) secondaryChips.addEventListener('click', function(e){ var chip=e.target.closest('.chip'); if(chip) applySecondaryPreset(chip.dataset.preset); });
-  var secondaryList = $('secondarySavedPresetList');
-  if (secondaryList) secondaryList.addEventListener('click', function(e){ var del=e.target.closest('[data-delete-secondary-preset-id]'); if(del){e.preventDefault();deleteSecondarySavedPreset(del.dataset.deleteSecondaryPresetId);return;} var item=e.target.closest('[data-secondary-saved-preset-id]'); if(item) activateSecondarySavedPreset(item.dataset.secondarySavedPresetId); });
-  var secondaryNew = $('secondaryNewPreset'); if (secondaryNew) secondaryNew.addEventListener('click', saveSecondaryCurrentAsPreset);
-  var secondaryUpdate = $('secondaryUpdatePreset'); if (secondaryUpdate) secondaryUpdate.addEventListener('click', updateSecondaryActivePresetFromForm);
   var secondaryUrl = $('secondaryApiBaseUrl'); if (secondaryUrl) { secondaryUrl.addEventListener('input', updateSecondaryApiUrlHint); secondaryUrl.addEventListener('change', updateSecondaryApiUrlHint); }
   var secondaryTemp = $('secondaryApiTemp'), secondaryTempVal = $('secondaryApiTempVal'); if (secondaryTemp && secondaryTempVal) secondaryTemp.addEventListener('input', function(){ secondaryTempVal.textContent=parseFloat(secondaryTemp.value).toFixed(2); });
   var secondaryEye = $('secondaryApiKeyEye'), secondaryKey = $('secondaryApiKey'); if (secondaryKey) secondaryKey.addEventListener('change', function(){ if(!State.settings) return; rememberSecondaryQuickPresetKey(); scheduleSettingsSave(180); });
@@ -1086,19 +1159,7 @@ function bindSettingsApiEvents(){
       applyPreset(chip.dataset.preset);
     });
   }
-  var savedPresetList = $('savedPresetList');
-  if (savedPresetList) {
-    savedPresetList.addEventListener('click', function(e){
-      var del = e.target.closest('[data-delete-preset-id]');
-      if (del) { e.preventDefault(); deleteSavedPreset(del.dataset.deletePresetId); return; }
-      var item = e.target.closest('[data-saved-preset-id]');
-      if (item) activateSavedPreset(item.dataset.savedPresetId);
-    });
-  }
-  var newPresetBtn = $('apiNewPreset');
-  if (newPresetBtn) newPresetBtn.addEventListener('click', saveCurrentAsPreset);
-  var updatePresetBtn = $('apiUpdatePreset');
-  if (updatePresetBtn) updatePresetBtn.addEventListener('click', updateActivePresetFromForm);
+  initApiPresetPickers();
 
   var elUrl = $('apiBaseUrl');
   if (elUrl) {

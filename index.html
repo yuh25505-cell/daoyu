@@ -1710,18 +1710,18 @@
 <button class="chip" data-preset="openrouter" type="button">OpenRouter</button>
 <button class="chip" data-preset="custom" type="button">自定义</button>
 </div>
-<div class="api-hint">快捷预设只用于快速填充接口和模型；下面的已保存预设会连同 API Key、温度一起切换。</div>
+<div class="api-hint">快捷预设只用于快速填充接口地址和模型；上方的预设来自所有 API 共用的预设池。</div>
 </div>
-<div class="api-field saved-preset-field">
+<div class="api-field saved-preset-field api-shared-preset-field">
 <div class="api-field-head">
-<span class="api-label">已保存预设</span>
+<span class="api-label">预设（共用预设池）</span>
 <span class="api-preset-actions">
 <button class="api-hint-btn" id="apiNewPreset" type="button">＋新建预设</button>
 <button class="api-hint-btn" disabled="" id="apiUpdatePreset" type="button">更新当前</button>
 </span>
 </div>
-<div class="saved-preset-list" id="savedPresetList"></div>
-<div class="api-hint" id="savedPresetHint">还没有保存的预设。填写下面的接口信息后，点击“＋新建预设”。选择已有预设后可编辑下面的接口信息，再点击“更新当前”覆盖该预设。</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="apiPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+<div class="api-hint" id="apiPresetHint"></div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">Base URL</span></div>
@@ -1795,6 +1795,17 @@
 </header>
 <div class="panel-scroll">
 <div class="api-form">
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="sttNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="sttUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="sttPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+<div class="api-hint" id="sttPresetHint"></div>
+</div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">快捷预设</span></div>
 <div class="chips" id="sttPresetChips">
@@ -1871,6 +1882,17 @@
 </header>
 <div class="panel-scroll">
 <div class="api-form">
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="visionNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="visionUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="visionPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+<div class="api-hint" id="visionPresetHint"></div>
+</div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">快捷预设</span></div>
 <div class="chips" id="visionPresetChips">
@@ -1967,18 +1989,18 @@
 <button class="chip" data-preset="openrouter" type="button">OpenRouter</button>
 <button class="chip" data-preset="custom" type="button">自定义</button>
 </div>
-<div class="api-hint">副API独立保存，与主API互不影响；已保存预设会连同 API Key、温度一起切换。</div>
+<div class="api-hint">副API独立保存，与主API互不影响；上方的预设来自所有 API 共用的预设池。</div>
 </div>
-<div class="api-field saved-preset-field">
+<div class="api-field saved-preset-field api-shared-preset-field">
 <div class="api-field-head">
-<span class="api-label">已保存预设</span>
+<span class="api-label">预设（共用预设池）</span>
 <span class="api-preset-actions">
 <button class="api-hint-btn" id="secondaryNewPreset" type="button">＋新建预设</button>
 <button class="api-hint-btn" disabled="" id="secondaryUpdatePreset" type="button">更新当前</button>
 </span>
 </div>
-<div class="saved-preset-list" id="secondarySavedPresetList"></div>
-<div class="api-hint" id="secondarySavedPresetHint">还没有保存的预设。填写下面的接口信息后，点击“＋新建预设”。选择已有预设后可编辑下面的接口信息，再点击“更新当前”覆盖该副API预设。</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="secondaryPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+<div class="api-hint" id="secondaryPresetHint"></div>
 </div>
 <div class="api-field">
 <div class="api-field-head"><span class="api-label">Base URL</span></div>
@@ -2035,6 +2057,17 @@
 </section><section class="settings-panel" data-panel="vectorMemoryApi">
 <header class="panel-head"><button aria-label="返回设置" class="ph-btn js-vector-memory-api-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">向量记忆 API</h1><div class="ph-actions"></div></header>
 <div class="panel-scroll"><div class="api-form">
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="vectorEmbeddingNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="vectorEmbeddingUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="vectorEmbeddingPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+<div class="api-hint" id="vectorEmbeddingPresetHint"></div>
+</div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">接口地址</span></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorEmbeddingApiBaseUrl" placeholder="https://api.openai.com/v1/embeddings" spellcheck="false" type="url"/></div><div class="api-hint" id="vectorEmbeddingApiUrlHint">可填写完整 /embeddings 地址；若填写到 /v1，系统会自动补 /embeddings。</div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">API Key</span></div><div class="api-input-wrap"><input autocomplete="off" class="api-input" id="vectorEmbeddingApiKey" placeholder="sk-…" type="password"/></div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">Embedding 模型</span><button class="api-hint-btn" id="vectorEmbeddingFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorEmbeddingApiModel" placeholder="text-embedding-3-small"/></div><div class="api-hint">支持返回 OpenAI 风格 <code>/models</code> 列表的服务；模型列表不会强制筛选，可兼容中转站和自建接口。</div></div>
@@ -2046,6 +2079,17 @@
 <section class="settings-panel" data-panel="vectorRerankApi">
 <header class="panel-head"><button aria-label="返回设置" class="ph-btn js-vector-rerank-api-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">重排 API</h1><div class="ph-actions"></div></header>
 <div class="panel-scroll"><div class="api-form">
+<div class="api-field saved-preset-field api-shared-preset-field">
+<div class="api-field-head">
+<span class="api-label">预设（共用预设池）</span>
+<span class="api-preset-actions">
+<button class="api-hint-btn" id="vectorRerankNewPreset" type="button">＋新建预设</button>
+<button class="api-hint-btn" disabled="" id="vectorRerankUpdatePreset" type="button">更新当前</button>
+</span>
+</div>
+<button aria-haspopup="listbox" class="island-select-trigger api-preset-trigger" id="vectorRerankPresetTrigger" type="button"><span class="island-select-trigger-text">选择预设</span><svg class="island-select-trigger-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/></svg></button>
+<div class="api-hint" id="vectorRerankPresetHint"></div>
+</div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">接口地址</span></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorRerankApiBaseUrl" placeholder="https://your-rerank-service/v1/rerank" spellcheck="false" type="url"/></div><div class="api-hint" id="vectorRerankApiUrlHint">支持常见 rerank 接口：POST {model, query, documents, top_n}，兼容 /rerank 结尾地址。</div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">API Key</span></div><div class="api-input-wrap"><input autocomplete="off" class="api-input" id="vectorRerankApiKey" placeholder="sk-…" type="password"/></div></div>
 <div class="api-field"><div class="api-field-head"><span class="api-label">重排模型</span><button class="api-hint-btn" id="vectorRerankFetchModels" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>拉取模型</button></div><div class="api-input-wrap"><input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" id="vectorRerankApiModel" placeholder="BAAI/bge-reranker-v2-m3"/></div><div class="api-hint">支持返回 OpenAI 风格 <code>/models</code> 列表的服务；模型列表不会强制筛选，便于兼容不同 Rerank 服务。</div></div>

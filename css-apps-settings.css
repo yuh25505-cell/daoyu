@@ -535,3 +535,15 @@ html[data-theme="dark"] .settings-panel[data-panel="notifications"] .notificatio
 /* ===== 日间纯白：整个设置 App（含所有子界面与选择模型弹层）。夜间 --bg-pure 与 --bg 同为 #000，夜间不变。 ===== */
 .settings-app{ --bg:var(--bg-pure); }
 .model-sheet{ background:var(--pop-bg, var(--bg)); }
+
+/* ───────── 共用 API 预设池：预设选择按钮 + 选择弹窗 ───────── */
+.api-preset-trigger{ min-height:46px; border:1px solid var(--track); border-radius:14px; background:var(--bubble-bg); font-size:calc(15px * var(--island-font-size-scale)); }
+.api-preset-trigger.is-empty .island-select-trigger-text{ color:var(--fg-faint); }
+.api-shared-preset-field .api-hint{ margin-top:8px; }
+.api-preset-picker .api-pp-list{ display:flex; flex-direction:column; gap:6px; max-height:52vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.api-pp-row{ display:flex; align-items:center; gap:2px; min-width:0; }
+.api-pp-item{ flex:1 1 auto; min-width:0; }
+.api-pp-text{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+.api-pp-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.api-pp-sub{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(11.5px * var(--island-font-size-scale)); font-weight:400; color:var(--fg-faint); }
+.api-pp-note{ margin-top:10px; padding:0 4px; font-size:calc(11.5px * var(--island-font-size-scale)); line-height:1.45; color:var(--fg-faint); text-align:center; }
