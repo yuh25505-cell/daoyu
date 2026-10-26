@@ -204,18 +204,48 @@ function updateMessageQuoteBar(){
 
 function clearMessageQuote(){ messageQuoteDraft = null; updateMessageQuoteBar(); }
 
+/* 点「引用」后，菜单在 pointerup 就被清空，系统随后补发的 mousedown / click 会落到下方非输入元素上，
+ * 把刚聚焦的输入框抢走焦点，键盘刚弹出就收回。这里在短时间内拦截这些补发事件，并在 click 手势里补一次聚焦。 */
+var quoteFocusGuard = null;
+function guardPMInputFocus(ms){
+  if (quoteFocusGuard) quoteFocusGuard.stop();
+  var until = Date.now() + (ms || 700);
+  var types = ['mousedown', 'click', 'touchend'];
+  var stopped = false;
+  function handler(e){
+    if (Date.now() > until) { stop(); return; }
+    if (e.target && e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+    if (e.type === 'mousedown') { e.preventDefault(); return; }
+    if (e.type === 'click' && pmInput && document.activeElement !== pmInput && pmView && pmView.classList.contains('is-open')) {
+      try { pmInput.focus(); } catch(err) {}
+    }
+  }
+  function stop(){
+    if (stopped) return;
+    stopped = true;
+    types.forEach(function(t){ document.removeEventListener(t, handler, true); });
+    if (quoteFocusGuard && quoteFocusGuard.stop === stop) quoteFocusGuard = null;
+  }
+  types.forEach(function(t){ document.addEventListener(t, handler, { capture:true, passive:false }); });
+  setTimeout(stop, (ms || 700) + 50);
+  quoteFocusGuard = { stop: stop };
+}
+
 function focusPMInputForQuote(){
   if (!pmInput) return;
   /* 语音输入模式下文字框是隐藏的，先切回文字输入，才能弹出键盘。 */
   if (pmBar && pmBar.classList.contains('is-voice') && typeof setVoiceMode === 'function') setVoiceMode(false);
+  guardPMInputFocus(700);
   var doFocus = function(){
     /* 不加 preventScroll：与手动点输入框一致，让浏览器在键盘弹出时把输入栏一起顶起来。 */
     try { pmInput.focus(); } catch(err) {}
     try { pmInput.setSelectionRange(pmInput.value.length, pmInput.value.length); } catch(e) {}
   };
   doFocus();   /* 在点击操作的同一个手势里立即聚焦，系统才会允许弹出键盘 */
-  /* 菜单收起 / 布局变化后若焦点被抢走，补一次聚焦。 */
-  setTimeout(function(){ if (document.activeElement !== pmInput && pmView && pmView.classList.contains('is-open')) doFocus(); }, 80);
+  /* 菜单收起 / 布局变化 / 补发事件之后若焦点被抢走，多次补聚焦。 */
+  [60, 160, 320, 520].forEach(function(ms){
+    setTimeout(function(){ if (document.activeElement !== pmInput && pmView && pmView.classList.contains('is-open') && messageQuoteDraft) doFocus(); }, ms);
+  });
   /* 键盘弹出需要一点时间：之后确认输入栏没有被键盘盖住，被盖住就滚到可见位置（等同手动点一次输入框的效果）。 */
   [160, 380, 700].forEach(function(ms){
     setTimeout(function(){ if (document.activeElement === pmInput) ensurePMBarVisible(); }, ms);
