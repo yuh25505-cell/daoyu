@@ -698,7 +698,7 @@
   border:1px solid var(--card-bd);
   border-radius:16px;
   background:var(--pop-bg, var(--bg)); color:var(--fg);
-  box-shadow:0 14px 34px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08);
+  box-shadow:0 8px 30px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
   backdrop-filter:none; -webkit-backdrop-filter:none;
 }
 
@@ -738,10 +738,10 @@
   color:var(--fg);
 }
 
-html[data-theme="dark"] .pm-message-action-popover{ border-color:rgba(255,255,255,.24); box-shadow:0 14px 34px rgba(0,0,0,.7); }
+html[data-theme="dark"] .pm-message-action-popover{ border-color:rgba(255,255,255,.24); box-shadow:0 8px 30px rgba(0,0,0,.35); }
 html[data-theme="dark"] .pm-message-action-icon{ border-color:rgba(255,255,255,.26); }
 @media (prefers-color-scheme: dark){
-  html:not([data-theme]) .pm-message-action-popover{ border-color:rgba(255,255,255,.24); box-shadow:0 14px 34px rgba(0,0,0,.7); }
+  html:not([data-theme]) .pm-message-action-popover{ border-color:rgba(255,255,255,.24); box-shadow:0 8px 30px rgba(0,0,0,.35); }
   html:not([data-theme]) .pm-message-action-icon{ border-color:rgba(255,255,255,.26); }
 }
 
@@ -2474,7 +2474,7 @@ html[data-theme="dark"] .pm-back-badge{ background:#1E1E1E; color:#fff; }
   display:flex; flex-direction:column;
   background:var(--pop-bg, var(--bg-pure, var(--bg))); color:var(--fg);
   border:1px solid var(--track); border-radius:14px;
-  box-shadow:0 12px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08);
+  box-shadow:0 8px 30px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
   animation:chatListMenuIn .12s ease-out;
 }
 .chat-list-menu-item{
