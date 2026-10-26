@@ -252,6 +252,77 @@ function focusPMInputForQuote(){
   });
 }
 
+/* 右滑消息快捷引用：在聊天区向右拖动任意一条消息（我方 / 对方），拖过阈值松手即引用并弹出键盘。
+ * 左边缘 36px 留给「滑动返回」；竖向滚动、长按菜单、多选模式均不受影响。 */
+var MSG_SWIPE_EDGE = 36, MSG_SWIPE_START = 10, MSG_SWIPE_MAX = 56;
+var messageSwipeState = null, messageSwipeEndedAt = 0;
+
+function initMessageSwipeQuote(){
+  if (!pmScroll || pmScroll.dataset.swipeQuoteBound === '1') return;
+  pmScroll.dataset.swipeQuoteBound = '1';
+
+  function finish(commit){
+    var st = messageSwipeState;
+    messageSwipeState = null;
+    if (!st) return;
+    if (!st.active) return;
+    messageSwipeEndedAt = Date.now();
+    var row = st.row;
+    row.style.transition = 'translate .2s ease-out';
+    row.style.translate = '0px 0';
+    setTimeout(function(){
+      row.style.transition = ''; row.style.translate = '';
+      pmScroll.style.overflowX = '';
+    }, 230);
+    if (commit) quoteMessage(st.index);
+  }
+
+  pmScroll.addEventListener('touchstart', function(e){
+    messageSwipeState = null;
+    if (e.touches.length !== 1 || messageSelectionMode) return;
+    var t = e.touches[0];
+    if (t.clientX <= MSG_SWIPE_EDGE) return;
+    var row = e.target.closest && e.target.closest('.chat-message[data-message-index]');
+    if (!row || !pmScroll.contains(row)) return;
+    var index = Number(row.dataset.messageIndex);
+    if (!Number.isInteger(index)) return;
+    messageSwipeState = { row:row, index:index, x0:t.clientX, y0:t.clientY, active:false, armed:false };
+  }, { passive:true });
+
+  pmScroll.addEventListener('touchmove', function(e){
+    var st = messageSwipeState;
+    if (!st) return;
+    if (e.touches.length !== 1) { finish(false); return; }
+    var t = e.touches[0], dx = t.clientX - st.x0, dy = t.clientY - st.y0;
+    if (!st.active) {
+      if ((Math.abs(dy) > MSG_SWIPE_START && Math.abs(dy) >= Math.abs(dx) * 0.8) || dx < -MSG_SWIPE_START) { messageSwipeState = null; return; }
+      if (!(dx > MSG_SWIPE_START && dx > Math.abs(dy) * 1.3)) return;
+      if (!getMessageQuotePayload(st.index)) { messageSwipeState = null; return; }
+      st.active = true;
+      if (messageLongPressState.timer) { clearTimeout(messageLongPressState.timer); messageLongPressState.timer = null; }
+      messageLongPressState.row = null;
+      closeVoiceMessageActionMenu();
+      st.row.style.transition = 'none';
+      pmScroll.style.overflowX = 'hidden';
+    }
+    if (e.cancelable) e.preventDefault();
+    var off = Math.max(0, Math.min((dx - MSG_SWIPE_START) * 0.6, MSG_SWIPE_MAX));
+    st.row.style.translate = off + 'px 0';
+    var armed = off >= MSG_SWIPE_MAX * 0.85;
+    if (armed !== st.armed) {
+      st.armed = armed;
+      if (armed) { try { if (navigator.vibrate) navigator.vibrate(12); } catch(err) {} }
+    }
+  }, { passive:false });
+
+  pmScroll.addEventListener('touchend', function(){ var st = messageSwipeState; finish(!!(st && st.active && st.armed)); }, { passive:true });
+  pmScroll.addEventListener('touchcancel', function(){ finish(false); }, { passive:true });
+  /* 滑动结束后吞掉紧跟着的点击，避免误触气泡（播放语音、查看图片等）。 */
+  pmScroll.addEventListener('click', function(e){
+    if (Date.now() - messageSwipeEndedAt < 350) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+}
+
 function ensurePMBarVisible(){
   var target = pmBar || pmInput;
   if (!target) return;
