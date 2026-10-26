@@ -70,16 +70,33 @@ function updateVectorApiHints(){
   if(r){var raw2=String(($('vectorRerankApiBaseUrl')||{}).value||'').trim(); r.textContent=raw2?'将请求：'+normalizeVectorEndpoint(raw2,'rerank'):'支持常见 rerank 接口；若地址不是 /rerank 结尾，将按原地址发送请求。';}
 }
 
+/* 保存后立刻回到设置首页；写入本地存储放到页面绘制之后再做，避免整份设置写盘时卡住界面 */
+function finishApiSave(refresh){
+  try { if (refresh) refresh(); } catch (e) {}
+  switchSettingsPanel('main');
+  var run = function(){
+    setTimeout(function(){
+      var r; try { r = saveSettings(); } catch (e) { r = Promise.reject(e); }
+      Promise.resolve(r).then(function(ok){
+        if (ok === false) islandAlert('本机存储写入失败，刚才的设置可能没有保存成功。', { title: '出错了' });
+      }, function(){
+        islandAlert('本机存储写入失败，刚才的设置可能没有保存成功。', { title: '出错了' });
+      });
+    }, 40);
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else run();
+}
+
 function saveVectorEmbeddingApiForm(){
   var s=readVectorEmbeddingApiForm();
   if(!s.embeddingApi.baseUrl||!s.embeddingApi.apiKey||!s.embeddingApi.model){setVectorApiStatus('embedding','err','接口地址、API Key、模型均为必填。');return;}
-  renderPresetTrigger('vectorEmbedding');saveSettings().then(function(){refreshVectorMemoryApiState();switchSettingsPanel('main');});
+  renderPresetTrigger('vectorEmbedding');finishApiSave(refreshVectorMemoryApiState);
 }
 
 function saveVectorRerankApiForm(){
   var s=readVectorRerankApiForm();
   if(!s.rerankApi.baseUrl||!s.rerankApi.apiKey||!s.rerankApi.model){setVectorApiStatus('rerank','err','接口地址、API Key、模型均为必填。');return;}
-  renderPresetTrigger('vectorRerank');saveSettings().then(function(){refreshVectorMemoryApiState();switchSettingsPanel('main');});
+  renderPresetTrigger('vectorRerank');finishApiSave(refreshVectorMemoryApiState);
 }
 
 function testVectorEmbeddingApi(){
@@ -189,7 +206,7 @@ function saveSttForm(){
   State.settings.stt = c;
   rememberSttQuickKey();
   renderPresetTrigger('stt');
-  saveSettings().then(function(){ refreshSttState(); highlightSttPreset(); switchSettingsPanel('main'); });
+  finishApiSave(function(){ refreshSttState(); highlightSttPreset(); });
 }
 
 function testSttConnection(){
@@ -292,7 +309,7 @@ function saveVisionForm(){
   State.settings.vision = c;
   rememberVisionQuickKey();
   renderPresetTrigger('vision');
-  saveSettings().then(function(){ refreshVisionState(); highlightVisionPreset(); switchSettingsPanel('main'); });
+  finishApiSave(function(){ refreshVisionState(); highlightVisionPreset(); });
 }
 
 /* 现画一张测试图（蓝底白字 OK + 红圆），不依赖任何外部图片 */
@@ -758,7 +775,7 @@ function saveApiForm(){
   State.settings.api = c;
   rememberQuickPresetKey();
   renderPresetTrigger('primary');
-  saveSettings().then(function(){ refreshApiState(); highlightPreset(); switchSettingsPanel('main'); });
+  finishApiSave(function(){ refreshApiState(); highlightPreset(); });
 }
 
 
@@ -859,7 +876,7 @@ function saveSecondaryApiForm(){
   // 「保存」只保存并使用当前表单；不会改动任何已保存预设（覆盖预设请点「更新当前」）
   State.settings.secondaryApi = c; rememberSecondaryQuickPresetKey();
   renderPresetTrigger('secondary');
-  saveSettings().then(function(){ refreshSecondaryApiState(); highlightSecondaryPreset(); switchSettingsPanel('main'); });
+  finishApiSave(function(){ refreshSecondaryApiState(); highlightSecondaryPreset(); });
 }
 
 
