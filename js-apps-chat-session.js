@@ -1174,6 +1174,7 @@ function bindChatEvents(){
       });
     }
   }
+  if (typeof initMessageSwipeQuote === 'function') initMessageSwipeQuote();
   if (pmScroll) pmScroll.addEventListener('scroll', closeVoiceMessageActionMenu, { passive:true });
   if (pmScroll) pmScroll.addEventListener('scroll', function(){
     if (pmScroll.scrollTop < 120 && pmHiddenCount > 0) loadEarlierMessages();
