@@ -707,7 +707,7 @@
 }
 
 .pm-message-action-item{
-  width:100%; min-width:0; min-height:40px; padding:6px 10px; border:0; border-radius:12px;
+  width:100%; min-width:0; min-height:40px; padding:6px 7px 6px 10px; border:0; border-radius:12px;
   display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:12px;
   color:inherit; background:transparent; font:inherit; text-align:left; cursor:pointer;
   -webkit-tap-highlight-color:transparent;
