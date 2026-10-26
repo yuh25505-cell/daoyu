@@ -693,7 +693,7 @@
 
 .pm-message-action-popover{
   position:absolute; z-index:90; display:none;
-  width:max-content; min-width:172px; max-width:calc(100% - 20px);
+  width:max-content; min-width:150px; max-width:calc(100% - 20px);
   padding:8px; box-sizing:border-box;
   border:1px solid var(--card-bd);
   border-radius:16px;
@@ -707,8 +707,8 @@
 }
 
 .pm-message-action-item{
-  width:100%; min-width:0; min-height:46px; padding:7px 12px 7px 8px; border:0; border-radius:12px;
-  display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:16px;
+  width:100%; min-width:0; min-height:40px; padding:6px 12px 6px 10px; border:0; border-radius:12px;
+  display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:12px;
   color:inherit; background:transparent; font:inherit; text-align:left; cursor:pointer;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
@@ -722,10 +722,10 @@
 .pm-message-action-item:focus-visible{ outline:2px solid var(--fg-faint); outline-offset:-2px; }
 
 .pm-message-action-icon{
-  flex:none; width:30px; height:30px; display:grid; place-items:center;
+  flex:none; width:calc(18px * var(--island-font-size-scale)); height:calc(18px * var(--island-font-size-scale)); display:grid; place-items:center;
   box-sizing:border-box;
   border:2px solid var(--track);
-  border-radius:9px;
+  border-radius:5px;
   background:transparent;
   color:var(--fg);
 }
