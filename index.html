@@ -369,12 +369,17 @@
       </div>
       <div class="pm-chat-settings-section-label">聊天背景</div>
       <div class="pm-chat-settings-wallpaper-card"><div class="pm-chat-settings-wallpaper-preview" id="pmSettingsWallpaperPreview">未设置背景图</div><div class="pm-chat-settings-wallpaper-actions"><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperChoose">选择背景图</button><button type="button" class="pm-chat-settings-action" id="pmSettingsWallpaperClear">恢复默认</button></div></div>
+      <div class="pm-chat-settings-group">
+        <button type="button" class="pm-chat-settings-row" id="pmSettingsExportRecords"><span><strong>导出聊天记录</strong></span><span class="pm-chat-settings-chevron">›</span></button>
+        <button type="button" class="pm-chat-settings-row" id="pmSettingsImportRecords"><span><strong>导入聊天记录</strong></span><span class="pm-chat-settings-chevron">›</span></button>
+      </div>
       <div class="pm-chat-settings-danger"><button type="button" id="pmSettingsClearRecords">清空聊天记录</button></div>
     </div>
   </div>
   <input accept="image/*" hidden id="pmSettingsCharAvatarInput" type="file" />
   <input accept="image/*" hidden id="pmSettingsUserAvatarInput" type="file" />
   <input accept="image/*" hidden id="pmSettingsWallpaperInput" type="file" />
+  <input accept=".json,application/json" hidden id="pmSettingsImportRecordsInput" type="file" />
 </section>
 <section aria-hidden="true" class="pm-chat-record-search-view" id="pmChatRecordSearchView" data-swipe-back>
   <div class="pm-chat-settings-shell">
