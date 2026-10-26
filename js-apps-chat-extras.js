@@ -73,6 +73,8 @@ function closeTransferModal(){
 
 function openImageTextModal(index){
   if (!pmImageTextModal || !currentName) return;
+  var recallTitle = document.getElementById('pmImageTextTitle');
+  if (recallTitle) recallTitle.textContent = '文字图描述';
   var list = MESSAGES[currentName] || [];
   var msg = list[index];
   var description = String(msg && (msg.description || msg.imageText || '') || '').trim();
@@ -151,7 +153,8 @@ function updateChatPreviewForMessage(name, msg){
   if (!name || !msg) return;
   for (var i = 0; i < CHATS.length; i++) {
     if (CHATS[i].name === name) {
-      if (msg.type === 'transfer') CHATS[i].preview = transferPreviewText(msg);
+      if (msg.recalled) CHATS[i].preview = msg.from === 'me' ? '你撤回了一条消息' : '对方撤回了一条消息';
+      else if (msg.type === 'transfer') CHATS[i].preview = transferPreviewText(msg);
       else if (msg.type === 'image') CHATS[i].preview = mediaPreviewText(msg);
       else if (msg.type === 'voice') CHATS[i].preview = mediaPreviewText(msg);
       else if (msg.type === 'location') CHATS[i].preview = mediaPreviewText(msg);
@@ -258,6 +261,23 @@ function processAiChatDirectives(name, rawText){
     MESSAGES[name].push(pokeMsg);
     changed=true;
     notices.push(pokeMsg.text);
+    return '';
+  });
+
+  // Char 主动撤回：[[RECALL text="原话"]] 发出即撤回；[[RECALL id="..."]] / [[RECALL index="..."]] 撤回之前发过的角色消息。
+  raw=raw.replace(/\[\[\s*RECALL\b([\s\S]*?)\]\]/gi,function(_,attrText){
+    var attrs=parseTransferDirectiveAttrs(attrText);
+    var now=Date.now();
+    if(attrs.id||attrs.messageid||attrs.index!=null||attrs.messageindex!=null||attrs.msgindex!=null){
+      var target=resolveMessageDirectiveTarget(name,attrs);
+      if(!target||target.from!=='them'||!isMessageRecallable(target)) return '';
+      target.recalled=true; target.recalledBy='them'; target.recalledAt=now; target.favorite=false;
+    } else {
+      var text=String(attrs.text||attrs.content||attrs.message||'').trim().slice(0,1200);
+      if(!text) return '';
+      MESSAGES[name].push({id:genId('msg_'),from:'them',text:text,createdAt:now,recalled:true,recalledBy:'them',recalledAt:now});
+    }
+    changed=true; notices.push('撤回了一条消息');
     return '';
   });
 

@@ -938,6 +938,12 @@ function bindChatEvents(){
   if (pmIncomingCallDecline) pmIncomingCallDecline.addEventListener('click', function(){ rejectIncomingVoiceCall(); });
   if (pmScroll) {
     pmScroll.addEventListener('click', function(e){
+      var recallView = e.target.closest('[data-recall-view-index]');
+      if (recallView && pmScroll.contains(recallView)) {
+        e.preventDefault();
+        openRecallView(Number(recallView.dataset.recallViewIndex));
+        return;
+      }
       var mediaView = e.target.closest('[data-media-view-index]');
       if (mediaView && pmScroll.contains(mediaView) && !messageSelectionMode) {
         if (messageLongPressState.triggered) { messageLongPressState.triggered = false; return; }
@@ -1125,10 +1131,11 @@ function bindChatEvents(){
           else if (action === 'favorite') toggleMessageFavorite(index);
           else if (action === 'forward') openForwardPicker(index);
           else if (action === 'delete') deleteMessageAt(index);
+          else if (action === 'recall') recallMessageAt(index);
           else if (action === 'select') enterMessageSelection(index);
         };
         /* 本地折叠/多选操作只改动目标消息节点，直接响应；避免双 RAF 叠加点击延迟。 */
-        if (action === 'copy' || action === 'quote' || action === 'favorite' || action === 'delete' || action === 'translate' || action === 'transcribe' || action === 'select') {
+        if (action === 'copy' || action === 'quote' || action === 'favorite' || action === 'delete' || action === 'recall' || action === 'translate' || action === 'transcribe' || action === 'select') {
           run();
         } else if (typeof requestAnimationFrame === 'function') {
           requestAnimationFrame(function(){ requestAnimationFrame(run); });
