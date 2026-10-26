@@ -73,13 +73,13 @@ function updateVectorApiHints(){
 function saveVectorEmbeddingApiForm(){
   var s=readVectorEmbeddingApiForm();
   if(!s.embeddingApi.baseUrl||!s.embeddingApi.apiKey||!s.embeddingApi.model){setVectorApiStatus('embedding','err','接口地址、API Key、模型均为必填。');return;}
-  renderPresetTrigger('vectorEmbedding');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('embedding','ok','✓ 向量记忆 API 已保存并使用（预设池里的预设未改动）。');});
+  renderPresetTrigger('vectorEmbedding');saveSettings().then(function(){refreshVectorMemoryApiState();switchSettingsPanel('main');});
 }
 
 function saveVectorRerankApiForm(){
   var s=readVectorRerankApiForm();
   if(!s.rerankApi.baseUrl||!s.rerankApi.apiKey||!s.rerankApi.model){setVectorApiStatus('rerank','err','接口地址、API Key、模型均为必填。');return;}
-  renderPresetTrigger('vectorRerank');saveSettings().then(function(){refreshVectorMemoryApiState();setVectorApiStatus('rerank','ok','✓ 重排 API 已保存并使用（预设池里的预设未改动）。');});
+  renderPresetTrigger('vectorRerank');saveSettings().then(function(){refreshVectorMemoryApiState();switchSettingsPanel('main');});
 }
 
 function testVectorEmbeddingApi(){
@@ -189,7 +189,7 @@ function saveSttForm(){
   State.settings.stt = c;
   rememberSttQuickKey();
   renderPresetTrigger('stt');
-  saveSettings().then(function(){ refreshSttState(); highlightSttPreset(); setSttStatus('ok','✓ 已保存并使用（预设池里的预设未改动）。聊天语音会优先使用该 STT 接口进行转写。');  });
+  saveSettings().then(function(){ refreshSttState(); highlightSttPreset(); switchSettingsPanel('main'); });
 }
 
 function testSttConnection(){
@@ -292,13 +292,7 @@ function saveVisionForm(){
   State.settings.vision = c;
   rememberVisionQuickKey();
   renderPresetTrigger('vision');
-  saveSettings().then(function(){
-    refreshVisionState(); highlightVisionPreset();
-    setVisionStatus('ok', c.enabled
-      ? '✓ 已保存并启用。私聊里的' + (c.scope === 'sticker' ? '表情包' : c.scope === 'image' ? '图片' : '表情包和图片') + '会先由识图模型转成文字，再交给聊天模型。'
-      : '✓ 已保存（当前为关闭状态，聊天仍按原方式直接发图给主模型）。');
-    
-  });
+  saveSettings().then(function(){ refreshVisionState(); highlightVisionPreset(); switchSettingsPanel('main'); });
 }
 
 /* 现画一张测试图（蓝底白字 OK + 红圆），不依赖任何外部图片 */
@@ -550,7 +544,7 @@ function renderPresetTrigger(kind){
   if (!hit && State.settings && State.settings[sec.activeKey]) State.settings[sec.activeKey] = '';
   if (btn) {
     var text = btn.querySelector('.island-select-trigger-text');
-    var label = hit ? (hit.name + (apiPresetIsModified(kind, hit) ? ' · 已修改' : '')) : (pool.length ? '选择预设（共 ' + pool.length + ' 个）' : '暂无预设');
+    var label = hit ? (hit.name) : (pool.length ? '选择预设（共 ' + pool.length + ' 个）' : '暂无预设');
     if (text) text.textContent = label;
     btn.classList.toggle('is-empty', !hit);
   }
@@ -763,15 +757,8 @@ function saveApiForm(){
   // 「保存」只保存并使用当前表单；不会改动任何已保存预设（覆盖预设请点「更新当前」）
   State.settings.api = c;
   rememberQuickPresetKey();
-  var activePreset = findApiPreset(State.settings.activeApiPresetId);
   renderPresetTrigger('primary');
-  saveSettings().then(function(){
-    refreshApiState(); highlightPreset();
-    setApiStatus('ok', activePreset
-      ? '✓ 已保存并使用。预设“' + activePreset.name + '”未改动；如需覆盖它，请点「更新当前」。'
-      : '✓ 已保存。聊天时会自动调用该接口。');
-    
-  });
+  saveSettings().then(function(){ refreshApiState(); highlightPreset(); switchSettingsPanel('main'); });
 }
 
 
@@ -869,17 +856,10 @@ function testSecondaryConnection(){
 function saveSecondaryApiForm(){
   var c = readSecondaryApiForm();
   if (!c.baseUrl || !c.apiKey || !c.model) { setSecondaryApiStatus('err', '三项必填：Base URL、API Key、模型。'); return; }
-  // 「保存」只保存并使用当前表单；不会改动任何已保存的副API预设（覆盖预设请点「更新当前」）
+  // 「保存」只保存并使用当前表单；不会改动任何已保存预设（覆盖预设请点「更新当前」）
   State.settings.secondaryApi = c; rememberSecondaryQuickPresetKey();
-  var activePreset = findApiPreset(State.settings.activeSecondaryApiPresetId);
   renderPresetTrigger('secondary');
-  saveSettings().then(function(){
-    refreshSecondaryApiState(); highlightSecondaryPreset();
-    setSecondaryApiStatus('ok', activePreset
-      ? '✓ 已保存并使用。副API预设“' + activePreset.name + '”未改动；如需覆盖它，请点「更新当前」。'
-      : '✓ 已保存副API。当前仅作为备用接口保存。');
-    
-  });
+  saveSettings().then(function(){ refreshSecondaryApiState(); highlightSecondaryPreset(); switchSettingsPanel('main'); });
 }
 
 
