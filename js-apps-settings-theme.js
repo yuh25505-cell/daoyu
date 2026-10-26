@@ -43,7 +43,7 @@ var IslandTheme = (function(){
       a.remove();
       setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
       /* APK 里由原生桥自己提示“已保存到…” */
-      if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) toastSafe('外观主题已导出');
+      if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) { try { window.islandBackupDone('导出成功', '外观主题已导出。'); } catch(e) {} }
     } catch(e) {
       console.error('[岛屿] 主题导出失败：', e);
       toastSafe('主题导出失败：' + ((e && e.message) || e));
@@ -107,7 +107,7 @@ var IslandTheme = (function(){
           applyTheme(d);
           saveSettings().then(function(){
             refreshUI();
-            toastSafe('桌面主题已应用');
+            try { islandAlert('桌面主题已应用。', { title: '导入成功' }); } catch(e) {}
           }, function(){ toastSafe('保存失败，存储空间可能不足'); });
         } catch(e) {
           console.error('[岛屿] 主题导入失败：', e);

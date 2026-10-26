@@ -7,19 +7,14 @@
     'api', 'apiPresets', 'activeApiPresetId', 'apiQuickKeys',
     'secondaryApi', 'secondaryApiPresets', 'activeSecondaryApiPresetId', 'secondaryApiQuickKeys',
     'stt', 'sttPresets', 'activeSttPresetId', 'sttQuickKeys',
-    'vision', 'visionQuickKeys', 'autoRetry',
-    'vectorMemory'
+    'vision', 'activeVisionPresetId', 'visionQuickKeys', 'autoRetry',
+    'vectorMemory', 'activeVectorEmbeddingPresetId', 'activeVectorRerankPresetId'
   ];
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
 
   function toast(msg) {
-    var el = document.getElementById('toast');
-    if (!el) { try { window.alert(msg); } catch (e) {} return; }
-    el.textContent = msg;
-    el.classList.add('is-show');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(function () { el.classList.remove('is-show'); }, 2600);
+    try { if (typeof window.islandNotify === 'function') window.islandNotify(msg); } catch (e) {}
   }
 
   function currentSettings() {
@@ -66,7 +61,7 @@
       setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
       // Inside the APK the native bridge shows its own "saved to ..." message.
       if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) {
-        toast('API 设置已导出');
+        if (typeof window.islandBackupDone === 'function') window.islandBackupDone('导出成功', 'API 设置已导出。');
       }
     } catch (e) {
       toast('API 设置导出失败：' + ((e && e.message) || e));
@@ -127,7 +122,7 @@
       try { raw = JSON.parse(String(reader.result || '')); } catch (e) { toast('备份文件无法读取：JSON 格式错误'); return; }
       var values;
       try { values = extractImportedApiSettings(raw); } catch (e) { toast((e && e.message) || 'API 备份文件无效'); return; }
-      islandConfirm('将导入 API 设置（主 API、副 API、语音转文字、向量记忆与重排 API 及其预设），覆盖当前对应配置，其他数据不会改变。完成后软件会自动重启。是否继续？', {title:'导入 API 设置', confirmText:'导入'}).then(function(ok){
+      islandConfirm('将导入 API 设置（主 API、副 API、语音转文字、识图、向量记忆与重排 API，以及共用预设池），覆盖当前对应配置，其他数据不会改变。完成后软件会自动重启。是否继续？', {title:'导入 API 设置', confirmText:'导入'}).then(function(ok){
         if (!ok) return;
         try { applyThroughAppImporter(values); } catch (e) { toast('API 设置导入失败：' + ((e && e.message) || e)); }
       });
