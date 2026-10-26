@@ -146,7 +146,7 @@ function parseChatRecordDirectiveItems(name, attrs){
           if (list[i] && String(list[i].id || '') === token) { target = list[i]; break; }
         }
       }
-      if (!target || target.type === 'voice_call' || target.type === 'voice_call_event') return;
+      if (!target || target.recalled || target.type === 'voice_call' || target.type === 'voice_call_event') return;
       referencedItems.push({
         from: target.from === 'them' ? 'them' : 'me',
         author: target.from === 'them' ? (name || '对方') : (String((getActiveUserPersona() || {}).name || '我').trim() || '我'),
@@ -711,7 +711,8 @@ function updateChatPreviewAfterMessageMutation(name){
   for (var j = 0; j < CHATS.length; j++) {
     if (CHATS[j].name !== name) continue;
     if (last) {
-      if (last.type === 'transfer') CHATS[j].preview = transferPreviewText(last);
+      if (last.recalled) CHATS[j].preview = last.from === 'me' ? '你撤回了一条消息' : '对方撤回了一条消息';
+      else if (last.type === 'transfer') CHATS[j].preview = transferPreviewText(last);
       else if (last.type === 'chat_record') CHATS[j].preview = '聊天记录';
       else if (last.type === 'image' || last.type === 'voice' || last.type === 'location') CHATS[j].preview = mediaPreviewText(last);
       else if (last.type === 'sticker') CHATS[j].preview = '[表情包]';
@@ -723,6 +724,49 @@ function updateChatPreviewAfterMessageMutation(name){
     }
     break;
   }
+}
+
+function isMessageRecallable(msg){
+  if (!msg || msg.recalled) return false;
+  var type = String(msg.type || 'text');
+  return type !== 'system' && type !== 'voice_call' && type !== 'voice_call_event' && type !== 'transfer';
+}
+
+function recallMessageAt(index){
+  var chatName = currentName;
+  var list = MESSAGES[chatName] || [];
+  index = Number(index);
+  var msg = Number.isInteger(index) ? list[index] : null;
+  if (!msg || msg.from !== 'me' || !isMessageRecallable(msg)) return false;
+  msg.recalled = true;
+  msg.recalledBy = 'me';
+  msg.recalledAt = Date.now();
+  msg.favorite = false;
+  if (!msg.id) msg.id = genId('msg_');
+  if (messageQuoteDraft && messageQuoteDraft.id && messageQuoteDraft.id === msg.id) clearMessageQuote();
+  voiceTranscriptOpen = Object.create(null);
+  saveMessages(chatName);
+  updateChatPreviewAfterMessageMutation(chatName);
+  renderChats(); saveChats();
+  if (currentName === chatName) renderMessages(false);
+  return true;
+}
+
+function openRecallView(index){
+  var list = MESSAGES[currentName] || [];
+  var msg = list[Number(index)];
+  if (!msg || !msg.recalled) return;
+  var url = String(msg.url || '').trim();
+  if ((msg.type === 'image' || msg.type === 'sticker') && /^(?:data:image\/|https?:\/\/)/i.test(url)) {
+    openMediaViewModal(Number(index));
+    return;
+  }
+  if (!pmImageTextModal) return;
+  var title = document.getElementById('pmImageTextTitle');
+  if (title) title.textContent = msg.from === 'me' ? '你撤回的消息' : '对方撤回的消息';
+  if (pmImageTextDescription) pmImageTextDescription.textContent = messageCopyText(msg) || '［消息］';
+  pmImageTextModal.classList.add('is-open');
+  pmImageTextModal.setAttribute('aria-hidden','false');
 }
 
 function deleteMessageAt(index, options){

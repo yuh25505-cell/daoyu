@@ -647,6 +647,7 @@ function memoryMessageText(msg){
   var who = msg.from === 'me' ? '用户' : '角色';
   var createdAt = Number(msg.createdAt || msg.timestamp || 0);
   var timePrefix = createdAt ? '[' + new Date(createdAt).toLocaleString('zh-CN', {hour12:false}) + '] ' : '';
+  if (msg.recalled) return timePrefix + who + '：[撤回了一条消息]';
   if (msg.type === 'voice_call') {
     var callText = String(msg.text || '').trim();
     var callMode = msg.inputMode === 'voice' ? '语音通话·语音' : '语音通话·文字';

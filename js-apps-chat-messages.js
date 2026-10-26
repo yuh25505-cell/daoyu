@@ -48,6 +48,13 @@ function systemMessageHTML(msg){
 }
 
 
+function recallRowHTML(msg, index){
+  var mine = msg && msg.from === 'me';
+  var who = mine ? '你' : ((currentName ? (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(currentName) : currentName) : '') || '对方');
+  return '<div class="pm-system-row pm-system-row--event pm-recall-row" role="status"><span class="pm-system-pill pm-recall-pill">' + escapeHTML(who + '撤回了一条消息') + '<button type="button" class="pm-recall-view-btn" data-recall-view-index="' + index + '">查看</button></span></div>';
+}
+
+
 function getPokeUserName(){
   var user = getActiveUserPersona();
   return String(user && user.name || '我').trim() || '我';
@@ -233,7 +240,7 @@ function bubbleHTML(msg, entering, index){
 function renderMessageActionMenu(index, anchorEl){
   if (!pmMessageActionPopover || !pmScroll || !anchorEl) return;
   var list = MESSAGES[currentName] || [], msg = list[index];
-  if (!msg || msg.type === 'system' || msg.type === 'voice_call' || msg.type === 'voice_call_event') return;
+  if (!msg || msg.recalled || msg.type === 'system' || msg.type === 'voice_call' || msg.type === 'voice_call_event') return;
   var actions = '';
   if (msg.type === 'voice') {
     var transcript = getVoiceTranscript(msg);
@@ -251,6 +258,9 @@ function renderMessageActionMenu(index, anchorEl){
   actions += '<button class="pm-message-action-item" type="button" data-message-action="favorite" data-message-action-index="' + index + '" aria-label="' + (msg.favorite ? '取消收藏' : '收藏') + '"><span class="pm-message-action-icon" aria-hidden="true"><svg fill="' + (msg.favorite ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24"><path d="m12 4 2.45 4.96 5.47.8-3.96 3.86.93 5.45L12 16.5 7.11 19.07l.93-5.45-3.96-3.86 5.47-.8L12 4z"></path></svg></span><span class="pm-message-action-label">' + (msg.favorite ? '取消收藏' : '收藏') + '</span></button>';
   actions += '<button class="pm-message-action-item" type="button" data-message-action="forward" data-message-action-index="' + index + '" aria-label="转发"><span class="pm-message-action-icon" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24"><path d="M5 12h13"></path><path d="m13 6 6 6-6 6"></path></svg></span><span class="pm-message-action-label">转发</span></button>';
   actions += '<button class="pm-message-action-item" type="button" data-message-action="select" data-message-action-index="' + index + '" aria-label="多选"><span class="pm-message-action-icon" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"></rect><path d="M8 12h8"></path></svg></span><span class="pm-message-action-label">多选</span></button>';
+  if (msg.from === 'me' && msg.type !== 'transfer') {
+    actions += '<button class="pm-message-action-item" type="button" data-message-action="recall" data-message-action-index="' + index + '" aria-label="撤回"><span class="pm-message-action-icon" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"></path></svg></span><span class="pm-message-action-label">撤回</span></button>';
+  }
   actions += '<button class="pm-message-action-item" type="button" data-message-action="delete" data-message-action-index="' + index + '" aria-label="删除"><span class="pm-message-action-icon" aria-hidden="true"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 6h16M9 6V4h6v2M18.5 6l-1 14h-11l-1-14M9.5 10.5v5M14.5 10.5v5"></path></svg></span><span class="pm-message-action-label">删除</span></button>';
   pmMessageActionPopover.innerHTML = actions;
 
@@ -308,7 +318,7 @@ function locateQuotedMessage(quoteEl){
   if (targetIndex < 0) { toast('原消息已不存在'); return; }
   ensureMessageRendered(targetIndex);
   var row = pmScroll.querySelector('.chat-message[data-message-index="' + targetIndex + '"]');
-  if (!row) return;
+  if (!row) { if (list[targetIndex] && list[targetIndex].recalled) toast('原消息已被撤回'); return; }
   try { row.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e) { row.scrollIntoView(); }
   row.classList.remove('is-quote-target');
   void row.offsetWidth;
@@ -393,6 +403,10 @@ function renderMessages(enterLast){
     }
     if (msg && msg.type === 'system') {
       html += systemMessageHTML(msg);
+      return;
+    }
+    if (msg && msg.recalled) {
+      html += recallRowHTML(msg, row.index);
       return;
     }
     html += bubbleHTML(msg, !!enterLast && idx === visibleRows.length - 1, row.index);

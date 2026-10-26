@@ -2652,3 +2652,6 @@ html[data-theme="dark"] .pm-bubble-quote{ background:rgba(29,29,29,.85); border:
 .pm-ie-field input{ flex:1; min-width:0; padding:2px 0; border:0; outline:none; background:transparent; color:var(--fg); text-align:right; font:inherit; font-size:calc(14px * var(--island-font-size-scale)); color-scheme:light; }
 html[data-theme="dark"] .pm-ie-field input{ color-scheme:dark; }
 @media (prefers-color-scheme: dark){ html:not([data-theme]) .pm-ie-field input{ color-scheme:dark; } }
+
+.pm-recall-pill{ gap:6px; }
+.pm-recall-view-btn{ pointer-events:auto; flex:none; border:none; background:none; padding:0; margin:0; font:inherit; font-weight:var(--island-fw-700, 700); color:var(--fg); cursor:pointer; -webkit-tap-highlight-color:transparent; }
