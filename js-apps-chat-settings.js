@@ -487,5 +487,296 @@ function bindPMChatSettingsEvents(){
   });
 }
 
+
+/* ===== 导出 / 导入聊天记录 ===== */
+var PM_RECORDS_KIND = 'island-chat-records';
+var PM_EXPORT_RANGES = [
+  { value:'7d', label:'7 天内' },
+  { value:'15d', label:'15 天内' },
+  { value:'1m', label:'一个月内' },
+  { value:'3m', label:'3 个月内' },
+  { value:'custom', label:'自定义日期' }
+];
+var pmRecordsBusy = false;
+
+function pmBlobToDataUrl(blob){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onload = function(){ resolve(String(reader.result || '')); };
+    reader.onerror = function(){ reject(reader.error || new Error('读取失败')); };
+    reader.readAsDataURL(blob);
+  });
+}
+
+function pmDataUrlToBlob(dataUrl, type){
+  var parts = String(dataUrl || '').split(',');
+  var meta = parts[0] || '';
+  var mime = type || (meta.match(/^data:([^;,]+)/i) || [,'application/octet-stream'])[1];
+  var bin = atob(parts[1] || '');
+  var bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type:mime });
+}
+
+/* 把消息里的 Blob（真实录音等）转成可写进 JSON 的 dataURL，其余内容原样保留。 */
+function pmSerializeValue(value){
+  if (value instanceof Blob) {
+    return pmBlobToDataUrl(value).then(function(dataUrl){ return { __islandBlob:true, type:value.type || '', dataUrl:dataUrl }; });
+  }
+  if (Array.isArray(value)) return Promise.all(value.map(pmSerializeValue));
+  if (value && typeof value === 'object') {
+    var keys = Object.keys(value);
+    return Promise.all(keys.map(function(k){ return pmSerializeValue(value[k]); })).then(function(vals){
+      var out = {};
+      keys.forEach(function(k, i){ out[k] = vals[i]; });
+      return out;
+    });
+  }
+  return Promise.resolve(value);
+}
+
+function pmRestoreValue(value){
+  if (Array.isArray(value)) return value.map(pmRestoreValue);
+  if (value && typeof value === 'object') {
+    if (value.__islandBlob === true && typeof value.dataUrl === 'string') {
+      try { return pmDataUrlToBlob(value.dataUrl, value.type); } catch(e) { return null; }
+    }
+    var out = {};
+    Object.keys(value).forEach(function(k){ out[k] = pmRestoreValue(value[k]); });
+    return out;
+  }
+  return value;
+}
+
+function pmDateInputValue(ts){
+  var d = new Date(ts);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function pmParseDateInput(value, endOfDay){
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+  if (!m) return 0;
+  var d = endOfDay ? new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999) : new Date(+m[1], +m[2] - 1, +m[3], 0, 0, 0, 0);
+  return d.getTime();
+}
+
+function pmPresetRange(kind){
+  var now = new Date();
+  var end = now.getTime();
+  var start = new Date(now.getTime());
+  if (kind === '7d') start.setDate(start.getDate() - 7);
+  else if (kind === '15d') start.setDate(start.getDate() - 15);
+  else if (kind === '1m') start.setMonth(start.getMonth() - 1);
+  else if (kind === '3m') start.setMonth(start.getMonth() - 3);
+  return { start:start.getTime(), end:end };
+}
+
+/* 自定义日期弹窗：返回 Promise<{start,end}|null> */
+function pmPromptDateRange(){
+  return new Promise(function(resolve){
+    var el = document.createElement('div');
+    el.className = 'island-dialog pm-ie-dialog';
+    el.innerHTML =
+      '<div class="island-dialog-backdrop"></div>' +
+      '<section class="island-dialog-panel" role="dialog" aria-modal="true">' +
+        '<h3 class="island-dialog-title">自定义日期</h3>' +
+        '<label class="pm-ie-field"><span>开始日期</span><input type="date" class="pm-ie-start"></label>' +
+        '<label class="pm-ie-field"><span>结束日期</span><input type="date" class="pm-ie-end"></label>' +
+        '<div class="island-dialog-actions">' +
+          '<button type="button" class="island-dialog-btn is-cancel">取消</button>' +
+          '<button type="button" class="island-dialog-btn is-confirm">导出</button>' +
+        '</div>' +
+      '</section>';
+    document.body.appendChild(el);
+    var startEl = el.querySelector('.pm-ie-start');
+    var endEl = el.querySelector('.pm-ie-end');
+    var today = pmDateInputValue(Date.now());
+    startEl.value = pmDateInputValue(Date.now() - 6 * 86400000);
+    endEl.value = today;
+    endEl.max = today;
+    function close(result){
+      el.classList.remove('is-show');
+      setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+      resolve(result);
+    }
+    el.querySelector('.island-dialog-backdrop').addEventListener('click', function(){ close(null); });
+    el.querySelector('.is-cancel').addEventListener('click', function(){ close(null); });
+    el.querySelector('.is-confirm').addEventListener('click', function(){
+      var start = pmParseDateInput(startEl.value, false);
+      var end = pmParseDateInput(endEl.value, true);
+      if (!start || !end) { islandAlert('请选择开始日期和结束日期', { title:'提示' }); return; }
+      if (start > end) { islandAlert('开始日期不能晚于结束日期', { title:'提示' }); return; }
+      close({ start:start, end:end });
+    });
+    el.classList.add('is-open');
+    void el.offsetWidth;
+    el.classList.add('is-show');
+  });
+}
+
+function pmTriggerDownload(blob, filename){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+}
+
+function exportCurrentChatRecords(){
+  if (!currentName || pmRecordsBusy) return;
+  var name = currentName;
+  islandSelect(PM_EXPORT_RANGES, { title:'导出聊天记录', value:'7d' }).then(function(choice){
+    if (!choice) return null;
+    if (choice === 'custom') return pmPromptDateRange().then(function(r){ return r ? { label:'自定义', start:r.start, end:r.end } : null; });
+    var r = pmPresetRange(choice);
+    var item = PM_EXPORT_RANGES.filter(function(o){ return o.value === choice; })[0];
+    return { label:item ? item.label : choice, start:r.start, end:r.end };
+  }).then(function(range){
+    if (!range) return;
+    var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+    var picked = list.filter(function(msg){
+      if (!msg) return false;
+      var ts = chatMessageCreatedAt(msg);
+      return ts >= range.start && ts <= range.end;
+    });
+    if (!picked.length) { islandAlert('所选时间范围内没有聊天记录', { title:'提示' }); return; }
+    pmRecordsBusy = true;
+    return pmSerializeValue(picked).then(function(messages){
+      var payload = {
+        kind: PM_RECORDS_KIND,
+        version: 1,
+        app: '岛屿',
+        exportedAt: Date.now(),
+        chat: { name:name, displayName:getSessionCharDisplayName(name) },
+        range: { label:range.label, start:range.start, end:range.end },
+        count: messages.length,
+        messages: messages
+      };
+      var blob = new Blob([JSON.stringify(payload)], { type:'application/json;charset=utf-8' });
+      var d = new Date();
+      var stamp = d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes());
+      var safeName = String(name).replace(/[\\\/:*?"<>|\s]+/g, '_').slice(0, 30) || 'chat';
+      pmTriggerDownload(blob, 'island-chat-' + safeName + '-' + stamp + '.json');
+      islandBackupDone('导出成功', '已导出 ' + messages.length + ' 条聊天记录。');
+    });
+  }).catch(function(err){
+    console.error('[岛屿] 聊天记录导出失败：', err);
+    islandAlert('聊天记录导出失败', { title:'出错了' });
+  }).then(function(){ pmRecordsBusy = false; });
+}
+
+function pmMessageKey(msg){
+  return [
+    chatMessageCreatedAt(msg), msg.from || '', msg.type || '',
+    String(msg.text != null ? msg.text : (msg.name || msg.fileName || msg.label || msg.amount || msg.duration || ''))
+  ].join('|');
+}
+
+/* 合并：两边都有的消息只保留一条，其余按时间顺序排好；没有时间的消息跟在它前一条之后。 */
+function pmMergeMessages(existing, incoming){
+  var seen = {};
+  existing.forEach(function(m){ var k = pmMessageKey(m); seen[k] = (seen[k] || 0) + 1; });
+  var fresh = incoming.filter(function(m){
+    var k = pmMessageKey(m);
+    if (seen[k] > 0) { seen[k]--; return false; }
+    return true;
+  });
+  var rows = [];
+  function push(list, group){
+    var carry = 0;
+    list.forEach(function(m, i){
+      var ts = chatMessageCreatedAt(m);
+      if (ts) carry = ts;
+      rows.push({ msg:m, ts:carry, group:group, i:i });
+    });
+  }
+  push(existing, 0);
+  push(fresh, 1);
+  rows.sort(function(a, b){ return (a.ts - b.ts) || (a.group - b.group) || (a.i - b.i); });
+  return { list:rows.map(function(r){ return r.msg; }), added:fresh.length };
+}
+
+function pmApplyImportedRecords(name, incoming, mode){
+  var existing = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  var added = incoming.length;
+  if (mode === 'overwrite') {
+    MESSAGES[name] = incoming;
+  } else {
+    var merged = pmMergeMessages(existing, incoming);
+    MESSAGES[name] = merged.list;
+    added = merged.added;
+  }
+  var chat = getSessionChat(name, true);
+  if (chat) {
+    var list = MESSAGES[name];
+    for (var i = list.length - 1; i >= 0; i--) {
+      var ts = chatMessageCreatedAt(list[i]);
+      if (ts) { chat.lastTs = ts; chat.time = formatChatListTime(ts); break; }
+    }
+  }
+  if (typeof updateChatPreviewAfterMessageMutation === 'function') updateChatPreviewAfterMessageMutation(name);
+  return Promise.resolve(saveMessages(name)).then(function(){
+    persistSessionChat(name, true);
+    if (currentName === name) {
+      if (typeof renderMessages === 'function') renderMessages(false);
+      if (pmScroll) pmScroll.scrollTop = pmScroll.scrollHeight;
+    }
+    return added;
+  });
+}
+
+function importChatRecordsFile(file){
+  if (!file || !currentName || pmRecordsBusy) return;
+  var name = currentName;
+  var reader = new FileReader();
+  reader.onerror = function(){ islandAlert('聊天记录文件读取失败', { title:'出错了' }); };
+  reader.onload = function(){
+    var raw;
+    try { raw = JSON.parse(String(reader.result || '')); } catch(e) { islandAlert('聊天记录文件格式错误，无法读取', { title:'出错了' }); return; }
+    var rawList = Array.isArray(raw) ? raw : (raw && raw.kind === PM_RECORDS_KIND && Array.isArray(raw.messages) ? raw.messages : null);
+    if (!rawList) { islandAlert('这不是有效的聊天记录文件', { title:'出错了' }); return; }
+    var incoming = rawList.filter(function(m){ return m && typeof m === 'object' && !Array.isArray(m); }).map(pmRestoreValue);
+    if (!incoming.length) { islandAlert('文件里没有可导入的聊天记录', { title:'提示' }); return; }
+    islandSelect([
+      { value:'merge', label:'合并' },
+      { value:'overwrite', label:'覆盖' }
+    ], { title:'导入聊天记录', value:'merge' }).then(function(mode){
+      if (!mode || currentName !== name) return null;
+      if (mode !== 'overwrite') return mode;
+      return islandConfirm('覆盖后，与「' + getSessionCharDisplayName(name) + '」当前的全部聊天记录会被文件内容替换，且无法恢复。', {
+        title:'覆盖聊天记录', confirmText:'覆盖', danger:true
+      }).then(function(ok){ return ok ? mode : null; });
+    }).then(function(mode){
+      if (!mode || currentName !== name) return;
+      pmRecordsBusy = true;
+      return pmApplyImportedRecords(name, incoming, mode).then(function(added){
+        var msg = mode === 'overwrite' ? ('已导入 ' + incoming.length + ' 条聊天记录。') : ('已合并导入，新增 ' + added + ' 条聊天记录。');
+        return islandAlert(msg, { title:'导入成功' });
+      });
+    }).catch(function(err){
+      console.error('[岛屿] 聊天记录导入失败：', err);
+      islandAlert('聊天记录导入失败', { title:'出错了' });
+    }).then(function(){ pmRecordsBusy = false; });
+  };
+  reader.readAsText(file);
+}
+
+function bindPMChatRecordsIO(){
+  var exportBtn = $('pmSettingsExportRecords');
+  var importBtn = $('pmSettingsImportRecords');
+  var importInput = $('pmSettingsImportRecordsInput');
+  if (exportBtn) exportBtn.addEventListener('click', exportCurrentChatRecords);
+  if (importBtn && importInput) importBtn.addEventListener('click', function(){ importInput.value = ''; importInput.click(); });
+  if (importInput) importInput.addEventListener('change', function(){
+    var file = importInput.files && importInput.files[0];
+    importInput.value = '';
+    importChatRecordsFile(file);
+  });
+}
+
 var pmSettingsCharName = $('pmSettingsCharName');
 bindPMChatSettingsEvents();
+bindPMChatRecordsIO();
