@@ -524,3 +524,114 @@ function setVoiceMode(on){
     voiceSpeechSupported = !!getVoiceSpeechRecognitionCtor();
   }
 }
+
+
+/* Char 有声：MiniMax 语音合成 */
+var charTtsCache = Object.create(null), charTtsKeys = [], charTtsAudio = null, charTtsToken = 0;
+
+function getCharVoiceSettings(name){
+  var s = getSessionChatSettings(name || currentName, false) || {};
+  return { enabled: s.charVoiceEnabled === true, voiceId: String(s.charVoiceId || '').trim() };
+}
+
+function isCharVoiceActive(name){
+  var v = getCharVoiceSettings(name);
+  return !!(v.enabled && v.voiceId && isMinimaxVoiceReady());
+}
+
+function minimaxHexToBlob(hex){
+  hex = String(hex || '').replace(/\s+/g, '');
+  var bytes = new Uint8Array(Math.floor(hex.length / 2));
+  for (var i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return new Blob([bytes], { type:'audio/mpeg' });
+}
+
+function minimaxSynthesize(text, voiceId){
+  var cfg = getMinimaxVoiceConfig();
+  var key = voiceId + '|' + cfg.model + '|' + text;
+  if (charTtsCache[key]) return Promise.resolve(charTtsCache[key]);
+  var url = MINIMAX_ENDPOINTS[cfg.region] + '/v1/t2a_v2' + (cfg.groupId ? '?GroupId=' + encodeURIComponent(cfg.groupId) : '');
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + cleanApiKey(cfg.apiKey) },
+    body: JSON.stringify({
+      model: cfg.model,
+      text: text,
+      stream: false,
+      voice_setting: { voice_id: voiceId, speed: 1, vol: 1, pitch: 0 },
+      audio_setting: { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 }
+    })
+  }).then(function(res){
+    return res.text().then(function(raw){
+      var json = null;
+      try { json = JSON.parse(raw); } catch(e) {}
+      if (!res.ok) throw new Error(httpErrorText(res.status, raw));
+      var base = json && json.base_resp;
+      if (base && Number(base.status_code) !== 0) throw new Error(String(base.status_msg || '合成失败'));
+      var hex = json && json.data && json.data.audio;
+      if (!hex) throw new Error('未返回音频');
+      var objUrl = URL.createObjectURL(minimaxHexToBlob(hex));
+      charTtsCache[key] = objUrl; charTtsKeys.push(key);
+      while (charTtsKeys.length > 40) { var old = charTtsKeys.shift(); try { URL.revokeObjectURL(charTtsCache[old]); } catch(e) {} delete charTtsCache[old]; }
+      return objUrl;
+    });
+  });
+}
+
+function stopCharVoice(){
+  charTtsToken++;
+  if (charTtsAudio) { try { charTtsAudio.pause(); } catch(e) {} charTtsAudio = null; }
+}
+
+function speakCharText(text, voiceId, onStart){
+  text = String(text || '').trim();
+  if (!text || !voiceId) return Promise.resolve(false);
+  stopCharVoice();
+  var token = charTtsToken;
+  return minimaxSynthesize(text, voiceId).then(function(url){
+    if (token !== charTtsToken) return false;
+    return new Promise(function(resolve, reject){
+      var audio = new Audio(url);
+      charTtsAudio = audio;
+      audio.onended = function(){ if (charTtsAudio === audio) charTtsAudio = null; resolve(true); };
+      audio.onerror = function(){ if (charTtsAudio === audio) charTtsAudio = null; reject(new Error('播放失败')); };
+      audio.play().then(function(){ if (onStart) onStart(); }).catch(reject);
+    });
+  });
+}
+
+function speakCharTexts(texts, voiceId){
+  var list = (texts || []).slice();
+  stopCharVoice();
+  var token = charTtsToken;
+  function next(){
+    if (token !== charTtsToken || !list.length) return Promise.resolve();
+    var text = list.shift();
+    return minimaxSynthesize(String(text || '').trim(), voiceId).then(function(url){
+      if (token !== charTtsToken) return;
+      return new Promise(function(resolve){
+        var audio = new Audio(url);
+        charTtsAudio = audio;
+        audio.onended = audio.onerror = function(){ if (charTtsAudio === audio) charTtsAudio = null; resolve(); };
+        audio.play().catch(function(){ resolve(); });
+      });
+    }).then(next);
+  }
+  return next().catch(function(err){ toast('语音合成失败：' + String(err && err.message || '').slice(0, 40)); });
+}
+
+function playCharVoiceBubble(btn, msg){
+  if (!msg || !btn) return false;
+  var name = currentName, v = getCharVoiceSettings(name);
+  var text = String(msg.synthText || msg.voiceText || '').trim();
+  if (!v.enabled || !text) return false;
+  if (!v.voiceId) { toast('请先填写 Char 音色 ID'); return true; }
+  if (!isMinimaxVoiceReady()) { toast('请先配置 MiniMax 语音'); return true; }
+  if (btn.classList.contains('is-playing')) { stopCharVoice(); btn.classList.remove('is-playing'); return true; }
+  $$('.pm-voice-bubble.is-playing').forEach(function(el){ el.classList.remove('is-playing'); });
+  btn.classList.add('is-playing');
+  speakCharText(text, v.voiceId).catch(function(err){
+    toast('语音合成失败：' + String(err && err.message || '').slice(0, 40));
+  }).then(function(){ btn.classList.remove('is-playing'); });
+  return true;
+}

@@ -332,6 +332,7 @@ function init(){
     refreshSecondaryApiState();
     refreshVectorMemoryApiState();
     refreshSttState();
+    refreshMinimaxVoiceState();
     refreshVisionState();
     renderAutoRetryToggle();
     renderNotificationSettings();
@@ -357,6 +358,7 @@ function init(){
     refreshSecondaryApiState();
     refreshVectorMemoryApiState();
     refreshSttState();
+    refreshMinimaxVoiceState();
     refreshVisionState();
     renderAutoRetryToggle();
   });

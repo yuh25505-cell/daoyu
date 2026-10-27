@@ -133,6 +133,13 @@ function updatePMChatSettingsUI(){
   var userAvatar = $('pmSettingsUserAvatarPreview');
   var dnd = $('pmSettingsDoNotDisturb');
   var wallpaperPreview = $('pmSettingsWallpaperPreview');
+  var voiceIdInput = $('pmSettingsCharVoiceId');
+  var voiceSwitch = $('pmSettingsCharVoiceSwitch');
+  if (voiceIdInput && document.activeElement !== voiceIdInput) voiceIdInput.value = settings.charVoiceId || '';
+  if (voiceSwitch) {
+    voiceSwitch.classList.toggle('is-on', settings.charVoiceEnabled === true);
+    voiceSwitch.setAttribute('aria-checked', settings.charVoiceEnabled === true ? 'true' : 'false');
+  }
   if (charName) charName.textContent = getSessionCharDisplayName(currentName);
   if (userName) userName.textContent = user.name || user.socialId || '我';
   if (remark && document.activeElement !== remark) remark.value = settings.charRemark || '';
@@ -392,6 +399,37 @@ function bindPMChatSettingsEvents(){
     persistSessionChat(currentName, false);
     updatePMChatSettingsUI();
     toast(settings.doNotDisturb ? '已开启当前会话免打扰' : '已关闭当前会话免打扰');
+  });
+
+  var voiceIdInput = $('pmSettingsCharVoiceId');
+  var voiceSwitch = $('pmSettingsCharVoiceSwitch');
+  if (voiceIdInput) {
+    voiceIdInput.addEventListener('input', function(){
+      if (!currentName) return;
+      getSessionChatSettings(currentName, true).charVoiceId = voiceIdInput.value.trim().slice(0, 120);
+    });
+    voiceIdInput.addEventListener('change', function(){
+      if (!currentName) return;
+      var settings = getSessionChatSettings(currentName, true);
+      settings.charVoiceId = voiceIdInput.value.trim().slice(0, 120);
+      if (!settings.charVoiceId && settings.charVoiceEnabled) { settings.charVoiceEnabled = false; stopCharVoice(); updatePMChatSettingsUI(); }
+      persistSessionChat(currentName, false);
+    });
+  }
+  if (voiceSwitch) voiceSwitch.addEventListener('click', function(){
+    if (!currentName) return;
+    var settings = getSessionChatSettings(currentName, true);
+    if (voiceIdInput) settings.charVoiceId = voiceIdInput.value.trim().slice(0, 120);
+    if (settings.charVoiceEnabled === true) {
+      settings.charVoiceEnabled = false;
+      stopCharVoice();
+    } else {
+      if (!settings.charVoiceId) { toast('请先填写 Char 音色 ID'); return; }
+      if (!isMinimaxVoiceReady()) { toast('请先在设置中配置 MiniMax 语音'); return; }
+      settings.charVoiceEnabled = true;
+    }
+    persistSessionChat(currentName, false);
+    updatePMChatSettingsUI();
   });
 
   var wallpaperChoose = $('pmSettingsWallpaperChoose');

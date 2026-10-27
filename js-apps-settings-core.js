@@ -109,6 +109,7 @@ function switchSettingsPanel(name){
   if (name === 'secondaryApi') refreshSecondaryApiState();
   if (name === 'main' || name === 'vectorMemoryApi' || name === 'vectorRerankApi') refreshVectorMemoryApiState();
   if (name === 'stt') refreshSttState();
+  if (name === 'main' || name === 'minimaxVoice') refreshMinimaxVoiceState();
   if (name === 'vision') refreshVisionState();
   if (name === 'main') renderAutoRetryToggle();
   if (name === 'about') refreshChangelog(true);
@@ -128,6 +129,12 @@ function refreshVisionState(){
   var c = getVisionConfig();
   if (isVisionReady()) { el.textContent = '已启用'; el.classList.add('ok'); el.classList.remove('err'); }
   else if (c && c.baseUrl && c.apiKey && c.model) { el.textContent = '已关闭'; el.classList.remove('ok','err'); }
+  else { el.textContent = '未配置'; el.classList.remove('ok','err'); }
+}
+
+function refreshMinimaxVoiceState(){
+  var el = $('minimaxVoiceState'); if (!el) return;
+  if (isMinimaxVoiceReady()) { el.textContent = '已配置'; el.classList.add('ok'); el.classList.remove('err'); }
   else { el.textContent = '未配置'; el.classList.remove('ok','err'); }
 }
 

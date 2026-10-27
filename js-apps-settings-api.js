@@ -227,6 +227,82 @@ function testSttConnection(){
 }
 
 
+/* ───────────── MiniMax 语音（Group ID / API Key / 模型 / 海外版·中国版） ───────────── */
+
+var minimaxRegion = 'cn';
+
+function setMinimaxRegion(region){
+  minimaxRegion = region === 'global' ? 'global' : 'cn';
+  $$('#minimaxRegionChips .chip').forEach(function(chip){ chip.classList.toggle('is-on', chip.dataset.region === minimaxRegion); });
+}
+
+function fillMinimaxForm(){
+  var c = getMinimaxVoiceConfig();
+  var elGroup = $('minimaxGroupId'), elKey = $('minimaxApiKey'), elModel = $('minimaxModel');
+  if (elGroup) elGroup.value = c.groupId;
+  if (elKey) elKey.value = c.apiKey;
+  if (elModel) elModel.value = c.model;
+  setMinimaxRegion(c.region);
+}
+
+function readMinimaxForm(){
+  var elGroup = $('minimaxGroupId'), elKey = $('minimaxApiKey'), elModel = $('minimaxModel');
+  return {
+    region: minimaxRegion,
+    groupId: elGroup ? elGroup.value.trim() : '',
+    apiKey: elKey ? elKey.value.trim() : '',
+    model: elModel ? elModel.value.trim() : '',
+    baseUrl: MINIMAX_ENDPOINTS[minimaxRegion]
+  };
+}
+
+function setMinimaxStatus(kind, text){
+  apiNotify(kind, text);
+}
+
+function saveMinimaxForm(){
+  var c = readMinimaxForm();
+  if (!c.apiKey || !c.model) { setMinimaxStatus('err', '请填写 API Key 并选择语音模型。'); return; }
+  State.settings.minimaxVoice = { region: c.region, groupId: c.groupId, apiKey: c.apiKey, model: c.model };
+  finishApiSave(refreshMinimaxVoiceState);
+}
+
+function fetchMinimaxModels(){
+  var draft = readMinimaxForm();
+  var fetchBtn = $('minimaxFetchModels');
+  if (!draft.apiKey) { setMinimaxStatus('err', '请先填写 API Key，再拉取模型列表。'); return; }
+  var url = draft.baseUrl + '/v1/models';
+  if (fetchBtn) { fetchBtn.disabled = true; fetchBtn.textContent = '拉取中…'; }
+  fetchedModels = []; modelSearchKey = '';
+  if (modelSearchInput) modelSearchInput.value = '';
+  if (modelListEl) modelListEl.innerHTML = '<div class="model-loading">正在拉取模型列表…\n' + escapeHTML(url) + '</div>';
+  if (modelCountEl) modelCountEl.textContent = '';
+  openModelSheet('minimax');
+  var headers = { 'Accept': 'application/json', 'Authorization': 'Bearer ' + cleanApiKey(draft.apiKey) };
+  fetch(url, { method: 'GET', headers: headers }).then(function(res){
+    return res.text().then(function(text){
+      if (!res.ok) throw new Error(httpErrorText(res.status, text));
+      var json = JSON.parse(text);
+      var arr = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : (Array.isArray(json.models) ? json.models : []));
+      return arr.map(function(item){
+        if (!item) return '';
+        if (typeof item === 'string') return item;
+        return String(item.id || item.name || item.model || '');
+      }).map(function(v){ return String(v).trim().replace(/^models\//, ''); }).filter(function(v){ return /speech|tts|t2a/i.test(v); });
+    });
+  }).catch(function(){ return []; }).then(function(ids){
+    var seen = {};
+    var list = (ids.length ? ids : MINIMAX_BUILTIN_MODELS.slice()).filter(function(v){ if (!v || seen[v]) return false; seen[v] = true; return true; });
+    fetchedModels = list;
+    renderModelList();
+    if (fetchBtn) {
+      fetchBtn.disabled = false;
+      fetchBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V10h-5.5"/></svg>拉取模型';
+    }
+  });
+}
+
+
 /* ───────────── 识图 API（独立配置，用来识别私聊里的表情包 / 图片） ───────────── */
 
 function fillVisionForm(){
@@ -889,12 +965,13 @@ var modelSheetClose = $('modelSheetClose'), apiFetchModels = $('apiFetchModels')
 var fetchedModels = [], modelSearchKey = '', activeModelContext = 'primary';
 
 function normalizeModelContext(context){
-  return context === 'secondary' || context === 'stt' || context === 'vision' || context === 'vectorEmbedding' || context === 'vectorRerank' ? context : 'primary';
+  return context === 'secondary' || context === 'stt' || context === 'minimax' || context === 'vision' || context === 'vectorEmbedding' || context === 'vectorRerank' ? context : 'primary';
 }
 
 function modelFieldId(){
   if (activeModelContext === 'secondary') return 'secondaryApiModel';
   if (activeModelContext === 'stt') return 'sttModel';
+  if (activeModelContext === 'minimax') return 'minimaxModel';
   if (activeModelContext === 'vision') return 'visionModel';
   if (activeModelContext === 'vectorEmbedding') return 'vectorEmbeddingApiModel';
   if (activeModelContext === 'vectorRerank') return 'vectorRerankApiModel';
@@ -904,6 +981,7 @@ function modelFieldId(){
 function modelFetchButton(){
   if (activeModelContext === 'secondary') return $('secondaryApiFetchModels');
   if (activeModelContext === 'stt') return $('sttFetchModels');
+  if (activeModelContext === 'minimax') return $('minimaxFetchModels');
   if (activeModelContext === 'vision') return $('visionFetchModels');
   if (activeModelContext === 'vectorEmbedding') return $('vectorEmbeddingFetchModels');
   if (activeModelContext === 'vectorRerank') return $('vectorRerankFetchModels');
@@ -913,6 +991,7 @@ function modelFetchButton(){
 function modelStatusSetter(){
   if (activeModelContext === 'secondary') return function(status,text){ return setSecondaryApiStatus(status,text); };
   if (activeModelContext === 'stt') return function(status,text){ return setSttStatus(status,text); };
+  if (activeModelContext === 'minimax') return function(status,text){ return setMinimaxStatus(status,text); };
   if (activeModelContext === 'vision') return function(status,text){ return setVisionStatus(status,text); };
   if (activeModelContext === 'vectorEmbedding') return function(status,text){ return setVectorApiStatus('embedding',status,text); };
   if (activeModelContext === 'vectorRerank') return function(status,text){ return setVectorApiStatus('rerank',status,text); };
@@ -922,6 +1001,7 @@ function modelStatusSetter(){
 function modelFormReader(){
   if (activeModelContext === 'secondary') return readSecondaryApiForm;
   if (activeModelContext === 'stt') return readSttForm;
+  if (activeModelContext === 'minimax') return readMinimaxForm;
   if (activeModelContext === 'vision') return readVisionForm;
   if (activeModelContext === 'vectorEmbedding') return readVectorEmbeddingApiForm;
   if (activeModelContext === 'vectorRerank') return readVectorRerankApiForm;
@@ -980,6 +1060,7 @@ function getModelFetchDraft(){
 
 function fetchModels(context){
   activeModelContext = normalizeModelContext(context);
+  if (activeModelContext === 'minimax') { fetchMinimaxModels(); return; }
   var draft = getModelFetchDraft();
   var setStatus = modelStatusSetter();
   var fetchBtn = modelFetchButton();
@@ -1096,6 +1177,15 @@ function bindSettingsApiEvents(){
   var sttTest = $('sttTest'); if (sttTest) sttTest.addEventListener('click', testSttConnection);
   var sttSave = $('sttSave'); if (sttSave) sttSave.addEventListener('click', saveSttForm);
   var sttFetch = $('sttFetchModels'); if (sttFetch) sttFetch.addEventListener('click', function(){ fetchModels('stt'); });
+  var gotoMinimaxVoice = $('gotoMinimaxVoice');
+  if (gotoMinimaxVoice) gotoMinimaxVoice.addEventListener('click', function(){ fillMinimaxForm(); switchSettingsPanel('minimaxVoice'); });
+  $$('.js-minimax-back').forEach(function(btn){ btn.addEventListener('click', function(){ closeModelSheet(); switchSettingsPanel('main'); }); });
+  var minimaxChips = $('minimaxRegionChips');
+  if (minimaxChips) minimaxChips.addEventListener('click', function(e){ var chip = e.target.closest('.chip'); if (chip) setMinimaxRegion(chip.dataset.region); });
+  var minimaxEye = $('minimaxApiKeyEye'), minimaxKey = $('minimaxApiKey');
+  if (minimaxEye && minimaxKey) minimaxEye.addEventListener('click', function(){ minimaxKey.type = minimaxKey.type === 'password' ? 'text' : 'password'; });
+  var minimaxSave = $('minimaxSave'); if (minimaxSave) minimaxSave.addEventListener('click', saveMinimaxForm);
+  var minimaxFetch = $('minimaxFetchModels'); if (minimaxFetch) minimaxFetch.addEventListener('click', function(){ fetchModels('minimax'); });
   var autoRetryToggle = $('autoRetryToggle');
   if (autoRetryToggle) autoRetryToggle.addEventListener('click', function(){
     State.settings.autoRetry = !(State.settings.autoRetry === true);

@@ -7,6 +7,7 @@ var DEFAULT_API = {
   temperature: 0.85, maxTokens: 0, stream: false
 };
 
+var DEFAULT_MINIMAX_VOICE = { region:'cn', groupId:'', apiKey:'', model:'' };
 var DEFAULT_STT = {
   enabled: false, baseUrl: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o-mini-transcribe', language: 'auto', prompt: ''
 };
@@ -52,7 +53,7 @@ var DEFAULT_HOME_APPEARANCE = {
 };
 
 var DEFAULT_SETTINGS = {
-  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, vision: clone(DEFAULT_VISION), activeVisionPresetId: '', activeVectorEmbeddingPresetId: '', activeVectorRerankPresetId: '', visionQuickKeys: {}, autoRetry: false, activeUserPersonaId: '',
+  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), minimaxVoice: clone(DEFAULT_MINIMAX_VOICE), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, vision: clone(DEFAULT_VISION), activeVisionPresetId: '', activeVectorEmbeddingPresetId: '', activeVectorRerankPresetId: '', visionQuickKeys: {}, autoRetry: false, activeUserPersonaId: '',
   homeAppearance: clone(DEFAULT_HOME_APPEARANCE),
   sounds: { volume: 80, message: null, call: null },
   memory: { contextDepth: 40, summaryThreshold: 20 },
@@ -269,6 +270,24 @@ function normalizeSttState(){
 function isSttReady(){
   var c = getSttConfig();
   return !!(c && c.enabled && c.baseUrl && c.apiKey && c.model);
+}
+
+var MINIMAX_ENDPOINTS = { cn:'https://api.minimaxi.com', global:'https://api.minimax.io' };
+var MINIMAX_BUILTIN_MODELS = ['speech-2.8-hd','speech-2.8-turbo','speech-2.6-hd','speech-2.6-turbo','speech-02-hd','speech-02-turbo','speech-01-hd','speech-01-turbo'];
+
+function getMinimaxVoiceConfig(){
+  var c = (State.settings && State.settings.minimaxVoice && typeof State.settings.minimaxVoice === 'object') ? State.settings.minimaxVoice : {};
+  var out = Object.assign({}, DEFAULT_MINIMAX_VOICE, c);
+  out.region = out.region === 'global' ? 'global' : 'cn';
+  out.groupId = String(out.groupId || '').trim();
+  out.apiKey = String(out.apiKey || '').trim();
+  out.model = String(out.model || '').trim();
+  return out;
+}
+
+function isMinimaxVoiceReady(){
+  var c = getMinimaxVoiceConfig();
+  return !!(c.apiKey && c.model);
 }
 
 var VISION_PRESETS = {

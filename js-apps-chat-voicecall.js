@@ -494,6 +494,7 @@ function requestVoiceCallReply(name, sessionId){
     parts.forEach(function(part){
       appendVoiceCallTurn(name, 'them', part, 'text', sessionId);
     });
+    if (isCharVoiceActive(name)) speakCharTexts(parts, getCharVoiceSettings(name).voiceId);
     return parts.join('\n');
   });
 }
@@ -661,6 +662,7 @@ function closeVoiceCallView(options){
   var closingSessionId = voiceCallState.sessionId;
   var closingEndedAt = Date.now();
   stopVoiceCallAudio();
+  stopCharVoice();
   if (closingSessionId) finalizePhoneCallRecord(closingSessionId, closingEndedAt);
   if (voiceCallState.durationTimer) { clearInterval(voiceCallState.durationTimer); voiceCallState.durationTimer = null; }
   voiceCallState.active = false;

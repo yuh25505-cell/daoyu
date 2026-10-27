@@ -1088,7 +1088,8 @@ function bindChatEvents(){
       var btn = e.target.closest('[data-voice-index]');
       if (!btn || !pmScroll.contains(btn) || messageSelectionMode) return;
       var idx = Number(btn.dataset.voiceIndex), list = MESSAGES[currentName] || [], msg = list[idx], url = btn.dataset.voiceUrl || '';
-      if (!msg || msg.type !== 'voice' || !url) return;
+      if (!msg || msg.type !== 'voice') return;
+      if (!url) { if (msg.from === 'them') playCharVoiceBubble(btn, msg); return; }
       if (activeVoiceAudio) { try { activeVoiceAudio.pause(); } catch(err) {} if (activeVoiceButton) activeVoiceButton.classList.remove('is-playing'); activeVoiceAudio = null; activeVoiceButton = null; }
       var audio = new Audio(url); audio.preload = 'auto'; activeVoiceAudio = audio; activeVoiceButton = btn; btn.classList.add('is-playing');
       audio.onended = function(){ btn.classList.remove('is-playing'); if (activeVoiceAudio === audio) { activeVoiceAudio = null; activeVoiceButton = null; } };

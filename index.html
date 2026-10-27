@@ -18,6 +18,7 @@
 <!-- 样式按 App 拆分：加载顺序即层叠顺序，请勿随意调换（core → home → music → chat → phone → worldbook → settings → 占位 App） -->
 <link href="./css-core-base.css" rel="stylesheet"/>
 <link href="./css-core-shared.css" rel="stylesheet"/>
+<link href="./css-core-auth.css" rel="stylesheet"/>
 <link href="./css-apps-home.css" rel="stylesheet"/>
 <link href="./css-apps-music.css" rel="stylesheet"/>
 <link href="./css-apps-polaroid.css" rel="stylesheet"/>
@@ -36,6 +37,22 @@
 </head>
 <body>
 <div aria-hidden="true" class="wallpaper"></div>
+<div aria-hidden="true" class="auth-gate" id="authGate" data-mode="login">
+<div class="auth-shell">
+<div class="auth-seg" role="tablist"><button class="auth-seg-btn is-active" id="authTabLogin" type="button">登录</button><button class="auth-seg-btn" id="authTabRegister" type="button">注册</button></div>
+<div class="auth-box auth-hero"><div class="auth-orb"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 25a12 12 0 0 1 24 0"/><path d="M6 32c3.6 0 3.6 3 7.2 3S16.8 32 20.4 32s3.6 3 7.2 3S31.2 32 34.8 32s3.6 3 7.2 3"/><path d="M6 40c3.6 0 3.6 3 7.2 3S16.8 40 20.4 40s3.6 3 7.2 3S31.2 40 34.8 40s3.6 3 7.2 3" opacity=".55"/></svg></div><div class="auth-name">岛屿</div></div>
+<form class="auth-form" id="authForm" novalidate>
+<div class="auth-box auth-list">
+<label class="auth-row"><span class="auth-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c.6-3.6 3.5-5.7 7-5.7s6.4 2.1 7 5.7"/></svg></span><span class="auth-label">QQ号</span><input class="auth-input" id="authQQ" type="text" inputmode="numeric" autocomplete="username" maxlength="15"/></label>
+<label class="auth-row"><span class="auth-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.4"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span><span class="auth-label">密码</span><input class="auth-input" id="authPwd" type="password" autocomplete="current-password"/><button aria-label="显示密码" class="auth-eye" id="authEye" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button></label>
+<label class="auth-row" data-auth-only="register"><span class="auth-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5a1.8 1.8 0 0 0 0 3.5v0a1.8 1.8 0 0 0 0 3.5V17a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1.5a1.8 1.8 0 0 1 0-3.5v0a1.8 1.8 0 0 1 0-3.5V7a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1z"/><path d="M14.5 6v12" stroke-dasharray="1.6 2.4"/></svg></span><span class="auth-label">邀请码</span><input class="auth-input auth-input-code" id="authInvite" type="text" autocomplete="off" autocapitalize="characters"/></label>
+</div>
+<div class="auth-box auth-list" data-auth-only="register"><button class="auth-row auth-row-btn" id="authReqBtn" type="button"><span class="auth-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 4 10.5 14"/><path d="M20.5 4 14 20l-3.5-6-6-3.5z"/></svg></span><span class="auth-label" id="authReqLabel">申请邀请码</span><svg class="auth-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></button></div>
+<div class="auth-error" id="authError" role="alert"></div>
+<button class="auth-submit" id="authSubmit" type="submit">登录</button>
+</form>
+</div>
+</div>
 <div aria-hidden="true" class="boot" id="boot">
   <canvas class="boot-canvas" id="bootCanvas"></canvas>
   <div class="boot-sweep boot-sweep--one"></div>
@@ -356,6 +373,10 @@
         <div class="pm-chat-settings-identity-names"><div><strong id="pmSettingsCharName">角色</strong></div><div><strong id="pmSettingsUserName">我</strong></div></div>
       </div>
       <label class="pm-chat-settings-field"><span>Char 备注</span><input id="pmSettingsCharRemark" maxlength="40" autocomplete="off" /></label>
+      <label class="pm-chat-settings-field"><span>Char 音色 ID</span><input id="pmSettingsCharVoiceId" maxlength="120" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <div class="pm-chat-settings-group">
+        <button type="button" class="pm-chat-settings-row" id="pmSettingsCharVoiceSwitch" role="switch" aria-checked="false"><span><strong>Char 语音</strong></span><span class="pm-chat-settings-switch" aria-hidden="true"><i></i></span></button>
+      </div>
       <div class="pm-chat-settings-group">
         <button type="button" class="pm-chat-settings-row" id="pmChatRecordSearchOpen"><span><strong>查找聊天记录</strong></span><span class="pm-chat-settings-chevron">›</span></button>
         <button type="button" class="pm-chat-settings-row" id="pmSettingsDoNotDisturb" role="switch" aria-checked="false"><span><strong>消息免打扰</strong></span><span class="pm-chat-settings-switch" aria-hidden="true"><i></i></span></button>
@@ -1353,6 +1374,12 @@
 <span class="me-state" id="sttState">未配置</span>
 <svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
 </button>
+<button class="me-item" id="gotoMinimaxVoice" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path></svg>
+<span>MiniMax 语音</span>
+<span class="me-state" id="minimaxVoiceState">未配置</span>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
 <button class="me-item" id="gotoVision" type="button">
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 <span>识图 API</span>
@@ -1400,6 +1427,27 @@
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"></path><path d="M20 4.5V9h-4.5"></path></svg>
 <span>检查更新</span>
 <i class="me-status" id="updateRowStatus"></i>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
+<button class="me-item" id="inviteRow" type="button" style="display:none">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2.2"></rect><path d="M3.5 10h17"></path><path d="M7.5 14.5h3"></path></svg>
+<span>我的邀请码</span>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
+<button class="me-item" id="adminReviewRow" type="button" style="display:none">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"></circle><path d="M3.5 19c.4-3 2.7-5 5.5-5s5.1 2 5.5 5"></path><path d="M15.5 12.5l2 2 3.5-4"></path></svg>
+<span>用户审核</span>
+<i class="me-status" id="adminReviewCount"></i>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
+<button class="me-item" id="devicesRow" type="button" style="display:none">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="2.4"></rect><path d="M10.5 17.5h3"></path></svg>
+<span>已登录设备</span>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
+<button class="me-item" id="logoutRow" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M9 4.5H6.2A1.7 1.7 0 0 0 4.5 6.2v11.6a1.7 1.7 0 0 0 1.7 1.7H9"></path><path d="M15 8l4 4-4 4"></path><path d="M19 12H9.5"></path></svg>
+<span>退出登录</span>
 <svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
 </button>
 </div>
@@ -1625,6 +1673,18 @@
 <div class="changelog" id="islandChangelog" data-changelog-source="changelog.json"></div>
 <div class="about-footer">岛屿 · Personal AI · Changelog</div>
 </div>
+</section>
+<section class="settings-panel" data-panel="devices">
+<header class="panel-head"><button aria-label="返回设置" class="ph-btn js-auth-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">已登录设备</h1><div class="ph-actions"></div></header>
+<div class="panel-scroll"><div class="auth-panel-body" id="devicesList"></div></div>
+</section>
+<section class="settings-panel" data-panel="invite">
+<header class="panel-head"><button aria-label="返回设置" class="ph-btn js-auth-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">我的邀请码</h1><div class="ph-actions"></div></header>
+<div class="panel-scroll"><div class="auth-panel-body" id="inviteBody"></div></div>
+</section>
+<section class="settings-panel" data-panel="adminReview">
+<header class="panel-head"><button aria-label="返回设置" class="ph-btn js-auth-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">用户审核</h1><div class="ph-actions"><button aria-label="刷新" class="ph-btn" id="adminReviewRefresh" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"></path><path d="M20 4.5V9h-4.5"></path></svg></button></div></header>
+<div class="panel-scroll"><div class="auth-panel-body" id="adminReviewList"></div></div>
 </section>
 <section class="settings-panel" data-panel="appearance">
 <header class="panel-head"><button aria-label="返回设置" class="ph-btn js-appearance-back" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button><h1 class="ph-title">外观</h1><div class="ph-actions"></div></header>
@@ -1856,6 +1916,55 @@
 <div class="api-actions">
 <button class="api-btn secondary" id="sttTest" type="button">测试接口</button>
 <button class="api-btn primary" id="sttSave" type="button">保存</button>
+</div>
+</div>
+</div>
+</section><section class="settings-panel" data-panel="minimaxVoice">
+<header class="panel-head">
+<button aria-label="返回设置" class="ph-btn js-minimax-back" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
+</button>
+<h1 class="ph-title">MiniMax 语音</h1>
+<div class="ph-actions"></div>
+</header>
+<div class="panel-scroll">
+<div class="api-form">
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">版本</span></div>
+<div class="chips" id="minimaxRegionChips">
+<button class="chip" data-region="global" type="button">海外版</button>
+<button class="chip" data-region="cn" type="button">中国版</button>
+</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">Group ID</span></div>
+<div class="api-input-wrap">
+<input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" spellcheck="false" id="minimaxGroupId" placeholder="Group ID" type="text"/>
+</div>
+</div>
+<div class="api-field">
+<div class="api-field-head"><span class="api-label">API Key</span></div>
+<div class="api-input-wrap has-eye">
+<input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" spellcheck="false" id="minimaxApiKey" placeholder="API Key" type="password"/>
+<button aria-label="显示 / 隐藏" class="api-eye" id="minimaxApiKeyEye" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+</div>
+<div class="api-field">
+<div class="api-field-head">
+<span class="api-label">语音模型</span>
+<button class="api-hint-btn" id="minimaxFetchModels" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4.5V10h-5.5"></path></svg>
+                  拉取模型
+                </button>
+</div>
+<div class="api-input-wrap">
+<input autocapitalize="off" autocomplete="off" autocorrect="off" class="api-input" spellcheck="false" id="minimaxModel" placeholder="speech-2.8-hd" type="text"/>
+</div>
+</div>
+<div class="api-actions">
+<button class="api-btn primary" id="minimaxSave" type="button">保存</button>
 </div>
 </div>
 </div>
@@ -2167,6 +2276,7 @@
 <script defer="" src="./js-core-ai.js"></script>
 <script defer="" src="./js-core-apps.js"></script>
 <script defer="" src="./js-core-update.js"></script>
+<script defer="" src="./js-core-auth.js"></script>
 <script defer="" src="./js-apps-home.js"></script>
 <script defer="" src="./js-apps-chat-language.js"></script>
 <script defer="" src="./js-apps-chat-extras.js"></script>

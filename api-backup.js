@@ -6,7 +6,7 @@
   var API_SETTING_KEYS = [
     'api', 'apiPresets', 'activeApiPresetId', 'apiQuickKeys',
     'secondaryApi', 'secondaryApiPresets', 'activeSecondaryApiPresetId', 'secondaryApiQuickKeys',
-    'stt', 'sttPresets', 'activeSttPresetId', 'sttQuickKeys',
+    'stt', 'sttPresets', 'activeSttPresetId', 'sttQuickKeys', 'minimaxVoice',
     'vision', 'activeVisionPresetId', 'visionQuickKeys', 'autoRetry',
     'vectorMemory', 'activeVectorEmbeddingPresetId', 'activeVectorRerankPresetId'
   ];
