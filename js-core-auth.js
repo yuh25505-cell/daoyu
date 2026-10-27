@@ -439,7 +439,7 @@
 
   var logoutRow = document.getElementById('logoutRow');
   if (logoutRow) logoutRow.addEventListener('click', function(){
-    if (window.confirm('确定退出登录？')) logout();
+    islandConfirm('确定退出登录？', { title:'退出登录', confirmText:'退出', cancelText:'取消' }).then(function(ok){ if (ok) logout(); });
   });
 
   window.IslandAuth = { logout: logout, session: readSession };

@@ -313,3 +313,200 @@ function enhanceSettingsSelects(){
     var el = document.getElementById(it[0]); if (el) enhanceIslandSelect(el, it[1], true);
   });
 }
+
+
+/* ---------- 岛屿专属日期弹窗（替代系统 <input type="date"> 选择器）----------
+ * islandDatePicker({title, value:'YYYY-MM-DD', min, max}).then(function(v){ v === null 表示取消 })
+ * enhanceIslandDate(inputEl, title)：隐藏原生日期输入框，换成点击后弹出岛屿日期弹窗的按钮；
+ * 原 input 仍留在 DOM 里，value / min / max / change 事件照常工作，代码里直接 input.value = 'x' 也会同步显示。 */
+var islandDateEl = null, islandDateResolve = null, islandDateHideTimer = 0, islandDateState = null;
+var ISLAND_DATE_WEEK = ['日','一','二','三','四','五','六'];
+
+function islandDatePad(n){ return (n < 10 ? '0' : '') + n; }
+function islandDateKey(y, m, d){ return y + '-' + islandDatePad(m + 1) + '-' + islandDatePad(d); }
+function islandDateParse(s){
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+  if (!m) return null;
+  return { y:Number(m[1]), m:Number(m[2]) - 1, d:Number(m[3]) };
+}
+function islandDateLabel(s){
+  var p = islandDateParse(s);
+  return p ? p.y + '年' + (p.m + 1) + '月' + p.d + '日' : '';
+}
+
+function ensureIslandDate(){
+  if (islandDateEl) return islandDateEl;
+  var el = document.createElement('div');
+  el.className = 'island-dialog island-date-dialog';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML =
+    '<div class="island-dialog-backdrop"></div>' +
+    '<section class="island-dialog-panel island-date-panel" role="dialog" aria-modal="true">' +
+      '<h3 class="island-dialog-title"></h3>' +
+      '<div class="island-date-nav">' +
+        '<button type="button" class="island-date-arrow" data-date-nav="-1" aria-label="上一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 6.5-5.5 5.5 5.5 5.5"/></svg></button>' +
+        '<button type="button" class="island-date-head"></button>' +
+        '<button type="button" class="island-date-arrow" data-date-nav="1" aria-label="下一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.5 6.5 5.5 5.5-5.5 5.5"/></svg></button>' +
+      '</div>' +
+      '<div class="island-date-body"></div>' +
+      '<div class="island-dialog-actions">' +
+        '<button type="button" class="island-dialog-btn is-cancel">取消</button>' +
+        '<button type="button" class="island-dialog-btn is-confirm">确定</button>' +
+      '</div>' +
+    '</section>';
+  document.body.appendChild(el);
+  el.querySelector('.island-dialog-backdrop').addEventListener('click', function(){ closeIslandDate(null); });
+  el.querySelector('.is-cancel').addEventListener('click', function(){ closeIslandDate(null); });
+  el.querySelector('.is-confirm').addEventListener('click', function(){
+    if (islandDateState && islandDateState.selected) closeIslandDate(islandDateState.selected);
+  });
+  el.querySelector('.island-date-head').addEventListener('click', function(){
+    if (!islandDateState) return;
+    islandDateState.mode = islandDateState.mode === 'months' ? 'days' : 'months';
+    renderIslandDate();
+  });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-date-nav]'), function(btn){
+    btn.addEventListener('click', function(){
+      var st = islandDateState; if (!st) return;
+      var step = Number(btn.getAttribute('data-date-nav'));
+      if (st.mode === 'months') st.y += step;
+      else {
+        st.m += step;
+        if (st.m < 0) { st.m = 11; st.y -= 1; }
+        if (st.m > 11) { st.m = 0; st.y += 1; }
+      }
+      renderIslandDate();
+    });
+  });
+  el.querySelector('.island-date-body').addEventListener('click', function(e){
+    var st = islandDateState; if (!st) return;
+    var dayBtn = e.target.closest('[data-date]');
+    if (dayBtn && !dayBtn.disabled) {
+      st.selected = dayBtn.getAttribute('data-date');
+      renderIslandDate();
+      return;
+    }
+    var monBtn = e.target.closest('[data-month]');
+    if (monBtn && !monBtn.disabled) {
+      st.m = Number(monBtn.getAttribute('data-month'));
+      st.mode = 'days';
+      renderIslandDate();
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if (islandDateResolve && (e.key === 'Escape' || e.key === 'Esc')) { e.preventDefault(); closeIslandDate(null); }
+  });
+  islandDateEl = el;
+  return el;
+}
+
+function renderIslandDate(){
+  var st = islandDateState, el = islandDateEl;
+  if (!st || !el) return;
+  var head = el.querySelector('.island-date-head');
+  var body = el.querySelector('.island-date-body');
+  var today = new Date();
+  var todayKey = islandDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  var html = '';
+  if (st.mode === 'months') {
+    head.textContent = st.y + '年';
+    for (var i = 0; i < 12; i++) {
+      var first = islandDateKey(st.y, i, 1), last = islandDateKey(st.y, i, 31);
+      var off = (st.min && last < st.min) || (st.max && first > st.max);
+      var on = st.cur && st.cur.y === st.y && st.cur.m === i;
+      html += '<button type="button" class="island-date-month' + (on ? ' is-on' : '') + '" data-month="' + i + '"' + (off ? ' disabled' : '') + '>' + (i + 1) + '月</button>';
+    }
+    body.className = 'island-date-body is-months';
+    body.innerHTML = html;
+  } else {
+    head.textContent = st.y + '年' + (st.m + 1) + '月';
+    var weekHtml = '';
+    for (var w = 0; w < 7; w++) weekHtml += '<span>' + ISLAND_DATE_WEEK[w] + '</span>';
+    var firstDay = new Date(st.y, st.m, 1).getDay();
+    var total = new Date(st.y, st.m + 1, 0).getDate();
+    var cells = '';
+    for (var b = 0; b < firstDay; b++) cells += '<span class="island-date-blank"></span>';
+    for (var d = 1; d <= total; d++) {
+      var key = islandDateKey(st.y, st.m, d);
+      var dis = (st.min && key < st.min) || (st.max && key > st.max);
+      var cls = 'island-date-day' + (key === st.selected ? ' is-on' : '') + (key === todayKey ? ' is-today' : '');
+      cells += '<button type="button" class="' + cls + '" data-date="' + key + '"' + (dis ? ' disabled' : '') + '>' + d + '</button>';
+    }
+    body.className = 'island-date-body';
+    body.innerHTML = '<div class="island-date-week">' + weekHtml + '</div><div class="island-date-grid">' + cells + '</div>';
+  }
+  el.querySelector('.is-confirm').disabled = !st.selected;
+}
+
+function islandDatePicker(opts){
+  opts = opts || {};
+  if (islandDateResolve) closeIslandDate(null);
+  return new Promise(function(resolve){
+    var el = ensureIslandDate();
+    clearTimeout(islandDateHideTimer);
+    var title = el.querySelector('.island-dialog-title');
+    title.textContent = opts.title || ''; title.hidden = !opts.title;
+    var cur = islandDateParse(opts.value);
+    var base = cur || (function(){ var t = new Date(); return { y:t.getFullYear(), m:t.getMonth(), d:t.getDate() }; })();
+    var min = islandDateParse(opts.min) ? opts.min : '';
+    var max = islandDateParse(opts.max) ? opts.max : '';
+    if (!cur && max) {
+      var mp = islandDateParse(max), nowKey = islandDateKey(base.y, base.m, base.d);
+      if (nowKey > max) base = mp;
+    }
+    islandDateState = { y:base.y, m:base.m, mode:'days', selected: cur ? opts.value : '', cur:cur, min:min, max:max };
+    islandDateResolve = resolve;
+    renderIslandDate();
+    el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
+    void el.offsetWidth; el.classList.add('is-show');
+  });
+}
+
+function closeIslandDate(value){
+  var resolve = islandDateResolve;
+  if (!resolve || !islandDateEl) return;
+  islandDateResolve = null;
+  islandDateState = null;
+  var el = islandDateEl;
+  el.classList.remove('is-show'); el.setAttribute('aria-hidden', 'true');
+  try { resolve(value); } catch(e) {}
+  clearTimeout(islandDateHideTimer);
+  islandDateHideTimer = setTimeout(function(){ if (!islandDateResolve) el.classList.remove('is-open'); }, 190);
+}
+
+function enhanceIslandDate(input, title){
+  if (!input || input.__islandDate) return;
+  input.__islandDate = true;
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'island-date-trigger';
+  btn.innerHTML = '<span class="island-date-trigger-text"></span><svg class="island-date-trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+  var text = btn.querySelector('.island-date-trigger-text');
+  function sync(){
+    var label = islandDateLabel(input.value);
+    text.textContent = label || '选择日期';
+    btn.classList.toggle('is-empty', !label);
+  }
+  input.style.display = 'none';
+  input.parentNode.insertBefore(btn, input.nextSibling);
+  try {
+    var desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(input, 'value', {
+      configurable: true,
+      get: function(){ return desc.get.call(input); },
+      set: function(v){ desc.set.call(input, v); sync(); }
+    });
+  } catch(e) {}
+  input.addEventListener('change', sync);
+  btn.addEventListener('click', function(e){
+    e.preventDefault(); e.stopPropagation();
+    var label = input.closest('label');
+    var heading = title || input.getAttribute('aria-label') || (label && label.querySelector('span') ? label.querySelector('span').textContent : '选择日期');
+    islandDatePicker({ title:heading, value:input.value, min:input.min, max:input.max }).then(function(v){
+      if (v === null || v === input.value) return;
+      input.value = v;
+      input.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+  });
+  sync();
+}

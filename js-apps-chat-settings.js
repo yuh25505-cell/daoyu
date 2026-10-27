@@ -501,7 +501,7 @@ function bindPMChatSettingsEvents(){
   if (searchInput) searchInput.addEventListener('input', renderChatRecordSearchResults);
   var searchClear = $('pmChatRecordSearchClear');
   if (searchClear && searchInput) searchClear.addEventListener('click', function(){ searchInput.value = ''; renderChatRecordSearchResults(); searchInput.focus(); });
-  if (dateInput) dateInput.addEventListener('change', renderChatRecordSearchResults);
+  if (dateInput) { enhanceIslandDate(dateInput, '选择日期'); dateInput.addEventListener('change', renderChatRecordSearchResults); }
   var categories = $('pmChatRecordCategories');
   if (categories) categories.addEventListener('click', function(e){
     var btn = e.target.closest('[data-record-category]');
@@ -632,6 +632,8 @@ function pmPromptDateRange(){
     startEl.value = pmDateInputValue(Date.now() - 6 * 86400000);
     endEl.value = today;
     endEl.max = today;
+    enhanceIslandDate(startEl, '开始日期');
+    enhanceIslandDate(endEl, '结束日期');
     function close(result){
       el.classList.remove('is-show');
       setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 200);

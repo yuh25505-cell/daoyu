@@ -179,3 +179,36 @@ html[data-theme="dark"] .island-dialog-btn.is-cancel{ background:#303034; color:
 .pm-memory-preset.island-select-trigger{ width:132px; }
 .phone-recent-char-filter.island-select-trigger{ flex:1 1 auto; }
 .worldbook-mount-target .island-select-trigger{ height:40px; padding:0 11px; border-radius:12px; border:1px solid var(--card-bd); background:var(--bg); font-size:calc(14px * var(--island-font-size-scale)); }
+
+
+/* ---------- 岛屿专属日期弹窗 ---------- */
+.island-date-dialog{ z-index:3200; }
+.island-date-panel{ width:min(340px,100%); text-align:left; padding:20px 14px 14px; }
+.island-date-panel .island-dialog-title{ text-align:center; margin-bottom:12px; }
+.island-date-nav{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px; }
+.island-date-arrow{ flex:none; width:38px; height:38px; display:grid; place-items:center; border:0; border-radius:12px; background:transparent; color:var(--fg); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.island-date-arrow svg{ width:18px; height:18px; }
+.island-date-arrow:active{ background:var(--bubble-bg); }
+.island-date-head{ flex:1; min-width:0; height:38px; border:0; border-radius:12px; background:transparent; color:var(--fg); font:inherit; font-size:calc(16px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.island-date-head:active{ background:var(--bubble-bg); }
+.island-date-week{ display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; text-align:center; }
+.island-date-week span{ padding:6px 0; font-size:calc(12px * var(--island-font-size-scale)); color:var(--fg-faint); }
+.island-date-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px 0; justify-items:center; }
+.island-date-blank{ height:40px; }
+.island-date-day{ width:40px; height:40px; display:grid; place-items:center; padding:0; border:1px solid transparent; border-radius:50%; background:transparent; color:var(--fg); font:inherit; font-size:calc(15px * var(--island-font-size-scale)); cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+.island-date-day:active{ background:var(--bubble-bg); }
+.island-date-day.is-today{ border-color:var(--fg-faint); }
+.island-date-day.is-on{ background:var(--fg); color:var(--bg); border-color:var(--fg); font-weight:var(--island-fw-600); }
+.island-date-day:disabled,.island-date-month:disabled{ opacity:.28; cursor:default; }
+.island-date-body.is-months{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:4px 0 2px; }
+.island-date-month{ height:46px; border:1px solid var(--card-bd); border-radius:14px; background:transparent; color:var(--fg); font:inherit; font-size:calc(15px * var(--island-font-size-scale)); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.island-date-month:active{ background:var(--bubble-bg); }
+.island-date-month.is-on{ background:var(--fg); color:var(--bg); border-color:var(--fg); font-weight:var(--island-fw-600); }
+.island-date-panel .island-dialog-actions{ margin-top:14px; }
+.island-date-panel .island-dialog-btn:disabled{ opacity:.4; }
+.island-date-trigger{ display:inline-flex; align-items:center; justify-content:flex-end; gap:8px; max-width:100%; padding:0; border:0; background:transparent; color:var(--fg); font:inherit; text-align:right; cursor:pointer; outline:none; -webkit-tap-highlight-color:transparent; }
+.island-date-trigger.is-empty .island-date-trigger-text{ color:var(--fg-faint); }
+.island-date-trigger-text{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.island-date-trigger-icon{ width:16px; height:16px; flex:none; opacity:.55; }
+.pm-ie-field .island-date-trigger{ flex:1; min-width:0; font-size:calc(14px * var(--island-font-size-scale)); }
+.pm-chat-record-date-row .island-date-trigger{ padding:6px 10px; border:1px solid var(--card-bd); border-radius:10px; background:var(--bubble-bg); font-size:calc(12px * var(--island-font-size-scale)); }
