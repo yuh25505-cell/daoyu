@@ -2,7 +2,7 @@
 'use strict';
 (function(){
   var AUTH_CONFIG = {
-    API_BASE: 'https://daoyu-auth-api.yuh25505.workers.dev',
+    API_BASE: 'https://ayubuyukuai.online',
     PATHS: { login: '/api/login', register: '/api/register', me: '/api/me', logout: '/api/logout' },
     TIMEOUT: 15000
   };
