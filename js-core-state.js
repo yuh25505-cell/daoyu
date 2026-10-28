@@ -79,7 +79,7 @@ var islandStateHydrated = false;
 
 var State = {
   settings: {}, chats: [], contacts: [], moments: [],
-  messages: {}, phoneCalls: [], personas: [], userPersonas: [], worldbooks: [],
+  messages: {}, phoneCalls: [], personas: [], userPersonas: [], worldbooks: [], friendRequests: [],
   stickers: { activeGroupId: '', groups: [] },
   memory: {}
 };
@@ -559,6 +559,8 @@ function scheduleSettingsSave(delay){
 
 function savePersonas(){ return IslandDB.set('island.personas', State.personas); }
 
+function saveFriendRequests(){ return IslandDB.set('island.friendRequests', State.friendRequests || []); }
+
 function saveUserPersonas(){ return IslandDB.set('island.userPersonas', State.userPersonas); }
 
 function saveWorldbooks(){ return IslandDB.set('island.worldbooks', State.worldbooks || []); }
@@ -664,7 +666,7 @@ function loadState(){
   var baseKeys = [
     'island.settings', 'island.chats', 'island.contacts', 'island.moments',
     'island.phoneCalls', 'island.memory', 'island.personas', 'island.worldbooks',
-    'island.stickers', 'island.userPersonas'
+    'island.stickers', 'island.userPersonas', 'island.friendRequests'
   ];
   return Promise.all(baseKeys.map(function(key){
     return IslandDB.get(key).then(function(value){ return { key:key, value:value }; });
@@ -711,6 +713,9 @@ function loadState(){
 
     State.personas = Array.isArray(data['island.personas']) ? data['island.personas'] : [];
     if (!Array.isArray(data['island.personas'])) missing['island.personas'] = true;
+
+    State.friendRequests = Array.isArray(data['island.friendRequests']) ? data['island.friendRequests'] : [];
+    if (!Array.isArray(data['island.friendRequests'])) missing['island.friendRequests'] = true;
     // 自动展开翻译的旧版本默认值曾为 true。新版本默认关闭；保留已经明确手动操作过的角色设置。
     if (State.settings && State.settings._autoExpandTranslationDefaultV2 !== true) {
       var autoExpandMigrated = false;
@@ -818,6 +823,7 @@ function loadState(){
       if (missing['island.worldbooks']) writes.push(saveWorldbooks());
       if (missing['island.stickers']) writes.push(saveStickers());
       if (missing['island.userPersonas']) writes.push(saveUserPersonas());
+      if (missing['island.friendRequests']) writes.push(saveFriendRequests());
       return Promise.all(writes).then(function(){
         return IslandDB.flush().then(function(){
           islandStateHydrated = true;

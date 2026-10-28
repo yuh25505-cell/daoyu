@@ -174,7 +174,7 @@ function buildBackupPayloadBase(){
     kind:'island-backup', version:1, app:'岛屿', exportedAt:Date.now(),
     data:{
       settings:cloneSettingsForBackup(State.settings), chats:cloneChatsForBackup(CHATS||[]),
-      contacts:clone(CONTACTS||[]), moments:clone(MOMENTS||[]), messages:{},
+      contacts:clone(CONTACTS||[]), friendRequests:clone(State.friendRequests||[]), moments:clone(MOMENTS||[]), messages:{},
       personas:clone(State.personas||[]), userPersonas:clone(State.userPersonas||[]),
       worldbooks:clone(State.worldbooks||[]), stickers:clone(State.stickers||{activeGroupId:'',groups:[]}),
       memory:clone(State.memory||{})
@@ -223,7 +223,7 @@ function buildPartialBackupPayload(part, streaming){
     case 'chats':
       data = { chats: cloneChatsForBackup(CHATS || []), messages: streaming ? {} : clone(MESSAGES || {}) };
       break;
-    case 'contacts': data = { contacts: clone(CONTACTS || []) }; break;
+    case 'contacts': data = { contacts: clone(CONTACTS || []), friendRequests: clone(State.friendRequests || []) }; break;
     case 'moments': data = { moments: clone(MOMENTS || []) }; break;
     case 'phoneCalls': data = { phoneCalls: clone(State.phoneCalls || []) }; break;
     case 'memory': data = { memory: clone(State.memory || {}) }; break;
@@ -425,6 +425,7 @@ function normalizeImportedBackup(raw){
     settings: data.settings && typeof data.settings === 'object' ? restoreSettingsFromBackup(data.settings) : {},
     chats: Array.isArray(data.chats) ? restoreChatsFromBackup(data.chats) : [],
     contacts: Array.isArray(data.contacts) ? data.contacts : [],
+    friendRequests: Array.isArray(data.friendRequests) ? data.friendRequests : [],
     moments: Array.isArray(data.moments) ? data.moments : [],
     phoneCalls: Array.isArray(data.phoneCalls) ? data.phoneCalls : [],
     messages: data.messages && typeof data.messages === 'object' ? data.messages : {},
@@ -442,6 +443,7 @@ function buildBackupRows(data){
     { key:'island.settings', value:data.settings },
     { key:'island.chats', value:data.chats },
     { key:'island.contacts', value:data.contacts },
+    { key:'island.friendRequests', value:data.friendRequests || [] },
     { key:'island.moments', value:data.moments },
     { key:'island.phoneCalls', value:data.phoneCalls || [] },
     { key:'island.memory', value:data.memory },
@@ -476,7 +478,9 @@ function normalizePartialBackup(raw, requestedPart){
       out.chats = restoreChatsFromBackup(source.chats); out.messages = source.messages; break;
     case 'contacts':
       if (!Array.isArray(source.contacts)) throw new Error('备份中没有有效的通讯录');
-      out.contacts = source.contacts; break;
+      out.contacts = source.contacts;
+      if (Array.isArray(source.friendRequests)) out.friendRequests = source.friendRequests;
+      break;
     case 'moments':
       if (!Array.isArray(source.moments)) throw new Error('备份中没有有效的动态数据');
       out.moments = source.moments; break;
@@ -510,7 +514,10 @@ function applyPartialBackup(part, data){
       return IslandDB.set('island.settings', data.settings);
     case 'chats':
       return Promise.all([IslandDB.set('island.chats',data.chats),IslandDB.chatReplaceAll(data.messages||{})]).then(function(results){return results.every(function(value){return value!==false;});});
-    case 'contacts': return IslandDB.set('island.contacts', data.contacts);
+    case 'contacts': return IslandDB.set('island.contacts', data.contacts).then(function(ok){
+      if (ok === false || !Array.isArray(data.friendRequests)) return ok;
+      return IslandDB.set('island.friendRequests', data.friendRequests);
+    });
     case 'moments': return IslandDB.set('island.moments', data.moments);
     case 'phoneCalls': return IslandDB.set('island.phoneCalls', data.phoneCalls);
     case 'memory': return IslandDB.set('island.memory', data.memory);

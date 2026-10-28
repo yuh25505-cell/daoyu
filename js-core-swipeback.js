@@ -35,6 +35,7 @@
     { sel:'#worldbookEntryEditorSheet', close:function(){ return call('closeWorldbookEntryEditor'); } },
     { sel:'#worldbookEditorSheet',  close:function(){ return call('closeWorldbookEditor'); } },
     { sel:'#userSheet',             close:function(){ return call('closeUserSheet'); } },
+    { sel:'#friendAddSheet',        close:function(){ return call('closeFriendAddSheet'); } },
     { sel:'.sheet.is-open',         close:function(){ return call('closeSheet'); }, raw:true },
     { sel:'.island-dialog.is-open', close:function(){ return true; }, raw:true }   /* 确认框：只拦截，不替用户选择 */
   ];
