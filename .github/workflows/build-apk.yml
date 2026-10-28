@@ -10,6 +10,10 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      APK_NAME: 岛屿
 
     steps:
       - name: Checkout source
@@ -44,6 +48,7 @@ jobs:
           rsync -av \
             --exclude='www' \
             --exclude='android' \
+            --exclude='dist' \
             --exclude='node_modules' \
             --exclude='.git' \
             --exclude='.github' \
@@ -117,7 +122,7 @@ jobs:
 
           UNSIGNED_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           ALIGNED_APK="android/app/build/outputs/apk/release/app-release-aligned.apk"
-          FINAL_APK="android/app/build/outputs/apk/release/岛屿.apk"
+          FINAL_APK="android/app/build/outputs/apk/release/${APK_NAME}.apk"
 
           "$BUILD_TOOLS/zipalign" -f -p 4 \
             "$UNSIGNED_APK" \
@@ -141,4 +146,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: 岛屿-APK
-          path: android/app/build/outputs/apk/release/岛屿.apk
+          path: android/app/build/outputs/apk/release/${{ env.APK_NAME }}.apk
+          if-no-files-found: error
+
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-build-${{ github.run_number }}
+          name: 岛屿 APK 构建 ${{ github.run_number }}
+          body: 自动构建的岛屿 APK 安装包。
+          files: android/app/build/outputs/apk/release/${{ env.APK_NAME }}.apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
