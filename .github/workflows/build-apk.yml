@@ -149,12 +149,18 @@ jobs:
           path: android/app/build/outputs/apk/release/${{ env.APK_NAME }}.apk
           if-no-files-found: error
 
+      - name: Prepare release notes
+        id: notes
+        run: |
+          node release-notes.mjs
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Publish APK to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-build-${{ github.run_number }}
-          name: 岛屿 APK 构建 ${{ github.run_number }}
-          body: 自动构建的岛屿 APK 安装包。
+          name: 岛屿 v${{ steps.notes.outputs.version }} APK（构建 ${{ github.run_number }}）
+          body_path: release-notes.txt
           files: android/app/build/outputs/apk/release/${{ env.APK_NAME }}.apk
           make_latest: true
         env:
