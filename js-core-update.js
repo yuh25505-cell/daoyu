@@ -1,4 +1,4 @@
-/* 岛屿 · 检查更新 / 强制刷新（网页版）
+/* 岛屿 · 检查更新 / 强制刷新（网页版）；安卓 APK 的应用内下载安装见 js-core-update-apk.js
  *
  * 数据安全原则：更新只替换"程序文件"（html / js / css / 缓存），
  * 绝不碰 IndexedDB、localStorage 里的聊天、人设、世界书、设置等本地数据。
@@ -7,7 +7,7 @@
  *
  * 流程：检查（读线上 version.json，和本机 ISLAND_BUILD 对比）→ 保存数据 → 逐个重新下载程序文件（绕过浏览器缓存）
  *      → 清掉旧的离线缓存 → 刷新页面 → 刷新后核对构建号，没换成新版就弹窗让用户再强制刷新一次。
- * APK 版是覆盖安装更新：程序文件打在安装包里，这里只显示版本、不做网页刷新。 */
+ * APK 版：程序文件打在安装包里，不做网页刷新；点「检查更新」交给 IslandApkUpdate 下载新安装包并安装。 */
 'use strict';
 
 var IslandUpdate = (function(){
@@ -248,6 +248,7 @@ var IslandUpdate = (function(){
   function refreshDataInfo(){
     var el = document.getElementById('updateCardData');
     if (!el) return;
+    if (isNativeApp()) { el.hidden = true; return; }
     var parts = ['更新只换程序文件，不会清除聊天、人设、设置等本地数据'];
     Promise.all([IslandDB.requestPersistent(), IslandDB.snapshotInfo()]).then(function(r){
       var persisted = r[0], snaps = r[1];
@@ -265,9 +266,8 @@ var IslandUpdate = (function(){
     if (ver) ver.textContent = '当前版本 ' + fmtBuild() + (localBuild() ? '（构建 ' + localBuild().split('-').pop() + '）' : '');
     var card = document.getElementById('updateCard');
     if (card) card.dataset.native = native ? '1' : '0';
-    var nativeNote = document.getElementById('updateCardNative');
-    if (nativeNote) nativeNote.hidden = !native;
-    ['updateCardCheck', 'updateCardForce'].forEach(function(id){ var b = document.getElementById(id); if (b) b.hidden = native; });
+    var forceBtn = document.getElementById('updateCardForce');
+    if (forceBtn) forceBtn.hidden = native;
     setRowStatus(fmtBuild(), false);
     refreshDataInfo();
   }
@@ -281,9 +281,7 @@ var IslandUpdate = (function(){
   function runCheck(opts){
     opts = opts || {};
     if (isNativeApp()) {
-      return islandConfirm('安卓 APK 是覆盖安装更新：下载新版安装包直接安装即可，聊天、人设、设置等本地数据会保留，不需要卸载。\n\n请保持使用同一个签名的安装包（同一个仓库打出来的 APK）。', {
-        title:'APK 更新说明', confirmText:'知道了', cancelText:'关闭'
-      });
+      return window.IslandApkUpdate ? IslandApkUpdate.run() : Promise.resolve();
     }
     if (_busy) return Promise.resolve();
     setBusyUi(true, '正在检查更新…');
@@ -357,8 +355,16 @@ var IslandUpdate = (function(){
         if (last && Date.now() - last.at < 30 * 60 * 1000 && last.build === localBuild()) return;
         check().then(function(res){ if (res.state === 'available') announceAvailable(res); });
       }, 6000);
+    } else {
+      setTimeout(function(){
+        if (!window.IslandApkUpdate) return;
+        IslandApkUpdate.cleanup();
+        IslandApkUpdate.silentCheck();
+      }, 6000);
     }
   }
 
-  return { check:check, apply:apply, bind:bind, isNativeApp:isNativeApp, runCheck:runCheck, runForce:runForce };
+  var ui = { setRowStatus:setRowStatus, setCard:setCard, setBusyUi:setBusyUi, fmtBuild:fmtBuild, lsGet:lsGet, lsSet:lsSet, withTimeout:withTimeout };
+
+  return { check:check, apply:apply, bind:bind, isNativeApp:isNativeApp, runCheck:runCheck, runForce:runForce, ui:ui };
 })();

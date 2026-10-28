@@ -35,6 +35,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -44,9 +45,11 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.Base64;
 
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -64,7 +67,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -451,6 +458,195 @@ public class IslandNativePlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("state", getNotificationState());
         call.resolve(result);
+    }
+
+    /* ===== 应用内更新：下载新版安装包，交给系统安装页面 ===== */
+    private volatile String apkState = "idle";
+    private volatile long apkDone = 0;
+    private volatile long apkTotal = 0;
+    private volatile String apkError = "";
+    private volatile String apkPath = "";
+    private volatile boolean apkCancel = false;
+
+    private boolean canInstallPackages() {
+        if (Build.VERSION.SDK_INT < 26) return true;
+        return getContext().getPackageManager().canRequestPackageInstalls();
+    }
+
+    private File apkDir() {
+        File dir = new File(getContext().getCacheDir(), "apk-update");
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    @PluginMethod
+    public void getAppInfo(PluginCall call) {
+        JSObject res = new JSObject();
+        try {
+            PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            long code = Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : (long) info.versionCode;
+            res.put("versionCode", code);
+            res.put("versionName", info.versionName == null ? "" : info.versionName);
+        } catch (Exception ignored) {
+            res.put("versionCode", 0);
+            res.put("versionName", "");
+        }
+        res.put("canInstall", canInstallPackages());
+        call.resolve(res);
+    }
+
+    @PluginMethod
+    public void openInstallPermissionSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("打不开授权页面：" + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void startApkDownload(PluginCall call) {
+        final String url = call.getString("url", "");
+        if (url == null || !url.startsWith("https://")) {
+            call.reject("下载地址不对");
+            return;
+        }
+        if ("downloading".equals(apkState)) {
+            call.resolve();
+            return;
+        }
+        apkCancel = false;
+        apkDone = 0;
+        apkTotal = 0;
+        apkError = "";
+        apkPath = "";
+        apkState = "downloading";
+        new Thread(new Runnable() {
+            @Override public void run() { downloadApk(url); }
+        }, "island-apk-download").start();
+        call.resolve();
+    }
+
+    private void downloadApk(String firstUrl) {
+        HttpURLConnection conn = null;
+        InputStream in = null;
+        FileOutputStream out = null;
+        File dir = apkDir();
+        File[] old = dir.listFiles();
+        if (old != null) for (File f : old) f.delete();
+        File part = new File(dir, "island-update.apk.part");
+        File dest = new File(dir, "island-update.apk");
+        try {
+            String current = firstUrl;
+            int hops = 0;
+            while (true) {
+                URL u = new URL(current);
+                conn = (HttpURLConnection) u.openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(20000);
+                conn.setInstanceFollowRedirects(false);
+                conn.setRequestProperty("User-Agent", "IslandApp");
+                int code = conn.getResponseCode();
+                if (code >= 300 && code < 400) {
+                    String loc = conn.getHeaderField("Location");
+                    conn.disconnect();
+                    if (loc == null || ++hops > 6) throw new IOException("下载地址跳转异常");
+                    current = new URL(u, loc).toString();
+                    if (!current.startsWith("https://")) throw new IOException("下载地址不安全");
+                    continue;
+                }
+                if (code != 200) throw new IOException("服务器返回了 " + code);
+                break;
+            }
+            apkTotal = conn.getContentLengthLong();
+            in = conn.getInputStream();
+            out = new FileOutputStream(part);
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                if (apkCancel) throw new IOException("cancelled");
+                out.write(buf, 0, n);
+                apkDone += n;
+            }
+            out.flush();
+            out.getFD().sync();
+            out.close();
+            out = null;
+            if (apkTotal > 0 && part.length() != apkTotal) throw new IOException("文件没有下载完整，请重试");
+            PackageInfo pkg = getContext().getPackageManager().getPackageArchiveInfo(part.getAbsolutePath(), 0);
+            if (pkg == null) throw new IOException("下载下来的文件不是有效的安装包");
+            if (!getContext().getPackageName().equals(pkg.packageName)) throw new IOException("下载下来的安装包不是岛屿的");
+            if (!part.renameTo(dest)) throw new IOException("保存安装包失败");
+            apkPath = dest.getAbsolutePath();
+            apkState = "done";
+        } catch (Exception e) {
+            part.delete();
+            if (apkCancel) {
+                apkState = "cancelled";
+            } else {
+                String m = e.getMessage();
+                apkError = (m == null || m.isEmpty()) ? "网络不太稳" : m;
+                apkState = "error";
+            }
+        } finally {
+            try { if (out != null) out.close(); } catch (Exception ignored) {}
+            try { if (in != null) in.close(); } catch (Exception ignored) {}
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    @PluginMethod
+    public void getApkProgress(PluginCall call) {
+        JSObject res = new JSObject();
+        res.put("state", apkState);
+        res.put("done", apkDone);
+        res.put("total", apkTotal);
+        res.put("error", apkError);
+        call.resolve(res);
+    }
+
+    @PluginMethod
+    public void cancelApkDownload(PluginCall call) {
+        apkCancel = true;
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void cleanApkCache(PluginCall call) {
+        if (!"downloading".equals(apkState)) {
+            File[] files = apkDir().listFiles();
+            if (files != null) for (File f : files) f.delete();
+            apkState = "idle";
+            apkPath = "";
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void installApk(PluginCall call) {
+        if (!canInstallPackages()) {
+            call.reject("NEED_PERMISSION");
+            return;
+        }
+        File file = new File(apkPath == null ? "" : apkPath);
+        if (!"done".equals(apkState) || !file.exists()) {
+            call.reject("安装包不见了，请重新下载");
+            return;
+        }
+        try {
+            Context ctx = getContext();
+            Uri uri = FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".islandupdate", file);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/vnd.android.package-archive");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            ctx.startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("打开安装页面失败：" + e.getMessage());
+        }
     }
 
     @PluginMethod
@@ -1033,6 +1229,18 @@ public class CallActionReceiver extends BroadcastReceiver {
 }
 `;
 
+const updateProviderJava = `package ${appId};
+
+import androidx.core.content.FileProvider;
+
+/** 应用内更新专用：把下载好的安装包安全地交给系统安装器。单独一个子类，避免和 Capacitor 自带的 FileProvider 重名冲突。 */
+public class IslandUpdateFileProvider extends FileProvider {}
+`;
+fs.writeFileSync(path.join(mainPackageDir, 'IslandUpdateFileProvider.java'), updateProviderJava, 'utf8');
+const xmlResDir = path.join(appDir, 'src', 'main', 'res', 'xml');
+fs.mkdirSync(xmlResDir, { recursive: true });
+fs.writeFileSync(path.join(xmlResDir, 'island_update_paths.xml'),
+  '<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <cache-path name="island_apk_update" path="apk-update/" />\n</paths>\n', 'utf8');
 fs.writeFileSync(path.join(mainPackageDir, 'CallActionReceiver.java'), callReceiverJava, 'utf8');
 fs.writeFileSync(path.join(mainPackageDir, 'IslandNativePlugin.java'), pluginJava, 'utf8');
 fs.writeFileSync(path.join(mainPackageDir, 'MainActivity.java'), mainActivityJava, 'utf8');
@@ -1079,6 +1287,19 @@ if (!manifest.includes('.CallActionReceiver')) {
     '</application>',
     '    <receiver android:name=".CallActionReceiver" android:exported="false" />\n    </application>'
   );
+}
+// 应用内更新：允许申请「安装未知应用」，并登记交安装包给系统用的 FileProvider
+if (!manifest.includes('android.permission.REQUEST_INSTALL_PACKAGES')) {
+  manifest = manifest.replace(
+    /(<manifest\b[^>]*>)/,
+    '$1\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
+  );
+}
+if (!manifest.includes('.IslandUpdateFileProvider')) {
+  manifest = manifest.replace('</application>', () =>
+    '    <provider android:name=".IslandUpdateFileProvider" android:authorities="${applicationId}.islandupdate" android:exported="false" android:grantUriPermissions="true">\n' +
+    '        <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/island_update_paths" />\n' +
+    '    </provider>\n    </application>');
 }
 fs.writeFileSync(manifestPath, manifest, 'utf8');
 
@@ -1131,6 +1352,12 @@ if (fs.existsSync(wwwIndexPath)) {
     html = html.includes(appTag)
       ? html.replace(appTag, appTag + '\n' + apiBackupTag)
       : html.replace('</body>', apiBackupTag + '\n</body>');
+  }
+
+  // 应用内更新要知道去哪个 GitHub 仓库找新安装包（打包时由 GitHub 自动提供仓库名）
+  if (!html.includes('id="island-apk-repo"')) {
+    const repoName = String(process.env.GITHUB_REPOSITORY || '');
+    html = html.replace('</body>', '<script id="island-apk-repo">window.ISLAND_APK_REPO=' + JSON.stringify(repoName) + ';</script>\n</body>');
   }
 
   if (!html.includes('id="island-cap-shim"') && fs.existsSync(shimSourcePath)) {
