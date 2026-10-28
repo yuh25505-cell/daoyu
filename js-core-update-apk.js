@@ -40,18 +40,38 @@ var IslandApkUpdate = (function(){
     return { run: run, version: v ? v[1] : '', url: asset.browser_download_url, size: asset.size || 0, notes: String(rel.body || '').trim() };
   }
 
-  function fetchLatest(){
-    var r = repo();
-    if (!r) return Promise.reject(new Error('这个安装包里没有记录 GitHub 仓库，请重新打包一次'));
+  /* 首选：读发布里附带的 apk-update.json（走手机原生网络，没有 GitHub 接口的次数限制） */
+  function fetchFromFile(r){
+    var base = 'https://github.com/' + r + '/releases/';
+    return plugin().fetchText({ url: base + 'latest/download/apk-update.json' }).then(function(res){
+      var info = JSON.parse(String(res && res.text || ''));
+      var run = parseInt(info.run, 10) || 0;
+      if (!run || !info.file) throw new Error('更新信息不完整');
+      return {
+        run: run, version: String(info.version || ''), size: 0, notes: String(info.notes || '').trim(),
+        url: base + 'download/apk-build-' + run + '/' + encodeURIComponent(info.file)
+      };
+    });
+  }
+
+  /* 备用：读 GitHub 接口（有访问次数限制，限制时会返回 403） */
+  function fetchFromApi(r){
     var u = ui();
     return u.withTimeout(
       fetch('https://api.github.com/repos/' + r + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }).then(function(resp){
         if (resp.status === 404) throw new Error('GitHub 上还没有找到发布的安装包');
+        if (resp.status === 403 || resp.status === 429) throw new Error('GitHub 暂时限制了访问次数（' + resp.status + '），过一会儿再试');
         if (!resp.ok) throw new Error('GitHub 返回了错误（' + resp.status + '）');
         return resp.json();
       }),
       15000, '连接 GitHub 超时'
     ).then(parseRelease);
+  }
+
+  function fetchLatest(){
+    var r = repo();
+    if (!r) return Promise.reject(new Error('这个安装包里没有记录 GitHub 仓库，请重新打包一次'));
+    return fetchFromFile(r).catch(function(){ return fetchFromApi(r); });
   }
 
   function installedRun(){

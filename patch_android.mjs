@@ -479,6 +479,56 @@ public class IslandNativePlugin extends Plugin {
         return dir;
     }
 
+    /* 读一小段文字（只允许 GitHub 的地址，自动跟随跳转）。用来读更新信息，绕开网页的跨域限制和接口次数限制 */
+    @PluginMethod
+    public void fetchText(PluginCall call) {
+        String first = call.getString("url", "");
+        try {
+            String current = first;
+            int hops = 0;
+            HttpURLConnection conn;
+            while (true) {
+                URL u = new URL(current);
+                String host = u.getHost() == null ? "" : u.getHost().toLowerCase();
+                boolean okHost = "github.com".equals(host) || host.endsWith(".githubusercontent.com");
+                if (!"https".equals(u.getProtocol()) || !okHost) throw new IOException("地址不允许访问");
+                conn = (HttpURLConnection) u.openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                conn.setInstanceFollowRedirects(false);
+                conn.setRequestProperty("User-Agent", "IslandApp");
+                int code = conn.getResponseCode();
+                if (code >= 300 && code < 400) {
+                    String loc = conn.getHeaderField("Location");
+                    conn.disconnect();
+                    if (loc == null || ++hops > 6) throw new IOException("地址跳转异常");
+                    current = new URL(u, loc).toString();
+                    continue;
+                }
+                if (code != 200) {
+                    conn.disconnect();
+                    throw new IOException("服务器返回了 " + code);
+                }
+                break;
+            }
+            InputStream in = conn.getInputStream();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                bos.write(buf, 0, n);
+                if (bos.size() > 262144) break;
+            }
+            in.close();
+            conn.disconnect();
+            JSObject res = new JSObject();
+            res.put("text", new String(bos.toByteArray(), StandardCharsets.UTF_8));
+            call.resolve(res);
+        } catch (Exception e) {
+            call.reject(e.getMessage() == null ? "网络不太稳" : e.getMessage());
+        }
+    }
+
     @PluginMethod
     public void getAppInfo(PluginCall call) {
         JSObject res = new JSObject();

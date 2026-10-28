@@ -14,4 +14,11 @@ const body = String(top.body || '').trim();
 const text = [title, body].filter(Boolean).join('\n\n') || '岛屿的新版安装包。';
 
 fs.writeFileSync('release-notes.txt', text + '\n', 'utf8');
+
+/* 岛屿读取的更新信息（不走 GitHub 接口，没有访问次数限制） */
+let version = '';
+try { version = String(JSON.parse(fs.readFileSync('package.json', 'utf8')).version || ''); } catch (e) {}
+const run = parseInt(process.env.GITHUB_RUN_NUMBER || '', 10) || 0;
+const file = (process.env.APK_NAME || '岛屿') + '.apk';
+fs.writeFileSync('apk-update.json', JSON.stringify({ run, version, file, notes: text }, null, 2) + '\n', 'utf8');
 console.log('Release notes written:', title || '(无标题)');
