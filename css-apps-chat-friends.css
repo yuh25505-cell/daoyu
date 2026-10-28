@@ -70,7 +70,7 @@
 @media (prefers-reduced-motion: reduce){ .fr-typing i{ animation:none; opacity:.7; } }
 
 .fr-reply{ display:flex; align-items:center; gap:8px; }
-.fr-reply-input{ flex:1 1 auto; min-width:0; height:44px; padding:0 16px; border-radius:22px; border:1px solid transparent; background:var(--bg-pure); color:var(--fg); font-size:calc(15px * var(--island-font-size-scale)); outline:none; }
+.fr-reply-input{ flex:1 1 auto; min-width:0; height:44px; padding:0 16px; border-radius:22px; border:1.5px solid var(--fg-faint); background:var(--bg-pure); color:var(--fg); font-size:calc(15px * var(--island-font-size-scale)); outline:none; }
 .fr-reply-input:focus{ border-color:var(--fg-faint); }
 .fr-reply-input::placeholder{ color:var(--fg-faint); }
 .fr-send{ flex:none; width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:var(--fg); color:var(--bg-pure); }
@@ -92,6 +92,14 @@
 .fr-detail-thread{ display:flex; flex-direction:column; gap:8px; padding:4px 0 8px; }
 .fr-detail-foot{ flex:none; display:flex; flex-direction:column; gap:10px; padding:10px 16px calc(var(--island-sab) + 14px); background:var(--bg-pure); }
 .fr-detail-foot:empty{ display:none; }
+
+.fr-pair{ display:flex; gap:10px; }
+.fr-cell{ flex:1 1 0; min-width:0; display:flex; align-items:center; gap:10px; padding:10px 12px 10px 10px; border-radius:20px; background:var(--bg-pure); }
+.fr-cell-text{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.fr-cell-text b{ font-size:calc(13px * var(--island-font-size-scale)); font-weight:var(--island-fw-500); color:var(--fg-soft); }
+.fr-cell-text em{ font-style:normal; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(16px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); }
+.fr-detail-thread .fr-msg.is-char > span{ background:var(--fg); color:var(--bg-pure); }
+.fr-detail-thread .fr-typing i{ background:var(--bg-pure); opacity:.6; }
 
 /* ---------- 添加朋友弹层 ---------- */
 .fr-sheet-mask{ position:absolute; inset:0; z-index:90; display:none; background:rgba(0,0,0,.4); }
