@@ -390,7 +390,7 @@ window.Island = {
   },
   chat: function(name, text){
     if (!isApiReady()) return Promise.reject(new Error('API 未配置'));
-    return prepareMemoryForContext(name).then(function(){ return prepareVisionForContext(name); }).then(function(){
+    return (typeof ensureChatMessageWindowLatest === 'function' ? ensureChatMessageWindowLatest(name) : Promise.resolve()).then(function(){ return prepareMemoryForContext(name); }).then(function(){ return prepareVisionForContext(name); }).then(function(){
       var msgs = buildMessages(name);
       msgs.push({ role: 'user', content: text });
       return callApiOnce(msgs);

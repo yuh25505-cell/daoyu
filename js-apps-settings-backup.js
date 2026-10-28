@@ -117,50 +117,90 @@ function restoreSettingsFromBackup(settings){
 }
 
 
-function buildBackupPayload(){
+var ISLAND_CHAT_STREAM_MARKER = '__ISLAND_CHAT_MESSAGES_STREAM__';
+
+function collectBackupChatNames(){
+  return Promise.all([IslandDB.chatListNames(), Promise.resolve((CHATS || []).map(function(c){return c && c.name;})), Promise.resolve((CONTACTS || []).map(function(c){return c && c.name;}))]).then(function(groups){
+    var set=Object.create(null), names=[];
+    groups.forEach(function(group){(group||[]).forEach(function(name){name=String(name||'').trim();if(name&&!set[name]){set[name]=true;names.push(name);}});});
+    Object.keys(MESSAGES||{}).forEach(function(name){name=String(name||'').trim();if(name&&!set[name]){set[name]=true;names.push(name);}});
+    return names.sort(function(a,b){return a.localeCompare(b);});
+  });
+}
+
+function serializeStoredMessageForBackup(message){
+  var copy=Object.assign({},message||{}); delete copy.__islandSeq;
+  if(typeof pmSerializeValue==='function') return pmSerializeValue(copy);
+  try{return Promise.resolve(clone(copy));}catch(e){return Promise.resolve(copy);}
+}
+
+/* 按会话和 200 条一批读取；不会把全量消息先拼成一个大数组再 stringify。 */
+function createStreamingChatBackupBlob(payload){
+  payload=payload||{}; if(!payload.data||typeof payload.data!=='object')payload.data={};
+  payload.data.messages=ISLAND_CHAT_STREAM_MARKER;
+  var json=JSON.stringify(payload), marker='"messages":"'+ISLAND_CHAT_STREAM_MARKER+'"', markerAt=json.indexOf(marker);
+  if(markerAt<0)return Promise.reject(new Error('无法构建分批聊天备份'));
+  var prefix=json.slice(0,markerAt)+'"messages":{', suffix=json.slice(markerAt+marker.length), parts=[prefix];
+  return IslandDB.chatFlush().then(collectBackupChatNames).then(function(names){
+    var chatIndex=0;
+    function nextChat(){
+      if(chatIndex>=names.length){parts.push('}'+suffix);return Promise.resolve(new Blob(parts,{type:'application/json;charset=utf-8'}));}
+      var name=names[chatIndex++]; if(chatIndex>1)parts.push(','); parts.push(JSON.stringify(name)+':[');
+      var afterSeq=0, wrote=false;
+      function nextPage(first){
+        return IslandDB.chatReadPage(name,{first:!!first,afterSeq:afterSeq,limit:200,withMedia:true}).then(function(page){
+          var rows=Array.isArray(page&&page.rows)?page.rows:[];
+          if(!rows.length){parts.push(']');return nextChat();}
+          return Promise.all(rows.map(serializeStoredMessageForBackup)).then(function(serialized){
+            serialized.forEach(function(message,i){if(wrote)parts.push(',');parts.push(JSON.stringify(message));wrote=true;afterSeq=Number(rows[i]&&rows[i].__islandSeq)||afterSeq;});
+            if(rows.length>=200)return nextPage(false);
+            parts.push(']');return nextChat();
+          });
+        });
+      }
+      return nextPage(true);
+    }
+    return nextChat();
+  });
+}
+
+function downloadBlobFile(blob,filename){
+  var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},4000);
+}
+
+function buildBackupPayloadBase(){
   return {
-    kind: 'island-backup',
-    version: 1,
-    app: '岛屿',
-    exportedAt: Date.now(),
-    data: {
-      settings: cloneSettingsForBackup(State.settings),
-      chats: cloneChatsForBackup(CHATS || []),
-      contacts: clone(CONTACTS || []),
-      moments: clone(MOMENTS || []),
-      messages: clone(MESSAGES || {}),
-      personas: clone(State.personas || []),
-      userPersonas: clone(State.userPersonas || []),
-      worldbooks: clone(State.worldbooks || []),
-      stickers: clone(State.stickers || { activeGroupId:'', groups:[] }),
-      memory: clone(State.memory || {})
+    kind:'island-backup', version:1, app:'岛屿', exportedAt:Date.now(),
+    data:{
+      settings:cloneSettingsForBackup(State.settings), chats:cloneChatsForBackup(CHATS||[]),
+      contacts:clone(CONTACTS||[]), moments:clone(MOMENTS||[]), messages:{},
+      personas:clone(State.personas||[]), userPersonas:clone(State.userPersonas||[]),
+      worldbooks:clone(State.worldbooks||[]), stickers:clone(State.stickers||{activeGroupId:'',groups:[]}),
+      memory:clone(State.memory||{})
     }
   };
 }
 
-
-function downloadBackup(){
-  try {
-    var payload = buildBackupPayload();
-    var json = JSON.stringify(payload, null, 2);
-    var blob = new Blob([json], { type:'application/json;charset=utf-8' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    var d = new Date();
-    var stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
-    a.href = url;
-    a.download = 'island-backup-' + stamp + '.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    islandBackupDone('导出成功', '完整备份已导出。');
-  } catch(e){
-    console.error('[岛屿] 备份导出失败：', e);
-    toast('备份导出失败');
-  }
+/* 同步接口保留给旧的页面内工具（主要读取设置）；正式完整备份走分批异步导出。 */
+function buildBackupPayload(){
+  var payload=buildBackupPayloadBase();
+  payload.data.messages=clone(MESSAGES||{});
+  return payload;
 }
 
+
+function downloadBackup(){
+  var payload=buildBackupPayloadBase(),d=new Date();
+  var stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes());
+  createStreamingChatBackupBlob(payload).then(function(blob){
+    downloadBlobFile(blob,'island-backup-'+stamp+'.json');
+    islandBackupDone('导出成功','完整备份已导出。');
+  }).catch(function(e){
+    console.error('[岛屿] 备份导出失败：',e);
+    toast('备份导出失败：'+((e&&e.message)||'本机存储读取错误'));
+  });
+}
 
 var BACKUP_PART_META = {
   settings: { label:'系统设置', file:'settings' },
@@ -176,12 +216,12 @@ var BACKUP_PART_META = {
 };
 
 
-function buildPartialBackupPayload(part){
+function buildPartialBackupPayload(part, streaming){
   var data;
   switch(part){
     case 'settings': data = { settings: cloneSettingsForBackup(State.settings) }; break;
     case 'chats':
-      data = { chats: cloneChatsForBackup(CHATS || []), messages: clone(MESSAGES || {}) };
+      data = { chats: cloneChatsForBackup(CHATS || []), messages: streaming ? {} : clone(MESSAGES || {}) };
       break;
     case 'contacts': data = { contacts: clone(CONTACTS || []) }; break;
     case 'moments': data = { moments: clone(MOMENTS || []) }; break;
@@ -205,29 +245,13 @@ function buildPartialBackupPayload(part){
 
 
 function downloadPartialBackup(part){
-  var meta = BACKUP_PART_META[part];
-  if (!meta) { toast('未知的备份模块'); return; }
-  try {
-    var payload = buildPartialBackupPayload(part);
-    var json = JSON.stringify(payload, null, 2);
-    var blob = new Blob([json], { type:'application/json;charset=utf-8' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    var d = new Date();
-    var stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
-    a.href = url;
-    a.download = 'island-backup-' + meta.file + '-' + stamp + '.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-    islandBackupDone('导出成功', meta.label + '已导出。');
-  } catch(e){
-    console.error('[岛屿] 分项备份导出失败：', e);
-    toast(meta.label + '导出失败');
-  }
+  var meta=BACKUP_PART_META[part];if(!meta){toast('未知的备份模块');return;}
+  var payload;try{payload=buildPartialBackupPayload(part,part==='chats');}catch(e){toast(meta.label+'导出失败');return;}
+  var d=new Date(),stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes());
+  var job=part==='chats'?createStreamingChatBackupBlob(payload):Promise.resolve(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'}));
+  job.then(function(blob){downloadBlobFile(blob,'island-backup-'+meta.file+'-'+stamp+'.json');islandBackupDone('导出成功',meta.label+'已导出。');})
+    .catch(function(e){console.error('[岛屿] 分项备份导出失败：',e);toast(meta.label+'导出失败：'+((e&&e.message)||'本机存储读取错误'));});
 }
-
 
 function getSelectedBackupParts(){
   return $$('.js-backup-part-select:checked').map(function(input){ return input.value; }).filter(function(part){
@@ -284,42 +308,19 @@ function readFileAsArrayBuffer(file){
 
 
 function downloadSelectedPartialBackups(){
-  var parts = getSelectedBackupParts();
-  if (!parts.length) { toast('请先选择要导出的模块'); return; }
-  if (typeof JSZip === 'undefined') { toast('批量导出组件未加载'); return; }
-  try {
-    var zip = new JSZip();
-    var d = new Date();
-    var stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
-    parts.forEach(function(part){
-      var meta = BACKUP_PART_META[part];
-      var payload = buildPartialBackupPayload(part);
-      zip.file('island-backup-' + meta.file + '-' + stamp + '.json', JSON.stringify(payload, null, 2));
-    });
-    zip.generateAsync({
-      type:'blob',
-      compression:'DEFLATE',
-      compressionOptions:{ level:6 }
-    }).then(function(blob){
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'island-backup-parts-' + stamp + '.zip';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-      islandBackupDone('导出成功', '已导出 ' + parts.length + ' 个模块。');
-    }).catch(function(err){
-      console.error('[岛屿] 批量备份导出失败：', err);
-      toast('批量导出失败');
-    });
-  } catch(e){
-    console.error('[岛屿] 批量备份导出失败：', e);
-    toast('批量导出失败');
-  }
+  var parts=getSelectedBackupParts();if(!parts.length){toast('请先选择要导出的模块');return;}
+  if(typeof JSZip==='undefined'){toast('批量导出组件未加载');return;}
+  var zip=new JSZip(),d=new Date(),stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes());
+  var chain=Promise.resolve();
+  parts.forEach(function(part){chain=chain.then(function(){
+    var meta=BACKUP_PART_META[part],payload=buildPartialBackupPayload(part,part==='chats');
+    var job=part==='chats'?createStreamingChatBackupBlob(payload):Promise.resolve(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'}));
+    return job.then(function(blob){zip.file('island-backup-'+meta.file+'-'+stamp+'.json',blob);});
+  });});
+  chain.then(function(){return zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});}).then(function(blob){
+    downloadBlobFile(blob,'island-backup-parts-'+stamp+'.zip');islandBackupDone('导出成功','已导出 '+parts.length+' 个模块。');
+  }).catch(function(err){console.error('[岛屿] 批量备份导出失败：',err);toast('批量导出失败：'+((err&&err.message)||'本机存储读取错误'));});
 }
-
 
 function parsePartialBatchEntry(raw, sourceLabel){
   if (!raw || typeof raw !== 'object') throw new Error('不是有效的 JSON 备份');
@@ -449,10 +450,7 @@ function buildBackupRows(data){
     { key:'island.worldbooks', value:data.worldbooks },
     { key:'island.stickers', value:data.stickers }
   ];
-  Object.keys(data.messages || {}).forEach(function(name){
-    if (!name) return;
-    rows.push({ key:'island.msg.' + name, value:Array.isArray(data.messages[name]) ? data.messages[name] : [] });
-  });
+  /* 聊天消息走 chat_messages / 原生 SQLite 分表，不再写入 KV 整数组。 */
   return rows;
 }
 
@@ -511,16 +509,7 @@ function applyPartialBackup(part, data){
     case 'settings':
       return IslandDB.set('island.settings', data.settings);
     case 'chats':
-      return inspectIslandStorage().then(function(rows){
-        var jobs = rows.filter(function(row){ return row && typeof row.key === 'string' && row.key.indexOf('island.msg.') === 0; }).map(function(row){ return IslandDB.remove(row.key); });
-        return Promise.all(jobs).then(function(){
-          var writes = [IslandDB.set('island.chats', data.chats)];
-          Object.keys(data.messages || {}).forEach(function(name){
-            if (name) writes.push(IslandDB.set('island.msg.' + name, Array.isArray(data.messages[name]) ? data.messages[name] : []));
-          });
-          return Promise.all(writes).then(function(results){ return results.every(Boolean); });
-        });
-      });
+      return Promise.all([IslandDB.set('island.chats',data.chats),IslandDB.chatReplaceAll(data.messages||{})]).then(function(results){return results.every(function(value){return value!==false;});});
     case 'contacts': return IslandDB.set('island.contacts', data.contacts);
     case 'moments': return IslandDB.set('island.moments', data.moments);
     case 'phoneCalls': return IslandDB.set('island.phoneCalls', data.phoneCalls);
@@ -578,6 +567,9 @@ function importBackupFile(file){
       if (!ok) return;
       IslandDB.replaceAll(buildBackupRows(data)).then(function(saved){
         if (!saved) throw new Error('本机存储写入失败');
+        return IslandDB.chatReplaceAll(data.messages || {});
+      }).then(function(saved){
+        if (saved === false) throw new Error('聊天记录分批写入失败');
         return islandImportDone('完整备份导入成功，软件将自动重启。');
       }).catch(function(err){
         console.error('[岛屿] 备份导入失败：', err);

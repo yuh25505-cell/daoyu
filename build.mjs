@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(root, 'dist');
-const files = ['index.html', 'manifest.webmanifest', 'sw.js'];
+const files = ['index.html', 'manifest.webmanifest', 'sw.js', 'version.json'];
 const dirs = ['assets', 'icons'];
 const changelogPath = path.join(root, 'changelog.json');
 
@@ -81,10 +81,25 @@ if (!Array.isArray(changelog)) throw new Error('changelog.json 必须是数组')
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist, { recursive: true });
 
-for (const file of files) {
-  let content = fs.readFileSync(path.join(root, file), 'utf8');
+const copyFiles = new Set(files);
+const sourceIndex = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const sourceSw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+/* dist 必须是可以独立部署的静态站点：复制 HTML 与 Service Worker 实际引用到的 JS/CSS/图标，不能只复制入口文件。 */
+for (const match of sourceIndex.matchAll(/\b(?:src|href)=[\"']\.\/([^\"'?#]+)[\"']/g)) copyFiles.add(match[1]);
+for (const match of sourceSw.matchAll(/'\.\/([^']+)'/g)) copyFiles.add(match[1]);
+for (const file of copyFiles) {
+  const sourcePath = path.join(root, file);
+  if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) continue;
+  let content = fs.readFileSync(sourcePath, 'utf8');
   if (file === 'index.html') content = injectChangelog(content, changelog);
-  fs.writeFileSync(path.join(dist, file), content);
+  if (file === 'sw.js') {
+    const versionInfo = JSON.parse(fs.readFileSync(path.join(root, 'version.json'), 'utf8'));
+    const buildId = String(versionInfo.build || versionInfo.version || '');
+    content = content.replace(/const CACHE_VERSION = '__CACHE_VERSION__';/, `const CACHE_VERSION = '${buildId}';`);
+  }
+  const destination = path.join(dist, file);
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.writeFileSync(destination, content);
 }
 for (const dir of dirs) {
   if (!fs.existsSync(path.join(root, dir))) continue;

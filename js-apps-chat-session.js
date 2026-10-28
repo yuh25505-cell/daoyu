@@ -17,6 +17,22 @@ function autoResizeInput(){
 }
 
 
+
+function resumePendingIncomingCallForChat(name){
+  if (!name || currentName !== name) return;
+  var pendingCall = null;
+  var pendingList = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  for (var pc = pendingList.length - 1; pc >= 0; pc--) {
+    var pendingMsg = pendingList[pc];
+    if (pendingMsg && pendingMsg.type === 'voice_call_event' && pendingMsg.event === 'incoming' && !pendingMsg.handled) {
+      pendingCall = pendingMsg; break;
+    }
+  }
+  if (pendingCall) setTimeout(function(){
+    if (currentName === name && !voiceCallState.active && !voiceCallState.incoming) showIncomingVoiceCall(pendingCall, name);
+  }, 180);
+}
+
 function openPM(name){
   if (!pmView || !name) return;
   if (typeof closeChatRecordSearch === 'function') closeChatRecordSearch();
@@ -33,9 +49,13 @@ function openPM(name){
   if (replyInFlight[name]) showTypingStatus();
   if (!Array.isArray(MESSAGES[name])) { MESSAGES[name] = []; saveMessages(name); }
   clearVoiceTranscriptStates();
-  /* 只渲染最近一批消息（更早的向上滑动时再补），再立即显示页面并直接定位到底部，避免进入时卡顿 / 闪动。 */
+  /* 没有载入该会话时先读一条加载占位；最近 300 条在后台按需读取，不在启动时全部预载。 */
+  var initialMessageState = CHAT_MESSAGE_STORE_STATE[name];
+  var needsMessageLoad = !initialMessageState || !initialMessageState.loaded;
   pmRenderLimit = PM_INITIAL_RENDER;
-  renderMessages(); closePanel(); setVoiceMode(false);
+  if (needsMessageLoad && pmScroll) pmScroll.innerHTML = '<div class="pm-empty">正在加载最近消息…</div>';
+  else renderMessages();
+  closePanel(); setVoiceMode(false);
   pmView.classList.add('is-open');
   document.documentElement.classList.add('pm-open');
   pmView.setAttribute('aria-hidden', 'false');
@@ -57,21 +77,18 @@ function openPM(name){
     setTimeout(function(){ try { renderChats(); saveChats(); } catch (e) {} }, 280);
   }
 
-  // 如果角色之前在别的时间主动发起了语音来电，则进入对应私聊时继续显示系统式来电通知。
-  var pendingCall = null;
-  var pendingList = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
-  for (var pc = pendingList.length - 1; pc >= 0; pc--) {
-    var pendingMsg = pendingList[pc];
-    if (pendingMsg && pendingMsg.type === 'voice_call_event' && pendingMsg.event === 'incoming' && !pendingMsg.handled) {
-      pendingCall = pendingMsg;
-      break;
-    }
-  }
-  if (pendingCall) {
-    setTimeout(function(){
-      if (currentName === name && !voiceCallState.active && !voiceCallState.incoming) showIncomingVoiceCall(pendingCall, name);
-    }, 180);
-  }
+  /* 未加载时等待最近页就绪，再渲染到最底部并恢复可能尚未处理的语音来电。 */
+  if (needsMessageLoad) {
+    ensureChatMessageWindowLatest(name).then(function(){
+      if (currentName !== name) return;
+      pmRenderLimit = PM_INITIAL_RENDER;
+      renderMessages(false); scrollBottom(false);
+      resumePendingIncomingCallForChat(name);
+    }).catch(function(err){
+      console.warn('[岛屿] 打开会话时读取最近聊天记录失败：', err);
+      if (currentName === name) { renderMessages(false); toast('聊天记录读取失败，请稍后重试'); }
+    });
+  } else resumePendingIncomingCallForChat(name);
 }
 
 function closePM(){
@@ -101,18 +118,26 @@ function closePM(){
   /* 离开聊天页不再取消正在进行的回复：回复会在后台继续生成、写入并弹系统通知。 */
 }
 
-function sendMessage(text){
+function sendMessage(text, latestWindowReady){
   text = String(text || '').trim();
   if (!text || !currentName) return;
-  if (!Array.isArray(MESSAGES[currentName])) MESSAGES[currentName] = [];
+  var targetName = currentName;
+  var windowState = CHAT_MESSAGE_STORE_STATE[targetName];
+  if (!latestWindowReady && (!windowState || !windowState.loaded || ((Number(windowState.globalNewestSeq)||0) > (Number(windowState.newestSeq)||0) || windowState.hasNewer))) {
+    ensureChatMessageWindowLatest(targetName).then(function(){
+      if (currentName === targetName) sendMessage(text, true);
+    }).catch(function(err){ console.warn('[岛屿] 刷新最新聊天窗口失败：', err); toast('最新聊天记录读取失败，请重试发送'); });
+    return;
+  }
+  if (!Array.isArray(MESSAGES[targetName])) MESSAGES[targetName] = [];
   var outgoing = { from:'me', text: text, createdAt:Date.now() };
   if (messageQuoteDraft) outgoing.replyTo = Object.assign({}, messageQuoteDraft);
-  MESSAGES[currentName].push(outgoing);
+  MESSAGES[targetName].push(outgoing);
   clearMessageQuote();
-  saveMessages(currentName);
-  renderMessages(true); scrollBottom(true);
+  saveMessages(targetName);
+  if (currentName === targetName) { renderMessages(true); scrollBottom(true); }
   for (var i = 0; i < CHATS.length; i++) {
-    if (CHATS[i].name === currentName) { CHATS[i].preview = text; CHATS[i].time = '刚刚'; break; }
+    if (CHATS[i].name === targetName) { CHATS[i].preview = text; CHATS[i].time = '刚刚'; break; }
   }
   renderChats(); saveChats();
 }
@@ -151,7 +176,9 @@ function scheduleReply(delay){
 
     function startAiReply(){
       if (finished) return;
-      prepareMemoryForContext(nameAtRequest).then(function(){
+      ensureChatMessageWindowLatest(nameAtRequest).then(function(){
+        return prepareMemoryForContext(nameAtRequest);
+      }).then(function(){
         /* 若配置了识图 API，先把上下文里的表情包 / 图片识别成文字（已识别过的直接复用） */
         return prepareVisionForContext(nameAtRequest);
       }).then(function(){
@@ -195,6 +222,11 @@ function scheduleReply(delay){
       var index = 0;
       var lastSeg = segmentItems[segmentItems.length - 1].text;
       function appendNextSegment(){
+        var liveState = CHAT_MESSAGE_STORE_STATE[nameAtRequest];
+        if (index < segmentItems.length && liveState && ((Number(liveState.globalNewestSeq)||0) > (Number(liveState.newestSeq)||0) || liveState.hasNewer)) {
+          ensureChatMessageWindowLatest(nameAtRequest).then(function(){ appendNextSegment(); }).catch(function(err){ console.warn('[岛屿] AI 回复前刷新聊天记录失败：', err); });
+          return;
+        }
         if (index >= segmentItems.length) {
           saveMessages(nameAtRequest);
           for (var i = 0; i < CHATS.length; i++) {
@@ -650,7 +682,8 @@ function bindChatEvents(){
     if (!currentName || !field) return;
     var policy = normalizeMemoryAgingPolicy(currentName);
     var value = parseInt(field.value, 10);
-    if (!Number.isFinite(value)) value = fallback;
+    /* 输入的不是数字时，保持原来的设置，不要擅自改回默认天数 */
+    if (!Number.isFinite(value)) value = policy[key];
     policy[key] = Math.max(1, value);
     if (policy.fuzzyDays <= policy.clearDays) policy.fuzzyDays = policy.clearDays + 1;
     if (policy.fishDays <= policy.fuzzyDays) policy.fishDays = policy.fuzzyDays + 1;
@@ -786,17 +819,26 @@ function bindChatEvents(){
     if (!currentName) return;
     pmMemorySummarize.disabled = true;
     pmMemorySummarize.textContent = '总结中…';
-    var list = Array.isArray(MESSAGES[currentName]) ? MESSAGES[currentName] : [];
-    var mem = normalizeChatMemory(currentName);
-    if (list.length <= mem.summarizedThrough) {
-      pmMemorySummarize.disabled = false; pmMemorySummarize.textContent = '立即总结当前聊天';
-      showMemorySummaryNotice('没有新的消息', '当前聊天里没有尚未总结的新消息。', false, 1800);
-      return;
-    }
-    maybeSummarizeShortTermMemory(currentName, true).then(function(ok){
-      if (!ok && pmMemoryHint && !pmMemoryHint.textContent) pmMemoryHint.textContent = '本次总结未完成。';
-      pmMemorySummarize.disabled = false; pmMemorySummarize.textContent = '立即总结当前聊天';
-      renderMemoryPage();
+    var summarizeName = currentName;
+    var resetSummarizeButton = function(){ pmMemorySummarize.disabled = false; pmMemorySummarize.textContent = '立即总结当前聊天'; };
+    memoryDbSync(summarizeName).then(function(){ return migrateMemoryToSeq(summarizeName); }).then(function(){
+      var mem = normalizeChatMemory(summarizeName);
+      return IslandDB.chatCountRange(summarizeName, mem.summarizedThroughSeq, 0);
+    }).then(function(pendingCount){
+      if (!(pendingCount > 0)) {
+        resetSummarizeButton();
+        showMemorySummaryNotice('没有新的消息', '当前聊天里没有尚未总结的新消息。', false, 1800);
+        return;
+      }
+      return maybeSummarizeShortTermMemory(summarizeName, true).then(function(ok){
+        if (!ok && pmMemoryHint && !pmMemoryHint.textContent) pmMemoryHint.textContent = '本次总结未完成。';
+        resetSummarizeButton();
+        renderMemoryPage();
+      });
+    }).catch(function(err){
+      console.warn('[岛屿] 立即总结失败', err);
+      resetSummarizeButton();
+      showMemorySummaryNotice('总结失败', '读取聊天记录失败，请稍后再试。', false, 3200);
     });
   });
   if (pmMemoryImportantAdd) pmMemoryImportantAdd.addEventListener('click', addCustomImportantMemory);
@@ -1185,7 +1227,9 @@ function bindChatEvents(){
   if (typeof initMessageSwipeQuote === 'function') initMessageSwipeQuote();
   if (pmScroll) pmScroll.addEventListener('scroll', closeVoiceMessageActionMenu, { passive:true });
   if (pmScroll) pmScroll.addEventListener('scroll', function(){
-    if (pmScroll.scrollTop < 120 && pmHiddenCount > 0) loadEarlierMessages();
+    var storeState = CHAT_MESSAGE_STORE_STATE[currentName];
+    if (pmScroll.scrollTop < 120 && (pmHiddenCount > 0 || (storeState && storeState.hasMore))) loadEarlierMessages();
+    if (storeState && storeState.hasNewer && pmScroll.scrollHeight - pmScroll.scrollTop - pmScroll.clientHeight < 120) loadLaterMessages();
   }, { passive:true });
   /* 表情包栏 / 加号菜单打开时，点击聊天区任意位置即可收回（不再只能再点一次对应按钮）。
    * 使用捕获阶段且不阻止冒泡，原有的气泡点击行为不受影响；滑动滚动不会触发 click。 */

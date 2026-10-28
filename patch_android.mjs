@@ -36,6 +36,9 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
@@ -54,12 +57,23 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Set;
 
 @CapacitorPlugin(
     name = "IslandNative",
@@ -85,6 +99,313 @@ public class IslandNativePlugin extends Plugin {
     }
 
     private final Map<String, SaveSession> saveSessions = new HashMap<>();
+
+    /* APK 聊天专用 SQLite：消息逐条存储，媒体独立放在 chat_media 表。网页端不会走这条路径。 */
+    private static final class ChatDbHelper extends SQLiteOpenHelper {
+        ChatDbHelper(Context context) { super(context.getApplicationContext(), "island-chat-v1.db", null, 2); }
+        @Override public void onCreate(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE chat_messages (chat TEXT NOT NULL, seq INTEGER NOT NULL, created_at INTEGER NOT NULL, payload TEXT NOT NULL, search_text TEXT NOT NULL DEFAULT '', PRIMARY KEY(chat, seq))");
+            db.execSQL("CREATE INDEX idx_chat_messages_time ON chat_messages(chat, created_at, seq)");
+            db.execSQL("CREATE TABLE chat_media (chat TEXT NOT NULL, seq INTEGER NOT NULL, media_key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(chat, seq, media_key))");
+            db.execSQL("CREATE INDEX idx_chat_media_message ON chat_media(chat, seq)");
+            createBackupTables(db);
+        }
+        private void createBackupTables(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS chat_messages_backup (slot TEXT NOT NULL, chat TEXT NOT NULL, seq INTEGER NOT NULL, created_at INTEGER NOT NULL, payload TEXT NOT NULL, search_text TEXT NOT NULL DEFAULT '', PRIMARY KEY(slot, chat, seq))");
+            db.execSQL("CREATE TABLE IF NOT EXISTS chat_media_backup (slot TEXT NOT NULL, chat TEXT NOT NULL, seq INTEGER NOT NULL, media_key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(slot, chat, seq, media_key))");
+            db.execSQL("CREATE TABLE IF NOT EXISTS chat_snapshot_meta (slot TEXT PRIMARY KEY, saved_at INTEGER NOT NULL, message_count INTEGER NOT NULL DEFAULT 0, complete INTEGER NOT NULL DEFAULT 0)");
+        }
+        @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { createBackupTables(db); }
+    }
+    private ChatDbHelper chatDbHelper;
+    private synchronized SQLiteDatabase getChatDb() {
+        if (chatDbHelper == null) chatDbHelper = new ChatDbHelper(getContext());
+        return chatDbHelper.getWritableDatabase();
+    }
+
+    /* APK 附件落到应用私有文件目录，SQLite 只保存内容哈希路径；备份 JSON 导出时才重新转成 data URL。 */
+    private File chatMediaDirectory() {
+        File dir = new File(getContext().getFilesDir(), "island-media");
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    private String contentHash(byte[] bytes) throws Exception {
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
+        StringBuilder out = new StringBuilder();
+        for (byte b : digest) out.append(String.format(java.util.Locale.US, "%02x", b & 0xff));
+        return out.toString();
+    }
+
+    private String storeChatMedia(String value) throws Exception {
+        if (value == null || value.length() < 8192 || !value.matches("(?is)^data:(image|audio|video|application|font)/[^,]*,.+$")) return value == null ? "" : value;
+        int comma = value.indexOf(','); if (comma < 0) return value;
+        String header = value.substring(5, comma);
+        String mime = header.split(";", 2)[0];
+        byte[] bytes = Base64.decode(value.substring(comma + 1), Base64.DEFAULT);
+        String hash = contentHash(bytes);
+        File file = new File(chatMediaDirectory(), hash + ".bin");
+        if (!file.exists()) {
+            FileOutputStream out = new FileOutputStream(file);
+            try { out.write(bytes); out.flush(); } finally { out.close(); }
+        }
+        return "@file:" + file.getAbsolutePath() + "|" + mime;
+    }
+
+    private String loadChatMedia(String value) {
+        if (value == null || !value.startsWith("@file:")) return value == null ? "" : value;
+        int split = value.indexOf('|', 6);
+        if (split < 0) return "";
+        String filePath = value.substring(6, split), mime = value.substring(split + 1);
+        File file = new File(filePath);
+        if (!file.isFile()) return "";
+        try {
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            FileInputStream in = new FileInputStream(file);
+            try { byte[] chunk = new byte[32768]; int read; while ((read = in.read(chunk)) != -1) buffer.write(chunk, 0, read); }
+            finally { in.close(); }
+            return "data:" + mime + ";base64," + Base64.encodeToString(buffer.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception e) { android.util.Log.w("IslandNative", "Read chat media failed", e); return ""; }
+    }
+
+    private void cleanupUnusedChatMediaFiles(SQLiteDatabase db) {
+        Set<String> used = new HashSet<>();
+        Cursor c = db.rawQuery("SELECT value FROM chat_media UNION SELECT value FROM chat_media_backup", null);
+        try { while (c.moveToNext()) { String value = c.getString(0); if (value != null && value.startsWith("@file:")) { int split = value.indexOf('|', 6); if (split > 6) used.add(value.substring(6, split)); } } }
+        finally { c.close(); }
+        File[] files = chatMediaDirectory().listFiles();
+        if (files != null) for (File file : files) if (file.isFile() && !used.contains(file.getAbsolutePath())) file.delete();
+    }
+
+    private void recoverChatIfEmpty(SQLiteDatabase db) {
+        Cursor countCursor = db.rawQuery("SELECT COUNT(*) FROM chat_messages", null);
+        long existing = 0; try { if (countCursor.moveToFirst()) existing = countCursor.getLong(0); } finally { countCursor.close(); }
+        if (existing > 0) return;
+        Cursor meta = db.rawQuery("SELECT slot FROM chat_snapshot_meta WHERE complete=1 ORDER BY saved_at DESC LIMIT 1", null);
+        String slot = null; try { if (meta.moveToFirst()) slot = meta.getString(0); } finally { meta.close(); }
+        if (slot == null) return;
+        Cursor backupCount = db.rawQuery("SELECT COUNT(*) FROM chat_messages_backup WHERE slot=?", new String[]{slot});
+        long backupRows = 0; try { if (backupCount.moveToFirst()) backupRows = backupCount.getLong(0); } finally { backupCount.close(); }
+        if (backupRows <= 0) return; /* 元数据计数可能过期，逐行删除后不应从空快照复活消息。 */
+        db.beginTransaction();
+        try {
+            db.execSQL("INSERT OR REPLACE INTO chat_messages(chat,seq,created_at,payload,search_text) SELECT chat,seq,created_at,payload,search_text FROM chat_messages_backup WHERE slot=?", new Object[]{slot});
+            db.execSQL("INSERT OR REPLACE INTO chat_media(chat,seq,media_key,value) SELECT chat,seq,media_key,value FROM chat_media_backup WHERE slot=?", new Object[]{slot});
+            db.setTransactionSuccessful();
+        } catch (Exception e) { android.util.Log.w("IslandNative", "Chat snapshot recovery failed", e); }
+        finally { db.endTransaction(); }
+    }
+
+    @PluginMethod
+    public void chatSnapshot(PluginCall call) {
+        String slot = call.getString("slot", "daily");
+        if (!"daily".equals(slot)) { call.resolve(); return; }
+        SQLiteDatabase db = getChatDb(); db.beginTransaction();
+        try {
+            ContentValues meta = new ContentValues(); meta.put("slot", slot); meta.put("saved_at", System.currentTimeMillis()); meta.put("message_count", 0); meta.put("complete", 0);
+            db.insertWithOnConflict("chat_snapshot_meta", null, meta, SQLiteDatabase.CONFLICT_REPLACE);
+            db.delete("chat_messages_backup", "slot=?", new String[]{slot});
+            db.delete("chat_media_backup", "slot=?", new String[]{slot});
+            db.execSQL("INSERT INTO chat_messages_backup(slot,chat,seq,created_at,payload,search_text) SELECT ?,chat,seq,created_at,payload,search_text FROM chat_messages", new Object[]{slot});
+            db.execSQL("INSERT INTO chat_media_backup(slot,chat,seq,media_key,value) SELECT ?,chat,seq,media_key,value FROM chat_media", new Object[]{slot});
+            Cursor c = db.rawQuery("SELECT COUNT(*) FROM chat_messages WHERE 1=1", null);
+            long count = 0; try { if (c.moveToFirst()) count = c.getLong(0); } finally { c.close(); }
+            ContentValues completed = new ContentValues(); completed.put("saved_at", System.currentTimeMillis()); completed.put("message_count", count); completed.put("complete", 1);
+            db.update("chat_snapshot_meta", completed, "slot=?", new String[]{slot});
+            db.setTransactionSuccessful();
+        } catch (Exception e) { call.reject("创建聊天安全快照失败", e); return; }
+        finally { db.endTransaction(); }
+        cleanupUnusedChatMediaFiles(db);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void chatReadPage(PluginCall call) {
+        String chat = call.getString("chat", "");
+        if (chat.isEmpty()) { call.reject("chat 不能为空"); return; }
+        int limit = Math.max(1, Math.min(1000, call.getInt("limit", 300)));
+        long before = call.getLong("beforeSeq", 0L), after = call.getLong("afterSeq", 0L);
+        boolean first = Boolean.TRUE.equals(call.getBoolean("first", false));
+        boolean withMedia = !Boolean.FALSE.equals(call.getBoolean("withMedia", true));
+        boolean withCount = Boolean.TRUE.equals(call.getBoolean("withCount", false));
+        SQLiteDatabase db = getChatDb();
+        String where = "chat=?", order = "DESC";
+        ArrayList<String> args = new ArrayList<>(); args.add(chat);
+        if (after > 0) { where += " AND seq>?"; args.add(String.valueOf(after)); order = "ASC"; }
+        else if (first) { where += " AND seq>0"; order = "ASC"; }
+        else if (before > 0) { where += " AND seq<?"; args.add(String.valueOf(before)); order = "DESC"; }
+        Cursor c = db.rawQuery("SELECT seq, created_at, payload FROM chat_messages WHERE " + where + " ORDER BY seq " + order + " LIMIT ?", appendArg(args, String.valueOf(limit)));
+        ArrayList<JSObject> page = new ArrayList<>();
+        try {
+            while (c.moveToNext()) {
+                long seq = c.getLong(0);
+                JSObject row = new JSObject();
+                row.put("seq", seq); row.put("createdAt", c.getLong(1)); row.put("payload", c.getString(2));
+                JSONArray media = new JSONArray();
+                if (withMedia) {
+                    Cursor m = db.rawQuery("SELECT media_key, value FROM chat_media WHERE chat=? AND seq=?", new String[]{chat, String.valueOf(seq)});
+                    try { while (m.moveToNext()) { JSObject item = new JSObject(); item.put("key", m.getString(0)); item.put("value", loadChatMedia(m.getString(1))); media.put(item); } }
+                    finally { m.close(); }
+                }
+                row.put("media", media); page.add(row);
+            }
+        } finally { c.close(); }
+        if ("DESC".equals(order)) Collections.reverse(page);
+        JSONArray rows = new JSONArray(); for (JSObject row : page) rows.put(row);
+        JSObject result = new JSObject(); result.put("rows", rows);
+        if (withCount) { Cursor countCursor = db.rawQuery("SELECT COUNT(*) FROM chat_messages WHERE chat=?", new String[]{chat});
+            long count = 0; try { if (countCursor.moveToFirst()) count = countCursor.getLong(0); } finally { countCursor.close(); }
+            result.put("count", count); }
+        result.put("hasMore", page.size() == limit);
+        call.resolve(result);
+    }
+
+    private String[] appendArg(ArrayList<String> args, String last) {
+        String[] result = new String[args.size() + 1];
+        for (int i = 0; i < args.size(); i++) result[i] = args.get(i);
+        result[result.length - 1] = last; return result;
+    }
+
+    @PluginMethod
+    public void chatWriteBatch(PluginCall call) {
+        String chat = call.getString("chat", "");
+        if (chat.isEmpty()) { call.reject("chat 不能为空"); return; }
+        JSONArray rows = call.getArray("rows");
+        JSONArray deletes = call.getArray("deleteSeqs");
+        if (rows == null) rows = new JSONArray(); if (deletes == null) deletes = new JSONArray();
+        SQLiteDatabase db = getChatDb(); JSONArray savedRows = new JSONArray(); long maxSeq = 0;
+        Cursor maxCursor = db.rawQuery("SELECT COALESCE(MAX(seq),0) FROM chat_messages WHERE chat=?", new String[]{chat});
+        try { if (maxCursor.moveToFirst()) maxSeq = maxCursor.getLong(0); } finally { maxCursor.close(); }
+        db.beginTransaction();
+        try {
+            for (int i = 0; i < deletes.length(); i++) {
+                long seq = deletes.optLong(i, 0); if (seq <= 0) continue;
+                db.delete("chat_messages", "chat=? AND seq=?", new String[]{chat, String.valueOf(seq)});
+                db.delete("chat_media", "chat=? AND seq=?", new String[]{chat, String.valueOf(seq)});
+                db.delete("chat_messages_backup", "chat=? AND seq=?", new String[]{chat, String.valueOf(seq)});
+                db.delete("chat_media_backup", "chat=? AND seq=?", new String[]{chat, String.valueOf(seq)});
+            }
+            for (int i = 0; i < rows.length(); i++) {
+                JSONObject row = rows.optJSONObject(i); if (row == null) continue;
+                long seq = row.optLong("seq", 0); if (seq <= 0) seq = Math.max(maxSeq + 1, System.currentTimeMillis() * 1000L); maxSeq = Math.max(maxSeq, seq);
+                long createdAt = row.optLong("createdAt", System.currentTimeMillis());
+                String payload = row.optString("payload", "{}");
+                String searchText = row.optString("searchText", "");
+                ContentValues values = new ContentValues(); values.put("chat", chat); values.put("seq", seq);
+                values.put("created_at", createdAt); values.put("payload", payload); values.put("search_text", searchText);
+                db.insertWithOnConflict("chat_messages", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+                db.delete("chat_media", "chat=? AND seq=?", new String[]{chat, String.valueOf(seq)});
+                JSONArray media = row.optJSONArray("media");
+                if (media != null) for (int j = 0; j < media.length(); j++) {
+                    JSONObject m = media.optJSONObject(j); if (m == null) continue;
+                    ContentValues mv = new ContentValues(); mv.put("chat", chat); mv.put("seq", seq);
+                    mv.put("media_key", m.optString("key", "m" + j)); mv.put("value", storeChatMedia(m.optString("value", "")));
+                    db.insertWithOnConflict("chat_media", null, mv, SQLiteDatabase.CONFLICT_REPLACE);
+                }
+                JSObject saved = new JSObject(); saved.put("seq", seq); saved.put("index", row.optInt("index", i)); savedRows.put(saved);
+            }
+            db.setTransactionSuccessful();
+        } catch (Exception e) { call.reject("写入聊天数据库失败", e); return; }
+        finally { db.endTransaction(); }
+        if (deletes.length() > 0) {
+            db.execSQL("UPDATE chat_snapshot_meta SET message_count=(SELECT COUNT(*) FROM chat_messages_backup b WHERE b.slot=chat_snapshot_meta.slot)");
+            cleanupUnusedChatMediaFiles(db);
+        }
+        JSObject result = new JSObject(); result.put("rows", savedRows); result.put("maxSeq", maxSeq); call.resolve(result);
+    }
+
+    @PluginMethod
+    public void chatDeleteAll(PluginCall call) {
+        String chat = call.getString("chat", "");
+        SQLiteDatabase db = getChatDb(); db.beginTransaction();
+        try {
+            db.delete("chat_messages", "chat=?", new String[]{chat}); db.delete("chat_media", "chat=?", new String[]{chat});
+            db.delete("chat_messages_backup", "chat=?", new String[]{chat}); db.delete("chat_media_backup", "chat=?", new String[]{chat});
+            db.execSQL("UPDATE chat_snapshot_meta SET message_count=(SELECT COUNT(*) FROM chat_messages_backup b WHERE b.slot=chat_snapshot_meta.slot)");
+            db.setTransactionSuccessful();
+        }
+        catch (Exception e) { call.reject("删除聊天记录失败", e); return; }
+        finally { db.endTransaction(); }
+        cleanupUnusedChatMediaFiles(db);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void chatClearAll(PluginCall call) {
+        SQLiteDatabase db = getChatDb(); db.beginTransaction();
+        try {
+            db.delete("chat_messages", null, null); db.delete("chat_media", null, null);
+            db.delete("chat_messages_backup", null, null); db.delete("chat_media_backup", null, null); db.delete("chat_snapshot_meta", null, null);
+            db.setTransactionSuccessful();
+        }
+        catch (Exception e) { call.reject("清空聊天数据库失败", e); return; }
+        finally { db.endTransaction(); }
+        cleanupUnusedChatMediaFiles(db);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void chatCount(PluginCall call) {
+        String chat = call.getString("chat", ""); SQLiteDatabase db = getChatDb();
+        Cursor c = db.rawQuery("SELECT COUNT(*) FROM chat_messages WHERE chat=?", new String[]{chat});
+        long count = 0; try { if (c.moveToFirst()) count = c.getLong(0); } finally { c.close(); }
+        JSObject result = new JSObject(); result.put("count", count); call.resolve(result);
+    }
+
+    @PluginMethod
+    public void chatSearchRows(PluginCall call) {
+        String chat = call.getString("chat", "");
+        String query = call.getString("query", "");
+        long before = call.getLong("beforeSeq", 0L);
+        int limit = Math.max(1, Math.min(500, call.getInt("limit", 250)));
+        SQLiteDatabase db = getChatDb();
+        String where = "chat=?";
+        ArrayList<String> args = new ArrayList<>(); args.add(chat);
+        if (!query.isEmpty()) { where += " AND instr(search_text, ?) > 0"; args.add(query); }
+        if (before > 0) { where += " AND seq<?"; args.add(String.valueOf(before)); }
+        Cursor c = db.rawQuery("SELECT seq, created_at, payload FROM chat_messages WHERE " + where + " ORDER BY seq DESC LIMIT ?", appendArg(args, String.valueOf(limit)));
+        JSONArray rows = new JSONArray();
+        try {
+            while (c.moveToNext()) {
+                JSObject row = new JSObject();
+                row.put("seq", c.getLong(0)); row.put("createdAt", c.getLong(1)); row.put("payload", c.getString(2));
+                rows.put(row);
+            }
+        } finally { c.close(); }
+        JSObject result = new JSObject(); result.put("rows", rows);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void chatSeqNth(PluginCall call) {
+        String chat = call.getString("chat", "");
+        long after = call.getLong("afterSeq", 0L);
+        int n = Math.max(1, call.getInt("n", 1));
+        boolean fromEnd = Boolean.TRUE.equals(call.getBoolean("fromEnd", false));
+        SQLiteDatabase db = getChatDb();
+        Cursor c = db.rawQuery("SELECT seq FROM chat_messages WHERE chat=? AND seq>? ORDER BY seq " + (fromEnd ? "DESC" : "ASC") + " LIMIT 1 OFFSET ?", new String[]{chat, String.valueOf(after), String.valueOf(n - 1)});
+        long seq = 0; try { if (c.moveToFirst()) seq = c.getLong(0); } finally { c.close(); }
+        JSObject result = new JSObject(); result.put("seq", seq); call.resolve(result);
+    }
+
+    @PluginMethod
+    public void chatCountRange(PluginCall call) {
+        String chat = call.getString("chat", "");
+        long after = call.getLong("afterSeq", 0L), upto = call.getLong("uptoSeq", 0L);
+        SQLiteDatabase db = getChatDb();
+        Cursor c = upto > 0
+            ? db.rawQuery("SELECT COUNT(*) FROM chat_messages WHERE chat=? AND seq>? AND seq<=?", new String[]{chat, String.valueOf(after), String.valueOf(upto)})
+            : db.rawQuery("SELECT COUNT(*) FROM chat_messages WHERE chat=? AND seq>?", new String[]{chat, String.valueOf(after)});
+        long count = 0; try { if (c.moveToFirst()) count = c.getLong(0); } finally { c.close(); }
+        JSObject result = new JSObject(); result.put("count", count); call.resolve(result);
+    }
+
+    @PluginMethod
+    public void chatListNames(PluginCall call) {
+        SQLiteDatabase db = getChatDb(); recoverChatIfEmpty(db); Cursor c = db.rawQuery("SELECT DISTINCT chat FROM chat_messages ORDER BY chat", null);
+        JSONArray names = new JSONArray(); try { while (c.moveToNext()) names.put(c.getString(0)); } finally { c.close(); }
+        JSObject result = new JSObject(); result.put("names", names); call.resolve(result);
+    }
 
     @Override
     public void load() {

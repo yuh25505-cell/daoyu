@@ -686,16 +686,20 @@ function visionPrewarm(chatName, msg){
 function prepareVisionForContext(name){
   try {
     if (!isVisionReady()) return Promise.resolve();
-    var list = (typeof MESSAGES !== 'undefined' && MESSAGES[name]) || [];
-    var depth = 40;
-    try { depth = getMemorySettings().contextDepth || 40; } catch(_){}
-    var slice = list.slice(Math.max(0, list.length - depth));
+    var windowList = (typeof MESSAGES !== 'undefined' && MESSAGES[name]) || [];
+    /* 只看真正发给 AI 的那些消息（最新 contextDepth 条）；更早的图片不读、不识别 */
+    var slice = typeof getContextMessages === 'function' ? getContextMessages(name) : windowList;
     var targets = slice.filter(function(m){ return visionMessageEligible(m) && !m.visionText; });
     slice.forEach(function(m){ if (m && m.visionText && m.url) _visionTexts[visionKeyForMessage(m)] = m.visionText; });
     if (!targets.length) return Promise.resolve();
     targets = targets.slice(-8);
     var work = Promise.all(targets.map(function(m){ return ensureVisionForMessage(m); })).then(function(){
       if (typeof saveMessages === 'function') { try { saveMessages(name); } catch(_){} }
+      /* 补读进来的更早消息不在聊天窗口里，识别结果要单独存回数据库 */
+      var outside = targets.filter(function(m){ return m && m.visionText && Number(m.__islandSeq) > 0 && windowList.indexOf(m) < 0; });
+      if (outside.length) {
+        try { IslandDB.chatWriteBatch(name, outside.map(function(m, i){ return { seq:Number(m.__islandSeq), index:i, message:m }; }), []).catch(function(){}); } catch(_){}
+      }
     });
     var cap = new Promise(function(resolve){ setTimeout(resolve, 40000); });
     return Promise.race([work, cap]).catch(function(){});

@@ -271,37 +271,42 @@ function messageSearchDateLabel(msg){
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 }
 
+var pmChatRecordSearchRequestId = 0;
 function renderChatRecordSearchResults(){
-  var box = $('pmChatRecordSearchResults');
-  var count = $('pmChatRecordSearchCount');
-  if (!box || !currentName) return;
-  var query = String(($('pmChatRecordSearchInput') || {}).value || '').trim().toLowerCase();
-  var selectedDate = String(($('pmChatRecordSearchDate') || {}).value || '');
-  var list = Array.isArray(MESSAGES[currentName]) ? MESSAGES[currentName] : [];
-  var rows = [];
-  for (var i = 0; i < list.length; i++) {
-    var msg = list[i];
-    if (!msg || msg.type === 'voice_call' || msg.type === 'voice_call_event') continue;
-    if (!messageSearchMatchesCategory(msg, pmChatRecordCategoryValue, selectedDate)) continue;
-    if (query && messageSearchContent(msg).indexOf(query) < 0) continue;
-    rows.push({ message:msg, index:i });
-  }
-  rows.sort(function(a,b){ return (chatMessageCreatedAt(b.message) - chatMessageCreatedAt(a.message)) || (b.index - a.index); });
-  if (count) count.textContent = rows.length + ' 条记录';
-  if (!rows.length) {
-    box.innerHTML = '<div class="pm-chat-record-empty">没有找到匹配的聊天记录</div>';
-    return;
-  }
-  box.innerHTML = rows.map(function(row){
-    var msg = row.message;
-    var sentBy = msg.from === 'them' ? getSessionCharDisplayName(currentName) : String((getActiveUserPersona() || {}).name || (getActiveUserPersona() || {}).socialId || '我');
-    return '<button type="button" class="pm-chat-record-result" data-record-message-index="' + row.index + '">' +
-      '<span class="pm-chat-record-result-top"><strong>' + escapeHTML(sentBy) + '</strong><span>' + escapeHTML(messageSearchDateLabel(msg)) + '</span></span>' +
-      '<span class="pm-chat-record-result-type">' + escapeHTML(messageSearchLabel(msg)) + '</span>' +
-      '<span class="pm-chat-record-result-text">' + escapeHTML(messageSearchSnippet(msg)) + '</span>' +
-      '</button>';
-  }).join('');
+  var box=$('pmChatRecordSearchResults'),count=$('pmChatRecordSearchCount');
+  if(!box||!currentName)return;
+  var name=currentName, query=String(($('pmChatRecordSearchInput')||{}).value||'').trim().toLowerCase();
+  var selectedDate=String(($('pmChatRecordSearchDate')||{}).value||''), requestId=++pmChatRecordSearchRequestId;
+  box.innerHTML='<div class="pm-chat-record-empty">正在查找…</div>';
+  IslandDB.chatFlush().then(function(){
+    return IslandDB.chatSearch(name,query,{limit:120,scanSize:250,maxScan:200000,filter:function(message){ return messageSearchMatchesCategory(message,pmChatRecordCategoryValue,selectedDate) && message.type!=='voice_call' && message.type!=='voice_call_event'; }});
+  }).then(function(result){
+    if(requestId!==pmChatRecordSearchRequestId||currentName!==name)return;
+    var candidates=Array.isArray(result&&result.rows)?result.rows:[], rows=[];
+    candidates.forEach(function(item){
+      var msg=item&&item.message;if(!msg||msg.type==='voice_call'||msg.type==='voice_call_event')return;
+      if(!messageSearchMatchesCategory(msg,pmChatRecordCategoryValue,selectedDate))return;
+      if(query&&messageSearchContent(msg).indexOf(query)<0)return;
+      rows.push({message:msg,seq:Number(item.seq)||0});
+    });
+    rows.sort(function(a,b){return (chatMessageCreatedAt(b.message)-chatMessageCreatedAt(a.message))||(b.seq-a.seq);});
+    if(count)count.textContent=rows.length+(result&&result.hasMore?'+':'')+' 条记录';
+    if(!rows.length){box.innerHTML='<div class="pm-chat-record-empty">没有找到匹配的聊天记录</div>';return;}
+    box.innerHTML=rows.map(function(row){
+      var msg=row.message;
+      var sentBy=msg.from==='them'?getSessionCharDisplayName(name):String((getActiveUserPersona()||{}).name||(getActiveUserPersona()||{}).socialId||'我');
+      return '<button type="button" class="pm-chat-record-result" data-record-message-seq="'+row.seq+'">'+
+        '<span class="pm-chat-record-result-top"><strong>'+escapeHTML(sentBy)+'</strong><span>'+escapeHTML(messageSearchDateLabel(msg))+'</span></span>'+
+        '<span class="pm-chat-record-result-type">'+escapeHTML(messageSearchLabel(msg))+'</span>'+
+        '<span class="pm-chat-record-result-text">'+escapeHTML(messageSearchSnippet(msg))+'</span></button>';
+    }).join('');
+  }).catch(function(err){
+    if(requestId!==pmChatRecordSearchRequestId)return;
+    console.warn('[岛屿] 搜索聊天记录失败：',err);
+    box.innerHTML='<div class="pm-chat-record-empty">搜索失败，请稍后重试</div>';
+  });
 }
+
 
 function jumpToChatRecord(index){
   closeChatRecordSearch();
@@ -317,6 +322,40 @@ function jumpToChatRecord(index){
   }, 60);
 }
 
+function jumpToChatRecordSeq(seq){
+  seq=Number(seq)||0;if(!seq||!currentName)return;
+  var name=currentName,list=Array.isArray(MESSAGES[name])?MESSAGES[name]:[];
+  var already=list.findIndex(function(msg){return Number(msg&&msg.__islandSeq)===seq;});
+  if(already>=0){jumpToChatRecord(already);return;}
+  closeChatRecordSearch();closePMChatSettings();
+  /* 搜索结果可能来自十万条历史中的任意位置；只把目标附近的一小段换入窗口。 */
+  Promise.all([
+    IslandDB.chatReadPage(name,{beforeSeq:seq+1,limit:50,withMedia:true}),
+    IslandDB.chatReadPage(name,{afterSeq:seq-1,limit:50,withMedia:true})
+  ]).then(function(pages){
+    if(currentName!==name)return;
+    var unique=Object.create(null),merged=[];
+    pages.forEach(function(page){(page.rows||[]).forEach(function(msg){var k=String(msg.__islandSeq);if(!unique[k]){unique[k]=true;merged.push(msg);}});});
+    merged.sort(function(a,b){return (Number(a.__islandSeq)||0)-(Number(b.__islandSeq)||0);});
+    if(!merged.some(function(msg){return Number(msg.__islandSeq)===seq;})){toast('这条记录暂时无法定位');return;}
+    var previousState=CHAT_MESSAGE_STORE_STATE[name]||{};
+    MESSAGES[name]=merged;
+    var state=resetChatMessageCacheState(name,merged,{hasMore:!!(pages[0]&&pages[0].hasMore),hasNewer:!!(pages[1]&&pages[1].hasMore),count:previousState.totalCount||0,globalNewestSeq:Number(previousState.globalNewestSeq||previousState.newestSeq)||0});
+    state.hasMore=!!(pages[0]&&pages[0].hasMore);
+    state.hasNewer=!!(pages[1]&&pages[1].hasMore);
+    pmRenderLimit=Math.max(PM_INITIAL_RENDER,merged.length);
+    renderMessages(false);
+    window.setTimeout(function(){
+      if(currentName!==name||!pmScroll)return;
+      var idx=MESSAGES[name].findIndex(function(msg){return Number(msg&&msg.__islandSeq)===seq;});
+      var row=idx>=0?pmScroll.querySelector('[data-message-index="'+idx+'"]'):null;
+      if(!row){toast('这条记录暂时无法定位');return;}
+      try{row.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){row.scrollIntoView();}
+      row.classList.add('pm-chat-record-highlight');setTimeout(function(){row.classList.remove('pm-chat-record-highlight');},1800);
+    },80);
+  }).catch(function(err){console.warn('[岛屿] 打开历史消息失败：',err);toast('历史记录打开失败');});
+}
+
 function clearCurrentChatRecords(){
   if (!currentName) return;
   var name = currentName;
@@ -327,12 +366,14 @@ function clearCurrentChatRecords(){
     MESSAGES[name] = [];
     var chat = getSessionChat(name, true);
     if (chat) { chat.preview = ''; chat.time = ''; chat.lastTs = 0; chat.unread = 0; chat.markedUnread = false; }
-    try { saveMessages(name); } catch(e) {}
-    persistSessionChat(name, true);
-    if (typeof renderMessages === 'function') renderMessages(false);
-    if (pmScroll) pmScroll.scrollTop = 0;
-    updatePMChatSettingsUI();
-    toast('已清空聊天记录');
+    IslandDB.chatDeleteAll(name).then(function(){
+      resetChatMessageCacheState(name, [], {hasMore:false,hasNewer:false,count:0,globalNewestSeq:0});
+      persistSessionChat(name, true);
+      if (typeof renderMessages === 'function') renderMessages(false);
+      if (pmScroll) pmScroll.scrollTop = 0;
+      updatePMChatSettingsUI();
+      toast('已清空聊天记录');
+    }).catch(function(err){ toast('清空失败：' + ((err && err.message) || '本机存储错误')); });
   });
 }
 
@@ -517,8 +558,11 @@ function bindPMChatSettingsEvents(){
   });
   var results = $('pmChatRecordSearchResults');
   if (results) results.addEventListener('click', function(e){
-    var item = e.target.closest('[data-record-message-index]');
-    if (item) jumpToChatRecord(Number(item.dataset.recordMessageIndex));
+    var item = e.target.closest('[data-record-message-seq], [data-record-message-index]');
+    if (item) {
+      if (item.dataset.recordMessageSeq) jumpToChatRecordSeq(Number(item.dataset.recordMessageSeq));
+      else jumpToChatRecord(Number(item.dataset.recordMessageIndex));
+    }
   });
   if (pmChatSettingsView) pmChatSettingsView.addEventListener('click', function(e){
     if (e.target === pmChatSettingsView) closePMChatSettings();

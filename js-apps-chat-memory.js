@@ -145,7 +145,7 @@ function normalizeMemoryAgingPolicy(name){
 function getChatMemory(name, create){
   if (!name) return null;
   if (!State.memory || typeof State.memory !== 'object') State.memory = {};
-  if (!State.memory[name] && create !== false) State.memory[name] = { summary:'', summarizedThrough:0, summaryCount:0, updatedAt:0, summaries:[], importantMemories:[], memoryAging:clone(DEFAULT_MEMORY_AGING_POLICY), retrievalMode:'summary', vector:{ version:1, entries:[] } };
+  if (!State.memory[name] && create !== false) State.memory[name] = { summary:'', summarizedThrough:0, summarizedThroughSeq:0, seqMigrated:true, summaryCount:0, updatedAt:0, summaries:[], importantMemories:[], memoryAging:clone(DEFAULT_MEMORY_AGING_POLICY), retrievalMode:'summary', vector:{ version:1, entries:[] } };
   return State.memory[name] || null;
 }
 
@@ -153,6 +153,7 @@ function normalizeChatMemory(name){
   var m = getChatMemory(name, true);
   m.summary = String(m.summary || '').trim();
   m.summarizedThrough = Math.max(0, parseInt(m.summarizedThrough, 10) || 0);
+  m.summarizedThroughSeq = Math.max(0, Number(m.summarizedThroughSeq) || 0);
   m.summaryCount = Math.max(0, parseInt(m.summaryCount, 10) || 0);
   m.updatedAt = Number(m.updatedAt || 0);
   var retrievalMode = String(m.retrievalMode || 'summary');
@@ -218,6 +219,8 @@ function normalizeChatMemory(name){
       fishText: String(item.fishText || '').trim(),
       currentTier: String(item.currentTier || '').trim(),
       stageUpdatedAt: Number(item.stageUpdatedAt || 0),
+      startSeq: Math.max(0, Number(item.startSeq) || 0),
+      endSeq: Math.max(0, Number(item.endSeq) || 0),
       createdAt: fallbackCreatedAt,
       startCreatedAt: Number(item.startCreatedAt || (sourceStart && (sourceStart.createdAt || sourceStart.timestamp)) || fallbackCreatedAt),
       endCreatedAt: Number(item.endCreatedAt || (sourceEnd && (sourceEnd.createdAt || sourceEnd.timestamp)) || fallbackCreatedAt),
@@ -248,6 +251,8 @@ function normalizeChatMemory(name){
     var latest = m.summaries[m.summaries.length - 1];
     m.summary = latest.text;
     m.summarizedThrough = Math.max(0, Number(latest.end) || 0);
+    var seqEnds = m.summaries.map(function(x){ return Number(x.endSeq) || 0; }).filter(function(n){ return n > 0; });
+    if (seqEnds.length) m.summarizedThroughSeq = Math.max.apply(null, seqEnds);
     m.summaryCount = m.summaries.length;
     m.updatedAt = Math.max(Number(m.updatedAt) || 0, Number(latest.createdAt) || 0);
   }
@@ -473,22 +478,22 @@ function parseVectorMemoryExtraction(raw){
 }
 
 
-function vectorMemoryRangeKey(start,end){
-  return String(Math.max(0,Number(start)||0)) + ':' + String(Math.max(0,Number(end)||0));
+function vectorMemoryRangeKey(startSeq,endSeq){
+  return String(Math.max(0,Number(startSeq)||0)) + ':' + String(Math.max(0,Number(endSeq)||0));
 }
 
 
-function extractVectorMemoriesFromChatRange(name,start,end){
-  if(!name) return Promise.resolve(false);
+/* rows：这一段聊天消息（从旧到新，每条带 __islandSeq）。范围用消息编号记录，翻页、删消息都不会错位。 */
+function extractVectorMemoriesFromChatRange(name,rows){
+  if(!name || !Array.isArray(rows) || !rows.length) return Promise.resolve(false);
   var mem=normalizeChatMemory(name);
-  var list=Array.isArray(MESSAGES[name])?MESSAGES[name]:[];
-  var a=Math.max(0,Number(start)||0), b=Math.min(list.length,Number(end)||0);
-  if(b<=a) return Promise.resolve(false);
+  var a=Number(rows[0] && rows[0].__islandSeq)||0, b=Number(rows[rows.length-1] && rows[rows.length-1].__islandSeq)||0;
+  if(!(b>0) || b<a) return Promise.resolve(false);
   if(!isSecondaryApiReady()) return Promise.resolve(false);
   var rangeKey=vectorMemoryRangeKey(a,b);
   var existingRows=mem.vector.entries||[];
   if(existingRows.some(function(item){return item && item.sourceType==='semantic' && item.sourceRangeKey===rangeKey;})) return Promise.resolve(false);
-  var chunk=buildSummarySource(name,a,b);
+  var chunk=buildSummarySourceFromRows(rows);
   if(!chunk.trim()) return Promise.resolve(false);
   if(vectorMemoryJobs[name]) return vectorMemoryJobs[name];
   var messages=[
@@ -506,9 +511,8 @@ function extractVectorMemoriesFromChatRange(name,start,end){
       if(item && item.text) seen[String(item.text).replace(/\s+/g,' ').trim().toLowerCase()]=true;
     });
     var toAdd=[];
-    var sourceListForTime = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
-    var sourceStartMsg = sourceListForTime[a];
-    var sourceEndMsg = sourceListForTime[Math.max(a, b - 1)];
+    var sourceStartMsg = rows[0];
+    var sourceEndMsg = rows[rows.length - 1];
     var sourceStartCreatedAt = messageCreatedAt(sourceStartMsg, Date.now());
     var sourceEndCreatedAt = messageCreatedAt(sourceEndMsg, sourceStartCreatedAt);
     rows.forEach(function(row){
@@ -557,26 +561,21 @@ function extractVectorMemoriesFromChatRange(name,start,end){
 
 
 function extractVectorMemoriesFromChatHistory(name){
-  if(!name) return Promise.resolve(false);
-  var list=Array.isArray(MESSAGES[name])?MESSAGES[name]:[];
-  if(!list.length || !isSecondaryApiReady()) return Promise.resolve(false);
-  var chunkSize=60, ranges=[];
-  for(var start=0;start<list.length;start+=chunkSize){
-    ranges.push([start,Math.min(list.length,start+chunkSize)]);
-  }
-  var mem=normalizeChatMemory(name);
-  ranges=ranges.filter(function(pair){
-    var key=vectorMemoryRangeKey(pair[0],pair[1]);
-    return !(mem.vector.entries||[]).some(function(item){return item&&item.sourceType==='semantic'&&item.sourceRangeKey===key;});
-  });
-  if(!ranges.length) return Promise.resolve(false);
-  var chain=Promise.resolve(false);
-  ranges.forEach(function(pair){
-    chain=chain.then(function(added){
-      return extractVectorMemoriesFromChatRange(name,pair[0],pair[1]).then(function(ok){return added||ok;});
+  if(!name || !isSecondaryApiReady()) return Promise.resolve(false);
+  var chunkSize=60, cursor=0, anyAdded=false;
+  function next(){
+    return IslandDB.chatReadPage(name,{afterSeq:cursor,first:cursor===0,limit:chunkSize,withMedia:false}).then(function(page){
+      var rows=page.rows||[];
+      if(!rows.length) return anyAdded;
+      cursor=Number(rows[rows.length-1].__islandSeq)||cursor;
+      return extractVectorMemoriesFromChatRange(name,rows).then(function(ok){
+        anyAdded=anyAdded||ok;
+        if(rows.length<chunkSize) return anyAdded;
+        return next();
+      });
     });
-  });
-  return chain;
+  }
+  return next();
 }
 
 function updateVectorMemoryOrder(name, id, direction){
@@ -676,14 +675,45 @@ function memoryMessageText(msg){
   return timePrefix + who + '：[聊天消息]';
 }
 
-function buildSummarySource(name, start, end){
-  var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
-  var rows = [];
-  for (var i = Math.max(0, start); i < Math.min(list.length, end); i++) {
-    var row = memoryMessageText(list[i]);
-    if (row) rows.push(row);
+function buildSummarySourceFromRows(rows){
+  var out = [];
+  (Array.isArray(rows) ? rows : []).forEach(function(msg){
+    var row = memoryMessageText(msg);
+    if (row) out.push(row);
+  });
+  return out.join('\n');
+}
+
+/* 从数据库读出 afterSeq 之后（不含）到 uptoSeq（含，0 表示读到最新）的消息，不带图片/语音本体。最多读 maxRows 条。 */
+function readMemoryRowsFromDb(name, afterSeq, uptoSeq, maxRows){
+  var rows = [], cursor = Math.max(0, Number(afterSeq) || 0), limit = Math.max(1, Number(maxRows) || 1000);
+  function next(){
+    var want = Math.min(500, limit - rows.length);
+    if (want <= 0) return Promise.resolve(rows);
+    return IslandDB.chatReadPage(name, { afterSeq:cursor, first:cursor === 0, limit:want, withMedia:false }).then(function(page){
+      var got = page.rows || [];
+      for (var i = 0; i < got.length; i++) {
+        var seq = Number(got[i].__islandSeq) || 0;
+        if (uptoSeq > 0 && seq > uptoSeq) return rows;
+        rows.push(got[i]); cursor = seq;
+      }
+      if (got.length < want) return rows;
+      return next();
+    });
   }
-  return rows.join('\n');
+  return next();
+}
+
+function memorySummaryMessageCount(item){
+  var n = Number(item && item.count) || 0;
+  if (n > 0) return n;
+  return Math.max(0, (Number(item && item.end) || 0) - (Number(item && item.start) || 0));
+}
+
+function memoryLatestSeqEnd(summaries){
+  var best = 0;
+  (summaries || []).forEach(function(x){ var n = Number(x && x.endSeq) || 0; if (n > best) best = n; });
+  return best;
 }
 
 function messageCreatedAt(msg, fallback){
@@ -695,16 +725,12 @@ function fuzzyMemoryTimeLabel(timestamp, now){
   var ts = Number(timestamp || 0);
   if (!ts) return '大致时间不明';
   var ageDays = Math.max(0, (now - ts) / MEMORY_DAY_MS);
-  if (ageDays < 45) {
-    var months = Math.max(1, Math.round(ageDays / 30));
-    return '大约 ' + months + ' 个月前';
-  }
-  if (ageDays < 365) {
-    var months2 = Math.max(2, Math.round(ageDays / 30.44));
-    return '大约 ' + months2 + ' 个月前';
-  }
-  var years = Math.max(1, Math.round(ageDays / 365.25));
-  return '大约 ' + years + ' 年前';
+  /* 说法只跟“实际过去了多久”走，不依赖固定的天数档位：清晰/模糊天数设得再短，也不会把几天前说成一个月前。 */
+  if (ageDays < 1) return '不久前';
+  if (ageDays < 7) return '大约 ' + Math.max(1, Math.round(ageDays)) + ' 天前';
+  if (ageDays < 30) return '大约 ' + Math.max(1, Math.round(ageDays / 7)) + ' 周前';
+  if (ageDays < 365) return '大约 ' + Math.max(1, Math.round(ageDays / 30.44)) + ' 个月前';
+  return '大约 ' + Math.max(1, Math.round(ageDays / 365.25)) + ' 年前';
 }
 
 function summarizeTimeRangeText(item, now){
@@ -757,7 +783,7 @@ var MEMORY_TIER_PROMPTS = {
     '把下面这条“清晰记忆”重新压缩成“模糊记忆”。',
     '只能依据原文事实，不得补充、推断、猜测或润色出不存在的信息。',
     '保留事件是否发生、人物关系、主要结果、会影响后续对话的关键事实。',
-    '时间只能保留大致月份、几周前、几个月前等模糊表达；删除或泛化具体年月日、时分秒和精确时间间隔。',
+    '时间只能保留“几天前”“几周前”“几个月前”等模糊表达，不要写具体年月日；删除或泛化具体年月日、时分秒和精确时间间隔。',
     '删除不影响后续对话的过程细节、对白原句和过度具体的小细节。',
     '输出简洁的记忆正文，不要写标题、解释、免责声明或元话术。',
     '如果原文根本没有某个事实，就不要写那个事实。'
@@ -858,10 +884,75 @@ function ageMemorySummaries(name){
 }
 
 
+/* ===== 上下文读取 =====
+ * 聊天界面的内存窗口只有几百条，而“上下文深度”可以设得更大。
+ * 这里保证：发给 AI 的聊天记录，正好是最新的 contextDepth 条——窗口里不够的，从数据库补读更早的那部分（带图片/语音，因为它们在上下文内）。
+ * 更早的消息一条都不读，交给记忆。 */
+var chatContextCache = Object.create(null);
+
+function getContextMessages(name){
+  var depth = getMemorySettings().contextDepth;
+  var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  if (list.length >= depth) return list.slice(list.length - depth);
+  var cached = chatContextCache[name];
+  if (cached && cached.older.length && Date.now() - cached.at < 5 * 60 * 1000) {
+    var firstSeq = Infinity;
+    for (var i = 0; i < list.length; i++) { var sq = Number(list[i] && list[i].__islandSeq) || 0; if (sq > 0) { firstSeq = sq; break; } }
+    var older = cached.older.filter(function(m){ return (Number(m && m.__islandSeq) || 0) < firstSeq; });
+    var rows = older.concat(list);
+    return rows.slice(Math.max(0, rows.length - depth));
+  }
+  return list.slice();
+}
+
+function prepareContextRows(name){
+  var depth = getMemorySettings().contextDepth;
+  var ensure = typeof ensureChatMessageWindowLatest === 'function' ? ensureChatMessageWindowLatest(name) : Promise.resolve(false);
+  return Promise.resolve(ensure).catch(function(){ return false; }).then(function(){
+    var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+    delete chatContextCache[name];
+    if (list.length >= depth) return false;
+    var state = CHAT_MESSAGE_STORE_STATE[name];
+    if (state && state.loaded && !state.hasMore) return false;
+    var firstSeq = 0;
+    for (var i = 0; i < list.length; i++) { var sq = Number(list[i] && list[i].__islandSeq) || 0; if (sq > 0) { firstSeq = sq; break; } }
+    if (!firstSeq) return false;
+    var need = depth - list.length, older = [], before = firstSeq;
+    function step(){
+      var want = Math.min(500, need - older.length);
+      if (want <= 0) return Promise.resolve();
+      return IslandDB.chatReadPage(name, { beforeSeq:before, limit:want, withMedia:true }).then(function(page){
+        var rows = page.rows || [];
+        if (!rows.length) return;
+        older = rows.concat(older);
+        before = Number(rows[0].__islandSeq) || 0;
+        if (rows.length < want || !before) return;
+        return step();
+      });
+    }
+    return step().then(function(){
+      if (!older.length) return false;
+      var entry = { older:older, at:Date.now() };
+      chatContextCache[name] = entry;
+      setTimeout(function(){ if (chatContextCache[name] === entry) delete chatContextCache[name]; }, 5 * 60 * 1000);
+      return true;
+    });
+  });
+}
+
 function prepareMemoryForContext(name, queryOverride){
   if (!name) return Promise.resolve(false);
-  return maybeSummarizeShortTermMemory(name).catch(function(){ return false; }).then(function(){
+  return prepareContextRows(name).catch(function(err){ console.warn('[岛屿] 补读上下文失败', err); return false; }).then(function(){
+    return maybeSummarizeShortTermMemory(name).catch(function(){ return false; });
+  }).then(function(){
     return ageMemorySummaries(name);
+  }).then(function(){
+    return loadClearMemoryText(name).then(function(text){
+      memoryClearTextCache[name] = { text:text, at:Date.now() };
+    }).catch(function(err){
+      console.warn('[岛屿] 读取清晰记忆失败', err);
+      delete memoryClearTextCache[name];
+    });
   }).then(function(){
     var mode = normalizeChatMemory(name).retrievalMode;
     if (mode === 'vector' || mode === 'hybrid') {
@@ -888,6 +979,44 @@ function buildMemoryTierRows(name, tier){
 }
 
 
+var memoryClearTextCache = Object.create(null);
+var MEMORY_CLEAR_CHAR_BUDGET = 12000;
+
+/* 上下文之外的消息要不要放进“清晰记忆”：还在清晰期内，或者还没被总结过（不然会凭空消失）。 */
+function memoryRowIsClear(msg, mem, clearCutoff, now){
+  return messageCreatedAt(msg, now) >= clearCutoff || (Number(msg && msg.__islandSeq) || 0) > (Number(mem && mem.summarizedThroughSeq) || 0);
+}
+
+/* 从数据库往前翻，只取上下文之外的、需要放进清晰记忆的消息原文；凑够字数就停，不会把整段历史读出来。 */
+function loadClearMemoryText(name){
+  var cfg = getMemorySettings();
+  var mem = normalizeChatMemory(name);
+  var policy = normalizeMemoryAgingPolicy(name);
+  var now = Date.now();
+  var clearCutoff = now - policy.clearDays * MEMORY_DAY_MS;
+  return IslandDB.chatSeqNth(name, { n:cfg.contextDepth, fromEnd:true }).then(function(ctxStartSeq){
+    if (!ctxStartSeq) return '';
+    var rows = [], chars = 0, before = ctxStartSeq;
+    function step(){
+      return IslandDB.chatReadPage(name, { beforeSeq:before, limit:200, withMedia:false }).then(function(page){
+        var got = page.rows || [];
+        if (!got.length) return;
+        var stop = false;
+        for (var i = got.length - 1; i >= 0; i--) {
+          if (!memoryRowIsClear(got[i], mem, clearCutoff, now)) { stop = true; break; }
+          var row = memoryMessageText(got[i]);
+          if (row) { rows.unshift(row); chars += row.length + 1; if (chars > MEMORY_CLEAR_CHAR_BUDGET) { stop = true; break; } }
+        }
+        before = Number(got[0].__islandSeq) || 0;
+        if (stop || got.length < 200 || !before) return;
+        return step();
+      });
+    }
+    return step().then(function(){ return rows.join('\n'); });
+  });
+}
+
+
 function buildAgedMemoryBlocks(name){
   if (!name) return '';
   var m = normalizeChatMemory(name);
@@ -897,16 +1026,21 @@ function buildAgedMemoryBlocks(name){
   var clearCutoff = now - policy.clearDays * MEMORY_DAY_MS;
   var fuzzyCutoff = now - policy.fuzzyDays * MEMORY_DAY_MS;
   var fishCutoff = now - policy.fishDays * MEMORY_DAY_MS;
-  var contextDepth = getMemorySettings().contextDepth;
-  var recentStart = Math.max(0, list.length - contextDepth);
-  var clearRows = [];
-  for (var i = 0; i < recentStart; i++) {
-    var msg = list[i];
-    var ts = messageCreatedAt(msg, now);
-    if (ts >= clearCutoff) {
+  /* 清晰记忆的原文由 prepareMemoryForContext 提前从数据库读好；没有提前读过时，退回用内存里这一段聊天凑。 */
+  var cached = memoryClearTextCache[name];
+  var clearText = '';
+  if (cached && Date.now() - cached.at < 5 * 60 * 1000) clearText = cached.text;
+  else {
+    var contextDepth = getMemorySettings().contextDepth;
+    var recentStart = Math.max(0, list.length - contextDepth);
+    var fallbackRows = [];
+    for (var i = 0; i < recentStart; i++) {
+      var msg = list[i];
+      if (!memoryRowIsClear(msg, m, clearCutoff, now)) continue;
       var row = memoryMessageText(msg);
-      if (row) clearRows.push(row);
+      if (row) fallbackRows.push(row);
     }
+    clearText = fallbackRows.join('\n');
   }
 
   var fuzzyRows = [];
@@ -921,9 +1055,8 @@ function buildAgedMemoryBlocks(name){
   fishRows.sort(function(a,b){ return (Number(a.startCreatedAt || a.createdAt) || 0) - (Number(b.startCreatedAt || b.createdAt) || 0); });
 
   var parts = [];
-  if (clearRows.length) {
-    var clearText = clearRows.join('\n');
-    if (clearText.length > 9000) clearText = clearText.slice(-9000);
+  if (clearText) {
+    if (clearText.length > MEMORY_CLEAR_CHAR_BUDGET) clearText = clearText.slice(-MEMORY_CLEAR_CHAR_BUDGET);
     parts.push('【清晰记忆｜最近 ' + policy.clearDays + ' 天】\n保留具体时间、人物、事件和细节。这部分比普通历史总结更接近原始聊天；不要把它改写成模糊回忆。\n' + clearText);
   }
   if (fuzzyRows.length) {
@@ -931,7 +1064,7 @@ function buildAgedMemoryBlocks(name){
       return '【' + summarizeTimeRangeText(item, now) + '】\n' + getMemoryTierText(item, 'fuzzy');
     }).join('\n\n');
     if (fuzzyText.length > 9000) fuzzyText = fuzzyText.slice(-9000);
-    parts.push('【模糊记忆｜超过清晰期至 ' + policy.fuzzyDays + ' 天】\n这些事情仍然记得，但不应再可靠地记住具体日期或精确时间；可以记住大致月份、多久以前以及主要细节。不要把模糊时间说成精确日期。\n' + fuzzyText);
+    parts.push('【模糊记忆｜超过清晰期至 ' + policy.fuzzyDays + ' 天】\n这些事情仍然记得，但不应再可靠地记住具体日期或精确时间；可以记住大致多久以前以及主要细节。不要把模糊时间说成精确日期。\n' + fuzzyText);
   }
   if (fishRows.length) {
     var fishText = fishRows.map(function(item){
@@ -988,48 +1121,111 @@ function memorySummaryErrorText(err){
 }
 
 
+/* 旧版本按“第几条”记账的总结，换成按消息编号记账。只做一次；聊天记录已经被翻新清空的，旧进度归零，旧总结文字仍保留。 */
+function migrateMemoryToSeq(name){
+  var mem = normalizeChatMemory(name);
+  if (mem.seqMigrated === true) return Promise.resolve(false);
+  var legacyCount = Number(mem.summarizedThrough) || 0;
+  var hasSeqSummary = (mem.summaries || []).some(function(x){ return Number(x.endSeq) > 0; });
+  if (hasSeqSummary || legacyCount <= 0) {
+    mem.seqMigrated = true;
+    return saveMemoryState().then(function(){ return true; });
+  }
+  return IslandDB.chatSeqNth(name, { n:legacyCount }).then(function(seq){
+    mem.summarizedThroughSeq = Number(seq) || 0;
+    mem.seqMigrated = true;
+    return saveMemoryState().then(function(){ return true; });
+  });
+}
+
+/* 保证数据库里已经有最新的消息，再去数数。 */
+function memoryDbSync(name){
+  var p = Promise.resolve(false);
+  try { if (typeof saveMessages === 'function') p = Promise.resolve(saveMessages(name)); } catch(_){}
+  return p.catch(function(){ return false; }).then(function(){ return IslandDB.chatFlush(); });
+}
+
+var MEMORY_SUMMARY_SOURCE_CHAR_LIMIT = 60000;
+
+/* 总结一批消息。规则：
+ * 1. 上下文里最新的 contextDepth 条永远不动。
+ * 2. 上下文之外、还没总结的消息，攒够 summaryThreshold 条才总结，一次正好总结 summaryThreshold 条。
+ * 3. “立即总结”才会把上下文里的新消息也一起总结。
+ * 全部按消息编号记账，不受翻页、删消息影响。 */
 function maybeSummarizeShortTermMemory(name, forceAll, retryMode){
   if (!name) return Promise.resolve(false);
-  var cfg = getMemorySettings();
-  var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
-  var mem = normalizeChatMemory(name);
-  var aging = normalizeMemoryAgingPolicy(name);
-  var now = Date.now();
-  var ageCutoffIndex = 0;
-  if (!forceAll) {
-    var ageCutoffTs = now - aging.clearDays * MEMORY_DAY_MS;
-    for (var ageIdx = 0; ageIdx < list.length; ageIdx++) {
-      if (messageCreatedAt(list[ageIdx], now) < ageCutoffTs) ageCutoffIndex = ageIdx + 1;
-      else break;
-    }
-  }
-  var cutoff = forceAll ? list.length : Math.max(0, list.length - cfg.contextDepth, ageCutoffIndex);
-  var pending = cutoff - mem.summarizedThrough;
-  var ageEligible = !forceAll && ageCutoffIndex > mem.summarizedThrough;
-  if (!forceAll && pending < cfg.summaryThreshold && !ageEligible) return Promise.resolve(false);
-  if (pending <= 0) return Promise.resolve(false);
   if (memorySummaryJobs[name]) return memorySummaryJobs[name];
+  var job = memoryDbSync(name).then(function(){ return migrateMemoryToSeq(name); }).then(function(){
+    return summarizeMemoryChunks(name, !!forceAll, !!retryMode, 0, false);
+  }).then(function(result){
+    delete memorySummaryJobs[name];
+    return result;
+  }, function(err){
+    console.warn('[岛屿] 短期记忆总结检查失败', err);
+    delete memorySummaryJobs[name];
+    return false;
+  });
+  memorySummaryJobs[name] = job;
+  return job;
+}
 
-  var summaryBusyText = retryMode ? '正在使用备用处理规则重试总结…' : (forceAll ? '正在整理当前聊天中的新消息…' : '已达到总结条件，正在整理旧消息…');
-  showMemorySummaryNotice('正在总结', summaryBusyText, true);
+function summarizeMemoryChunks(name, forceAll, retryMode, doneCount, anyDone){
+  var cfg = getMemorySettings();
+  var mem = normalizeChatMemory(name);
+  var after = mem.summarizedThroughSeq;
+  var maxChunks = forceAll ? 12 : 2;
+  if (doneCount >= maxChunks) return Promise.resolve(anyDone);
 
-  if (!isSecondaryApiReady()) {
-    var notReadyReason = '总结失败：副 API 尚未配置或未启用。请先在设置中检查副 API。';
-    if (currentName === name && pmMemoryHint) pmMemoryHint.textContent = notReadyReason;
-    showMemorySummaryNotice('总结失败', notReadyReason, false, 3200);
-    return Promise.resolve(false);
-  }
+  return IslandDB.chatSeqNth(name, { n:cfg.contextDepth, fromEnd:true }).then(function(ctxStartSeq){
+    var upto = 0;
+    if (!forceAll) {
+      if (!ctxStartSeq) return anyDone;
+      upto = ctxStartSeq - 1;
+      if (upto <= after) return anyDone;
+    }
+    return IslandDB.chatCountRange(name, after, upto).then(function(pending){
+      if (pending <= 0) return anyDone;
+      if (!forceAll && pending < cfg.summaryThreshold) return anyDone;
 
-  var start = mem.summarizedThrough;
-  var end = cutoff;
-  var chunk = buildSummarySource(name, start, end);
-  if (!chunk.trim()) {
-    var emptySourceReason = '总结失败：这批消息没有可用于总结的内容。';
-    if (currentName === name && pmMemoryHint) pmMemoryHint.textContent = emptySourceReason;
-    showMemorySummaryNotice('总结失败', emptySourceReason, false, 2600);
-    return Promise.resolve(false);
-  }
+      var take = forceAll ? Math.min(pending, Math.max(cfg.summaryThreshold, 300)) : cfg.summaryThreshold;
+      var busyText = retryMode ? '正在使用备用处理规则重试总结…' : (forceAll ? '正在整理当前聊天中的新消息…' : '已攒够 ' + cfg.summaryThreshold + ' 条旧消息，正在整理…');
+      showMemorySummaryNotice('正在总结', busyText, true);
 
+      if (!isSecondaryApiReady()) {
+        var notReadyReason = '总结失败：副 API 尚未配置或未启用。请先在设置中检查副 API。';
+        if (currentName === name && pmMemoryHint) pmMemoryHint.textContent = notReadyReason;
+        showMemorySummaryNotice('总结失败', notReadyReason, false, 3200);
+        return anyDone;
+      }
+
+      return readMemoryRowsFromDb(name, after, upto, take).then(function(rows){
+        /* 一批文字太多时（比如大文件）只取放得下的部分，剩下的下一批继续 */
+        var used = [], total = 0;
+        for (var r = 0; r < rows.length; r++) {
+          var len = memoryMessageText(rows[r]).length + 1;
+          if (used.length && total + len > MEMORY_SUMMARY_SOURCE_CHAR_LIMIT) break;
+          used.push(rows[r]); total += len;
+        }
+        rows = used;
+        if (!rows.length) return anyDone;
+        var chunk = buildSummarySourceFromRows(rows);
+        if (!chunk.trim()) {
+          /* 这批全是没有文字内容的消息，直接跳过去，不要卡在这里 */
+          mem.summarizedThroughSeq = Number(rows[rows.length - 1].__islandSeq) || after;
+          return saveMemoryState().then(function(){ return summarizeMemoryChunks(name, forceAll, retryMode, doneCount + 1, anyDone); });
+        }
+        return runMemorySummaryCall(name, mem, rows, chunk, cfg, retryMode).then(function(ok){
+          if (!ok) return anyDone;
+          return summarizeMemoryChunks(name, forceAll, retryMode, doneCount + 1, true);
+        });
+      });
+    });
+  });
+}
+
+function runMemorySummaryCall(name, mem, rows, chunk, cfg, retryMode){
+  var startSeq = Number(rows[0].__islandSeq) || 0;
+  var endSeq = Number(rows[rows.length - 1].__islandSeq) || 0;
   var oldSummary = mem.summary ? '\n\n【已有短期记忆】\n' + mem.summary : '';
   var summaryPrompt = String(cfg.summaryPrompt || '').trim();
   var retryPrompt = retryMode ? String(cfg.summaryRetryPrompt || DEFAULT_MEMORY_SUMMARY_RETRY_PROMPT).trim() : '';
@@ -1053,36 +1249,38 @@ function maybeSummarizeShortTermMemory(name, forceAll, retryMode){
   ];
   var secCfg = getSecondaryApiConfig();
   var cfgOverride = Object.assign({}, secCfg, { maxTokens: Math.max(180, Math.min(1200, Number(secCfg.maxTokens) || 700)), temperature: 0.2 });
-  memorySummaryJobs[name] = callApiOnce(messages, cfgOverride).then(function(text){
+  return callApiOnce(messages, cfgOverride).then(function(text){
     var summary = String(text || '').trim();
     if (!summary) throw ApiError('empty', '副API返回了空的总结内容');
     if (looksLikeSummaryRefusal(summary)) throw ApiError('refusal', '模型拒绝生成这批内容的总结');
     var summaryText = summary.slice(0, 8000);
     if (!Array.isArray(mem.summaries)) mem.summaries = [];
+    var now = Date.now();
     mem.summaries.push({
       id: genId('memsum_'),
-      start: start,
-      end: end,
+      start: 0,
+      end: 0,
+      startSeq: startSeq,
+      endSeq: endSeq,
       text: summaryText,
       clearText: summaryText,
       fuzzyText: '',
       fishText: '',
       currentTier: 'clear',
       stageUpdatedAt: 0,
-      createdAt: Date.now(),
-      startCreatedAt: start < list.length ? messageCreatedAt(list[start], Date.now()) : Date.now(),
-      endCreatedAt: end > 0 && end - 1 < list.length ? messageCreatedAt(list[end - 1], Date.now()) : Date.now(),
-      count: end - start
+      createdAt: now,
+      startCreatedAt: messageCreatedAt(rows[0], now),
+      endCreatedAt: messageCreatedAt(rows[rows.length - 1], now),
+      count: rows.length
     });
     mem.summary = summaryText;
-    mem.summarizedThrough = end;
+    mem.summarizedThroughSeq = endSeq;
     mem.summaryCount = mem.summaries.length;
-    mem.updatedAt = Date.now();
+    mem.updatedAt = now;
     return saveMemoryState().then(function(){
-      var created = mem.summaries[mem.summaries.length - 1];
-      void extractVectorMemoriesFromChatRange(name, start, end);
+      void extractVectorMemoriesFromChatRange(name, rows);
       if (currentName === name) renderMemoryPage();
-      showMemorySummaryNotice('总结完成', '已整理 ' + (end - start) + ' 条新消息。', false, 1500);
+      showMemorySummaryNotice('总结完成', '已整理 ' + rows.length + ' 条消息。', false, 1500);
       return ageMemorySummaries(name).then(function(){ return true; });
     });
   }).catch(function(err){
@@ -1091,15 +1289,9 @@ function maybeSummarizeShortTermMemory(name, forceAll, retryMode){
     if (currentName === name && pmMemoryHint) pmMemoryHint.textContent = reason;
     showMemorySummaryNotice('总结失败', reason, false, 5200);
     return false;
-  }).then(function(result){
-    delete memorySummaryJobs[name];
-    return result;
   });
-  return memorySummaryJobs[name];
 }
 
-
-var importantMemoryJob = null;
 
 var IMPORTANT_MEMORY_PROMPT = [
   '你是聊天中的“重要记忆提取器”。',
@@ -1196,11 +1388,13 @@ function deleteChatMemorySummary(summaryId){
     var latest = m.summaries[m.summaries.length - 1];
     m.summary = latest.text;
     m.summarizedThrough = Math.max(0, Number(latest.end) || 0);
+    m.summarizedThroughSeq = memoryLatestSeqEnd(m.summaries);
     m.summaryCount = m.summaries.length;
     m.updatedAt = Number(latest.createdAt) || Date.now();
   } else {
     m.summary = '';
     m.summarizedThrough = 0;
+    m.summarizedThroughSeq = 0;
     m.summaryCount = 0;
     m.updatedAt = 0;
   }
@@ -1307,11 +1501,13 @@ function deleteSelectedChatMemorySummaries(){
       var latest = m.summaries[m.summaries.length - 1];
       m.summary = latest.text;
       m.summarizedThrough = Math.max(0, Number(latest.end) || 0);
+      m.summarizedThroughSeq = memoryLatestSeqEnd(m.summaries);
       m.summaryCount = m.summaries.length;
       m.updatedAt = Number(latest.createdAt) || Date.now();
     } else {
       m.summary = '';
       m.summarizedThrough = 0;
+      m.summarizedThroughSeq = 0;
       m.summaryCount = 0;
       m.updatedAt = 0;
     }
@@ -1432,7 +1628,7 @@ function renderMemorySummaryHistory(){
         '<label class="pm-memory-history-check"><input type="checkbox" data-memory-summary-select="' + escapeHTML(item.id) + '"' + (selected ? ' checked' : '') + '><span aria-hidden="true"></span></label>' +
         '<div><strong>第 ' + (allRows.length - originalIndex) + ' 次总结</strong><span>' + escapeHTML(time) + '</span></div>' + actions +
       '</div>' +
-      '<div class="pm-memory-history-range">整理了 ' + Math.max(0, Number(item.end) - Number(item.start)) + ' 条消息</div>' +
+      '<div class="pm-memory-history-range">整理了 ' + memorySummaryMessageCount(item) + ' 条消息</div>' +
       (editing
         ? '<textarea class="pm-memory-history-edit-input" data-memory-summary-edit-input="' + escapeHTML(item.id) + '" rows="8" spellcheck="false">' + escapeHTML(item.text || '') + '</textarea>'
         : '<div class="pm-memory-history-preview">' + escapeHTML(preview) + '</div>') +
@@ -1455,7 +1651,7 @@ function renderMemoryTierPage(tier){
     var text = String(row.text || '').trim();
     return '<article class="pm-memory-tier-item">' +
       '<div class="pm-memory-tier-head"><strong>记忆 ' + (index + 1) + '</strong><span class="pm-memory-tier-badge">' + escapeHTML(row.time) + '</span></div>' +
-      '<div class="pm-memory-tier-meta">整理了 ' + Math.max(0, Number(item.end) - Number(item.start)) + ' 条聊天消息</div>' +
+      '<div class="pm-memory-tier-meta">整理了 ' + memorySummaryMessageCount(item) + ' 条聊天消息</div>' +
       '<div class="pm-memory-tier-text">' + escapeHTML(text) + '</div>' +
     '</article>';
   }).join('');
@@ -1636,7 +1832,7 @@ function applyMemoryClearSelection(){
   islandConfirm('确定清空：'+labels.join('、')+'？此操作不可恢复。', {title:'清空记忆', confirmText:'清空', danger:true}).then(function(ok){
     if (!ok) return;
     var m=normalizeChatMemory(currentName);
-    if(clearSummary){ m.summary=''; m.summarizedThrough=0; m.summaryCount=0; m.updatedAt=0; m.summaries=[]; }
+    if(clearSummary){ m.summary=''; m.summarizedThrough=0; m.summarizedThroughSeq=0; m.summaryCount=0; m.updatedAt=0; m.summaries=[]; }
     if(clearImportant){ m.importantMemories=[]; importantMemorySelectedIds=Object.create(null); }
     if(clearVector){ m.vector={version:1,entries:[]}; vectorMemorySelectedIds=Object.create(null); }
     saveMemoryState().then(function(){ closeMemoryClearModal(); renderMemoryPage(); renderVectorMemoryPage(); renderImportantMemoryPage(); toast('已清空所选记忆'); });

@@ -354,13 +354,74 @@ function ensureMessageRendered(index){
 
 /* 滚动到顶部附近时，向前补出更早的一批消息，并保持当前视觉位置不跳动。 */
 function loadEarlierMessages(){
-  if (!pmScroll || pmLoadingEarlier || pmHiddenCount <= 0) return;
+  if (!pmScroll || pmLoadingEarlier) return;
+  /* 先展开已经载入内存的这一页；全部展开后再通过 seq 游标向数据库读取更早一页。 */
+  if (pmHiddenCount > 0) {
+    pmLoadingEarlier = true;
+    var localHeight = pmScroll.scrollHeight, localTop = pmScroll.scrollTop;
+    pmRenderLimit += PM_RENDER_STEP;
+    renderMessages();
+    pmScroll.scrollTop = localTop + (pmScroll.scrollHeight - localHeight);
+    requestAnimationFrame(function(){ pmLoadingEarlier = false; });
+    return;
+  }
+  var name = currentName, state = name && CHAT_MESSAGE_STORE_STATE[name];
+  var list = name && Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  var beforeSeq = list.length ? Number(list[0].__islandSeq) || 0 : 0;
+  if (!name || !state || !state.hasMore || !beforeSeq) return;
   pmLoadingEarlier = true;
-  var prevHeight = pmScroll.scrollHeight, prevTop = pmScroll.scrollTop;
-  pmRenderLimit += PM_RENDER_STEP;
-  renderMessages();
-  pmScroll.scrollTop = prevTop + (pmScroll.scrollHeight - prevHeight);
-  requestAnimationFrame(function(){ pmLoadingEarlier = false; });
+  var anchor = pmScroll.querySelector('.chat-message[data-message-index]');
+  var anchorSeq = 0, anchorTop = 0;
+  if (anchor) {
+    var anchorIndex = Number(anchor.getAttribute('data-message-index'));
+    var anchorMessage = list[anchorIndex]; anchorSeq = Number(anchorMessage && anchorMessage.__islandSeq) || 0;
+    anchorTop = anchor.getBoundingClientRect().top;
+  }
+  IslandDB.chatReadPage(name, { beforeSeq:beforeSeq, limit:PM_RENDER_STEP }).then(function(page){
+    if (currentName !== name || !Array.isArray(page.rows) || !page.rows.length) {
+      if (state) state.hasMore = !!(page && page.hasMore);
+      return;
+    }
+    rememberChatMessagePage(name, page, 'prepend');
+    trimChatMessageWindow(name, 'older');
+    pmRenderLimit = (MESSAGES[name] || []).length;
+    renderMessages();
+    if (anchorSeq && pmScroll) {
+      var anchorIndexNow = (MESSAGES[name] || []).findIndex(function(m){ return Number(m && m.__islandSeq) === anchorSeq; });
+      var anchorNow = anchorIndexNow >= 0 ? pmScroll.querySelector('.chat-message[data-message-index="' + anchorIndexNow + '"]') : null;
+      if (anchorNow) pmScroll.scrollTop += anchorNow.getBoundingClientRect().top - anchorTop;
+    }
+  }).catch(function(err){
+    console.warn('[岛屿] 向前读取聊天历史失败：', err);
+    toast('更早的聊天记录读取失败，请稍后重试');
+  }).then(function(){
+    requestAnimationFrame(function(){ pmLoadingEarlier = false; });
+  });
+}
+
+
+/* 浏览历史跳转窗口时，可向后翻页；两端都限制在 800 条左右，避免浏览久了重新堆成十万条 DOM。 */
+function loadLaterMessages(){
+  if (!pmScroll || pmLoadingEarlier) return;
+  var name = currentName, state = name && CHAT_MESSAGE_STORE_STATE[name];
+  var list = name && Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  var afterSeq = list.length ? Number(list[list.length - 1].__islandSeq) || 0 : 0;
+  if (!name || !state || !state.hasNewer || !afterSeq) return;
+  pmLoadingEarlier = true;
+  IslandDB.chatReadPage(name, { afterSeq:afterSeq, limit:PM_RENDER_STEP }).then(function(page){
+    if (currentName !== name || !Array.isArray(page.rows) || !page.rows.length) {
+      if (state) state.hasNewer = !!(page && page.hasMore);
+      return;
+    }
+    rememberChatMessagePage(name, page, 'append');
+    trimChatMessageWindow(name, 'newer');
+    pmRenderLimit = (MESSAGES[name] || []).length;
+    renderMessages(false);
+    scrollBottom(false);
+  }).catch(function(err){
+    console.warn('[岛屿] 向后读取聊天历史失败：', err);
+    toast('更新的聊天记录读取失败，请稍后重试');
+  }).then(function(){ requestAnimationFrame(function(){ pmLoadingEarlier = false; }); });
 }
 
 function renderMessages(enterLast){

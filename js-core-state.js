@@ -92,6 +92,101 @@ var MOMENTS = State.moments;
 
 var MESSAGES = State.messages;
 
+/* 每个会话只缓存最近页与用户已翻阅的页；完整历史保存在消息分表中。 */
+var CHAT_MESSAGE_STORE_STATE = Object.create(null);
+var CHAT_MESSAGE_LOAD_PROMISES = Object.create(null);
+var CHAT_LATEST_MESSAGE_CACHE = Object.create(null);
+var CHAT_RECENT_PAGE_SIZE = 300;
+var CHAT_MESSAGE_WINDOW_MAX = 800;
+
+function chatMessageStoreSignature(value){
+  var hash = 2166136261;
+  function mix(text){ text = String(text); for (var i=0;i<text.length;i++){ hash ^= text.charCodeAt(i); hash = Math.imul(hash,16777619); } hash ^= 124; hash = Math.imul(hash,16777619); }
+  function walk(v){
+    if (v === null || v === undefined) { mix(String(v)); return; }
+    if (typeof Blob !== 'undefined' && v instanceof Blob) { mix('blob:' + v.type + ':' + v.size); return; }
+    if (typeof v === 'string') {
+      if (/^data:(?:image|audio|video|application|font)\//i.test(v) && v.length > 8192) mix('media:' + v.length + ':' + v.slice(0,80) + ':' + v.slice(-80));
+      else mix('string:' + v);
+      return;
+    }
+    if (typeof v !== 'object') { mix(typeof v + ':' + String(v)); return; }
+    if (ArrayBuffer.isView(v)) { mix('view:' + v.byteLength); return; }
+    if (v instanceof ArrayBuffer) { mix('buffer:' + v.byteLength); return; }
+    if (Array.isArray(v)) { mix('array:' + v.length); v.forEach(walk); return; }
+    var keys = Object.keys(v).filter(function(k){ return k !== '__islandSeq'; }).sort();
+    mix('object:' + keys.join(',')); keys.forEach(function(k){ mix(k); walk(v[k]); });
+  }
+  walk(value); return (hash >>> 0).toString(36);
+}
+
+function attachChatMessageSeq(message, seq){
+  if (!message || typeof message !== 'object') message = { text:String(message || '') };
+  message.__islandSeq = Number(seq) || 0;
+  return message;
+}
+
+/* 控制单个会话在内存中的滑动窗口。被移出窗口的行仍在数据库中，不加入删除队列。 */
+function trimChatMessageWindow(name, keepSide){
+  var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  if (list.length <= CHAT_MESSAGE_WINDOW_MAX) return 0;
+  var removeCount = list.length - CHAT_MESSAGE_WINDOW_MAX;
+  var removed = keepSide === 'older' ? list.splice(CHAT_MESSAGE_WINDOW_MAX, removeCount) : list.splice(0, removeCount);
+  var state = CHAT_MESSAGE_STORE_STATE[name];
+  removed.forEach(function(message){
+    var seq = Number(message && message.__islandSeq) || 0;
+    if (!seq || !state) return;
+    delete state.loadedSeqs[String(seq)]; delete state.signatures[String(seq)];
+  });
+  if (state) {
+    if (keepSide === 'older') state.hasNewer = true;
+    else state.hasMore = true;
+    state.oldestSeq = list.length ? Number(list[0].__islandSeq) || 0 : 0;
+    state.newestSeq = list.length ? Number(list[list.length - 1].__islandSeq) || 0 : 0;
+  }
+  return removed.length;
+}
+
+function rememberChatMessagePage(name, page, mode){
+  var state = CHAT_MESSAGE_STORE_STATE[name] || (CHAT_MESSAGE_STORE_STATE[name] = { loaded:false, hasMore:false, hasNewer:false, oldestSeq:0, newestSeq:0, globalNewestSeq:0, loadedSeqs:Object.create(null), signatures:Object.create(null), totalCount:0 });
+  var rows = Array.isArray(page && page.rows) ? page.rows : [];
+  var previousGlobalNewest = Number(state.globalNewestSeq || state.newestSeq) || 0;
+  if (mode === 'replace') {
+    /* 换窗口不代表删除消息：只跟踪当前缓存窗口内的行，绝不能把先前窗口误判为用户删除。 */
+    state.loadedSeqs = Object.create(null);
+    state.signatures = Object.create(null);
+  }
+  rows.forEach(function(message){
+    var seq = Number(message && message.__islandSeq) || 0; if (!seq) return;
+    state.loadedSeqs[String(seq)] = true;
+    state.signatures[String(seq)] = chatMessageStoreSignature(message);
+  });
+  if (mode === 'prepend' && Array.isArray(MESSAGES[name])) {
+    var old = MESSAGES[name];
+    var oldSeqs = Object.create(null);
+    old.forEach(function(m){ oldSeqs[String(Number(m && m.__islandSeq) || 0)] = true; });
+    var fresh = rows.filter(function(m){ return !oldSeqs[String(Number(m && m.__islandSeq) || 0)]; });
+    MESSAGES[name] = fresh.concat(old);
+  } else if (mode === 'append' && Array.isArray(MESSAGES[name])) {
+    var prior = MESSAGES[name], priorSeqs = Object.create(null);
+    prior.forEach(function(m){ priorSeqs[String(Number(m && m.__islandSeq) || 0)] = true; });
+    MESSAGES[name] = prior.concat(rows.filter(function(m){ return !priorSeqs[String(Number(m && m.__islandSeq) || 0)]; }));
+  } else MESSAGES[name] = rows.slice();
+  state.loaded = true;
+  if (mode === 'prepend') state.hasMore = !!(page && page.hasMore);
+  else if (mode === 'append') state.hasNewer = !!(page && page.hasMore);
+  else { state.hasMore = !!(page && page.hasMore); state.hasNewer = false; }
+  if (Array.isArray(MESSAGES[name]) && MESSAGES[name].length) {
+    state.oldestSeq = Number(MESSAGES[name][0].__islandSeq) || 0;
+    state.newestSeq = Number(MESSAGES[name][MESSAGES[name].length - 1].__islandSeq) || 0;
+  } else { state.oldestSeq = 0; state.newestSeq = 0; }
+  var pageNewest = Number(page && page.newestSeq) || 0;
+  rows.forEach(function(message){ pageNewest = Math.max(pageNewest, Number(message && message.__islandSeq) || 0); });
+  state.globalNewestSeq = mode === 'replace' ? Math.max(pageNewest, state.newestSeq) : Math.max(previousGlobalNewest, pageNewest, state.newestSeq);
+  if (page && page.count != null && Number(page.count) >= 0) state.totalCount = Number(page.count);
+  return state;
+}
+
 
 function getApiConfig(){ return (State.settings && State.settings.api) || clone(DEFAULT_API); }
 
@@ -472,7 +567,96 @@ function savePhoneCalls(){ return IslandDB.set('island.phoneCalls', State.phoneC
 
 function saveMessages(name){
   if (!name) return Promise.resolve(false);
-  return IslandDB.set('island.msg.' + name, MESSAGES[name] || []);
+  var state = CHAT_MESSAGE_STORE_STATE[name];
+  if (state && !state.loaded) {
+    /* 首次读入该会话前若已经有新消息进入内存，先加载最近页并保留这些未分配序号的待写消息，再做增量保存。 */
+    return refreshChatMessageWindowLatest(name).then(function(){ return saveMessages(name); });
+  }
+  var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+  state = state || (CHAT_MESSAGE_STORE_STATE[name] = { loaded:true, hasMore:false, hasNewer:false, oldestSeq:0, newestSeq:0, globalNewestSeq:0, loadedSeqs:Object.create(null), signatures:Object.create(null), totalCount:0 });
+  var currentSeqs = Object.create(null), writes = [], deletes = [];
+  list.forEach(function(message, index){
+    if (!message || typeof message !== 'object') return;
+    var seq = Number(message.__islandSeq) || 0;
+    if (seq > 0) currentSeqs[String(seq)] = true;
+    var signature = chatMessageStoreSignature(message);
+    if (!seq || state.signatures[String(seq)] !== signature) writes.push({ seq:seq, index:index, message:message, signature:signature });
+  });
+  Object.keys(state.loadedSeqs || {}).forEach(function(key){ if (!currentSeqs[key]) deletes.push(Number(key)); });
+  return IslandDB.chatWriteBatch(name, writes, deletes).then(function(result){
+    var assigned = Array.isArray(result && result.rows) ? result.rows : [];
+    assigned.forEach(function(row){
+      var item = writes.find(function(w){ return w.index === Number(row.index); });
+      if (!item) return;
+      item.message.__islandSeq = Number(row.seq) || item.message.__islandSeq || 0;
+      currentSeqs[String(item.message.__islandSeq)] = true;
+      state.signatures[String(item.message.__islandSeq)] = chatMessageStoreSignature(item.message);
+    });
+    deletes.forEach(function(seq){ delete state.loadedSeqs[String(seq)]; delete state.signatures[String(seq)]; });
+    list.forEach(function(message){
+      var seq = Number(message && message.__islandSeq) || 0;
+      if (!seq) return;
+      state.loadedSeqs[String(seq)] = true;
+      state.signatures[String(seq)] = chatMessageStoreSignature(message);
+    });
+    state.loaded = true;
+    if (list.length) { state.oldestSeq = Number(list[0].__islandSeq) || state.oldestSeq; state.newestSeq = Number(list[list.length-1].__islandSeq) || state.newestSeq; }
+    state.globalNewestSeq = state.hasNewer ? Math.max(Number(state.globalNewestSeq) || 0, state.newestSeq) : state.newestSeq;
+    state.totalCount = Math.max(0, (Number(state.totalCount) || 0) + writes.filter(function(w){ return !(Number(w.seq) > 0); }).length - deletes.length, Object.keys(state.loadedSeqs).length);
+    if (list.length) {
+      var latestCandidate = list[list.length - 1], latestSeq = Number(latestCandidate && latestCandidate.__islandSeq) || 0;
+      if (!state.hasNewer || latestSeq >= Number(state.globalNewestSeq || 0)) CHAT_LATEST_MESSAGE_CACHE[name] = latestCandidate;
+    } else delete CHAT_LATEST_MESSAGE_CACHE[name];
+    return true;
+  });
+}
+
+function resetChatMessageCacheState(name, messages, page){
+  page = page || {};
+  var previous = CHAT_MESSAGE_STORE_STATE[name] || {};
+  var explicitGlobal = Object.prototype.hasOwnProperty.call(page, 'globalNewestSeq');
+  var state = { loaded:true, hasMore:!!page.hasMore, hasNewer:!!page.hasNewer, oldestSeq:0, newestSeq:0,
+    globalNewestSeq: explicitGlobal ? (Number(page.globalNewestSeq) || 0) : (Number(previous.globalNewestSeq || previous.newestSeq) || 0),
+    loadedSeqs:Object.create(null), signatures:Object.create(null), totalCount:Number(page.count)||0 };
+  (Array.isArray(messages) ? messages : []).forEach(function(message){
+    var seq = Number(message && message.__islandSeq)||0; if(!seq)return;
+    state.loadedSeqs[String(seq)] = true; state.signatures[String(seq)] = chatMessageStoreSignature(message);
+    state.globalNewestSeq = Math.max(state.globalNewestSeq, seq);
+  });
+  if (messages && messages.length) { state.oldestSeq=Number(messages[0].__islandSeq)||0; state.newestSeq=Number(messages[messages.length-1].__islandSeq)||0; }
+  CHAT_MESSAGE_STORE_STATE[name] = state;
+  if (Array.isArray(messages) && messages.length) {
+    var lastSeq = Number(messages[messages.length - 1] && messages[messages.length - 1].__islandSeq) || 0;
+    if (lastSeq >= Number(state.globalNewestSeq || 0)) CHAT_LATEST_MESSAGE_CACHE[name] = messages[messages.length - 1];
+  } else if (Array.isArray(messages) && !messages.length) delete CHAT_LATEST_MESSAGE_CACHE[name];
+  return state;
+}
+
+/* 在发送消息或后台 AI 回复前，将被搜索跳转切换过的窗口刷新到最新一页。 */
+function refreshChatMessageWindowLatest(name){
+  if (!name) return Promise.resolve(false);
+  if (CHAT_MESSAGE_LOAD_PROMISES[name]) return CHAT_MESSAGE_LOAD_PROMISES[name];
+  var promise = IslandDB.chatFlush().then(function(){ return IslandDB.chatReadPage(name, { limit:CHAT_RECENT_PAGE_SIZE, withMedia:true }); }).then(function(page){
+    /* 读盘期间也可能有后台事件追加消息，因此要在覆盖窗口前捕获当下所有未分配序号的记录。 */
+    var pendingMessages = (Array.isArray(MESSAGES[name]) ? MESSAGES[name] : []).filter(function(message){ return message && !(Number(message.__islandSeq) > 0); });
+    var state = rememberChatMessagePage(name, page, 'replace');
+    var list = Array.isArray(MESSAGES[name]) ? MESSAGES[name] : [];
+    pendingMessages.forEach(function(message){ if (list.indexOf(message) < 0) list.push(message); });
+    MESSAGES[name] = list;
+    state.hasNewer = false;
+    if (Array.isArray(page.rows) && page.rows.length) CHAT_LATEST_MESSAGE_CACHE[name] = page.rows[page.rows.length - 1];
+    else delete CHAT_LATEST_MESSAGE_CACHE[name];
+    return page;
+  }).finally(function(){ delete CHAT_MESSAGE_LOAD_PROMISES[name]; });
+  CHAT_MESSAGE_LOAD_PROMISES[name] = promise;
+  return promise;
+}
+
+function ensureChatMessageWindowLatest(name){
+  var state = name && CHAT_MESSAGE_STORE_STATE[name];
+  if (!state || !state.loaded) return refreshChatMessageWindowLatest(name);
+  if (Number(state.globalNewestSeq || 0) <= Number(state.newestSeq || 0) && !state.hasNewer) return Promise.resolve(false);
+  return refreshChatMessageWindowLatest(name);
 }
 
 
@@ -570,22 +754,57 @@ function loadState(){
       missing['island.settings'] = true;
     }
 
-    var names = {};
+    var names = Object.create(null);
     CHATS.forEach(function(c){ if (c && c.name) names[c.name] = true; });
     CONTACTS.forEach(function(c){ if (c && c.name) names[c.name] = true; });
-    var messageNames = Object.keys(names);
-    return Promise.all(messageNames.map(function(name){
-      return IslandDB.get('island.msg.' + name).then(function(value){ return { name:name, value:value }; });
-    })).then(function(messageRows){
+    return IslandDB.chatListNames().then(function(storedNames){
+      (storedNames || []).forEach(function(name){ if (name) names[name] = true; });
+      var messageNames = Object.keys(names), messageRows = [], chunkSize = 50;
+      /* 启动时每个会话最多探测最后一条、不读媒体；分 50 个一组避免一次打开成千上万笔事务。 */
+      function readLatestChunk(offset){
+        var chunk = messageNames.slice(offset, offset + chunkSize);
+        if (!chunk.length) return Promise.resolve(messageRows);
+        return Promise.all(chunk.map(function(name){
+          return IslandDB.chatReadPage(name, { limit:1, withMedia:false }).then(function(page){ return { name:name, page:page }; });
+        })).then(function(rows){ messageRows = messageRows.concat(rows); return readLatestChunk(offset + chunk.length); });
+      }
+      return readLatestChunk(0);
+    }).then(function(messageRows){
+      var chatsChanged = false, chatByName = Object.create(null), contactByName = Object.create(null);
+      CHATS.forEach(function(c){ if (c && c.name) chatByName[c.name] = c; });
+      CONTACTS.forEach(function(c){ if (c && c.name) contactByName[c.name] = c; });
       messageRows.forEach(function(row){
-        if (Array.isArray(row.value)) MESSAGES[row.name] = row.value;
+        var name = row.name, latest = row.page && row.page.rows && row.page.rows[0];
+        if (!Array.isArray(MESSAGES[name])) MESSAGES[name] = [];
+        if (!CHAT_MESSAGE_STORE_STATE[name]) CHAT_MESSAGE_STORE_STATE[name] = { loaded:false, hasMore:false, hasNewer:false, oldestSeq:0, newestSeq:0, globalNewestSeq:Number(latest && latest.__islandSeq)||0, loadedSeqs:Object.create(null), signatures:Object.create(null), totalCount:0 };
+        if (!latest) { delete CHAT_LATEST_MESSAGE_CACHE[name]; return; }
+        /* 最新一条只放在轻量元数据缓存里，不混入未加载消息窗口，防止未读媒体字段的预览对象被误保存覆盖。 */
+        CHAT_LATEST_MESSAGE_CACHE[name] = latest;
+        var ts = typeof chatMessageCreatedAt === 'function' ? Number(chatMessageCreatedAt(latest))||0 : Number(latest.createdAt)||0;
+        var chat = chatByName[name];
+        if (!chat) {
+          var contact = contactByName[name];
+          chat = { name:name, preview:'', time:'', lastTs:0, unread:0, avatar:contact && contact.avatar || null };
+          CHATS.push(chat); chatByName[name] = chat; chatsChanged = true;
+        }
+        if (ts && Number(chat.lastTs||0) !== ts) { chat.lastTs = ts; chatsChanged = true; }
+        if (!String(chat.preview||'').trim()) {
+          if (latest.recalled) chat.preview = latest.from === 'me' ? '你撤回了一条消息' : '对方撤回了一条消息';
+          else if (latest.type === 'transfer' && typeof transferPreviewText === 'function') chat.preview = transferPreviewText(latest);
+          else if (latest.type === 'chat_record') chat.preview = '聊天记录';
+          else if (latest.type === 'sticker') chat.preview = '[表情包]';
+          else if ((latest.type === 'image' || latest.type === 'voice' || latest.type === 'location' || latest.type === 'voice_call_event') && typeof mediaPreviewText === 'function') chat.preview = mediaPreviewText(latest);
+          else if (latest.type === 'file') chat.preview = '[文件] ' + String(latest.name || latest.text || '未命名文件');
+          else chat.preview = String(latest.text || '');
+          if (chat.preview) chatsChanged = true;
+        }
+        if (ts && (!chat.time || chat.time === '刚刚') && typeof formatChatListTime === 'function') { chat.time = formatChatListTime(ts); chatsChanged = true; }
       });
-
       CHATS.forEach(function(c){ if (c && c.name && !Array.isArray(MESSAGES[c.name])) MESSAGES[c.name] = []; });
       CONTACTS.forEach(function(c){ if (c && c.name && !Array.isArray(MESSAGES[c.name])) MESSAGES[c.name] = []; });
+      if (chatsChanged) missing['island.chats'] = true;
 
-      /* 电话索引由真实 voice_call 消息校正；删除后的会话不会凭索引重新生成。 */
-      migratePhoneCallsFromMessages();
+      /* 电话记录有独立索引和备份；启动时不加载聊天历史，也不能用最近一条消息覆盖全量电话统计。 */
       renderPhoneLists();
 
       var writes = [];

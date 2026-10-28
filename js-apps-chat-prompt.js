@@ -163,8 +163,8 @@ function buildMessages(name, options){
 
   // 对话上下文永远是 System Prompt 的最后一个提示区块；真正的历史消息紧随其后发送。
   // contextDepth 既是设置页的“上下文深度”，也是本轮实际读取的最近聊天记录条数。
-  var list = MESSAGES[name] || [];
   var contextDepth = getMemorySettings().contextDepth;
+  var list = getContextMessages(name);
   var contextCount = Math.min(contextDepth, list.length);
   sysParts.push([
     '【Char与User对话上下文｜最后读取】',

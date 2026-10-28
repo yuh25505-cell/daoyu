@@ -16,8 +16,10 @@ const pkg = JSON.parse(read('package.json').toString('utf8'));
 const version = String(pkg.version || '0.0.0');
 
 const STAMP_RE = /const BUILD_STAMP = '[^']*';/;
+const CACHE_STAMP_RE = /const CACHE_VERSION = '[^']*';/;
 const swText = read('sw.js').toString('utf8');
 if (!STAMP_RE.test(swText)) throw new Error("sw.js 里找不到 const BUILD_STAMP = '…'; 这一行");
+if (!CACHE_STAMP_RE.test(swText)) throw new Error("sw.js 里找不到 const CACHE_VERSION = '…'; 这一行");
 
 const shell = [...swText.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]);
 const names = [...new Set([...shell, 'index.html', 'manifest.webmanifest', 'changelog.json', 'sw.js'])]
@@ -31,7 +33,7 @@ for (const name of names) {
   let buf = read(name);
   if (TEXT.test(name)) {
     let text = buf.toString('utf8').replace(/\r\n/g, '\n');
-    if (name === 'sw.js') text = text.replace(STAMP_RE, "const BUILD_STAMP = '';");
+    if (name === 'sw.js') text = text.replace(STAMP_RE, "const BUILD_STAMP = '';").replace(CACHE_STAMP_RE, "const CACHE_VERSION = '__CACHE_VERSION__';");
     buf = Buffer.from(text, 'utf8');
   }
   hash.update(name + '\0');
@@ -47,6 +49,6 @@ fs.writeFileSync(path.join(root, 'js-core-version.js'),
 var ISLAND_VERSION = '${version}';
 var ISLAND_BUILD = '${build}';
 `);
-fs.writeFileSync(path.join(root, 'sw.js'), swText.replace(STAMP_RE, `const BUILD_STAMP = '${build}';`));
+fs.writeFileSync(path.join(root, 'sw.js'), swText.replace(STAMP_RE, `const BUILD_STAMP = '${build}';`).replace(CACHE_STAMP_RE, `const CACHE_VERSION = '${build}';`));
 
 console.log('Stamped build:', build, `(${names.length} files)`);

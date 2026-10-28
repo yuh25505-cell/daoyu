@@ -194,10 +194,12 @@ function chatListMenuAction(action, name){
       if (!ok) return;
       for (var i = CHATS.length - 1; i >= 0; i--) if (CHATS[i] && CHATS[i].name === name) CHATS.splice(i, 1);
       MESSAGES[name] = [];
-      try { saveMessages(name); } catch (e) {}
-      try { saveChats(); } catch (e) {}
-      renderChats();
-      toast('已删除该聊天');
+      IslandDB.chatDeleteAll(name).then(function(){
+        resetChatMessageCacheState(name, [], {hasMore:false,hasNewer:false,count:0,globalNewestSeq:0});
+        try { saveChats(); } catch (e) {}
+        renderChats();
+        toast('已删除该聊天');
+      }).catch(function(err){ toast('删除聊天失败：' + ((err && err.message) || '本机存储错误')); });
     });
     return;
   }
