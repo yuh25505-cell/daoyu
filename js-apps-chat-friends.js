@@ -10,6 +10,12 @@ var friendsViewEl = $('friendsView');
 
 var friendsTab = 'in';
 
+var friendDetailEl = $('friendDetailView');
+
+var friendDetailId = null;
+
+var friendDetailSig = '';
+
 var friendBusy = Object.create(null);
 
 var friendDrafts = Object.create(null);
@@ -310,23 +316,42 @@ function friendThreadHTML(req){
   return html;
 }
 
-function friendCardHTML(req){
-  var p = findPersona(req.name);
-  var busy = !!friendBusy[req.id];
-  var pending = req.status === 'pending';
-  var last = req.thread.length ? req.thread[req.thread.length - 1] : null;
-  var html = '<article class="fr-card" data-fr-id="' + escapeHTML(req.id) + '">' +
-    '<div class="fr-top"><div class="fr-avatar">' + friendAvatarInner(p) + '</div>' +
+function friendStateText(req){
+  if (req.status === 'accepted') return req.dir === 'out' ? '对方已同意' : '已同意';
+  if (req.status === 'declined') return req.dir === 'out' ? '对方不同意' : '已拒绝';
+  return req.dir === 'out' ? '等待对方验证' : '待处理';
+}
+
+function friendInfoHTML(req, p){
+  return '<div class="fr-top"><div class="fr-avatar">' + friendAvatarInner(p) + '</div>' +
     '<div class="fr-id">' + escapeHTML(friendLabel(p)) + '</div></div>' +
     '<div class="fr-row"><span class="fr-row-icon">' + friendSvg(req.via === 'wechat' ? 'wechat' : 'phone', 1.8) + '</span>' +
-    '<span class="fr-row-label">来源</span><span class="fr-row-value">' + friendViaText(req.via) + '</span></div>';
-  if (!pending || req.dir === 'out') {
-    var stateText = req.status === 'accepted' ? '已同意' : (req.status === 'declined' ? (req.dir === 'out' ? '对方不同意' : '已拒绝') : '等待对方验证');
-    html += '<div class="fr-row"><span class="fr-row-icon">' + friendSvg('state', 1.8) + '</span>' +
-      '<span class="fr-row-label">状态</span><span class="fr-row-value">' + stateText + '</span></div>';
-  }
-  html += '<div class="fr-thread" data-fr-thread>' + friendThreadHTML(req) + '</div>';
-  if (pending) {
+    '<span class="fr-row-label">来源</span><span class="fr-row-value">' + friendViaText(req.via) + '</span></div>' +
+    '<div class="fr-row"><span class="fr-row-icon">' + friendSvg('state', 1.8) + '</span>' +
+    '<span class="fr-row-label">状态</span><span class="fr-row-value">' + friendStateText(req) + '</span></div>';
+}
+
+/* 列表里的摘要卡片：只看 ID、来源、状态、验证消息第一条，点一下进入详情 */
+function friendCardHTML(req){
+  var p = findPersona(req.name);
+  var first = req.thread.length ? req.thread[0].text : '';
+  return '<article class="fr-card is-link" data-fr-id="' + escapeHTML(req.id) + '" data-fr-open="1" role="button" tabindex="0">' +
+    friendInfoHTML(req, p) +
+    (first ? '<div class="fr-first">' + escapeHTML(first) + '</div>' : '') +
+    '</article>';
+}
+
+/* 详情子页面：完整验证对话 + 回复 + 同意 / 不同意 */
+function friendDetailBodyHTML(req){
+  return '<article class="fr-card" data-fr-id="' + escapeHTML(req.id) + '">' + friendInfoHTML(req, findPersona(req.name)) + '</article>' +
+    '<div class="fr-detail-thread">' + friendThreadHTML(req) + '</div>';
+}
+
+function friendDetailFootHTML(req){
+  var busy = !!friendBusy[req.id];
+  var last = req.thread.length ? req.thread[req.thread.length - 1] : null;
+  var html = '';
+  if (req.status === 'pending') {
     if (!busy && last && last.from === 'user') html += '<button class="fr-retry" data-fr-act="retry" type="button">获取回复</button>';
     html += '<div class="fr-reply"><input autocomplete="off" class="fr-reply-input" data-fr-draft="' + escapeHTML(req.id) + '" maxlength="200" placeholder="回复验证信息" type="text" value="' + escapeHTML(friendDrafts[req.id] || '') + '"' + (busy ? ' disabled' : '') + '/>' +
       '<button aria-label="发送" class="fr-send" data-fr-act="send" type="button"' + (busy ? ' disabled' : '') + '>' + friendSvg('send', 2.2) + '</button></div>';
@@ -337,7 +362,49 @@ function friendCardHTML(req){
   } else if (req.status === 'accepted') {
     html += '<div class="fr-actions"><button class="fr-btn is-solid" data-fr-act="chat" type="button">发消息</button></div>';
   }
-  return html + '</article>';
+  return html;
+}
+
+function renderFriendDetail(){
+  if (!friendDetailEl || !friendDetailId) return;
+  var req = friendFindReq(friendDetailId);
+  if (!req || !findPersona(req.name)) { closeFriendDetail(); return; }
+  var scroll = $('friendDetailScroll'), foot = $('friendDetailFoot');
+  if (!scroll || !foot) return;
+  var sig = req.id + '|' + req.thread.length + '|' + req.status + '|' + (friendBusy[req.id] ? 1 : 0);
+  if (sig === friendDetailSig && friendDetailEl.classList.contains('is-open')) return;
+  var keepFocus = document.activeElement && document.activeElement.hasAttribute && document.activeElement.hasAttribute('data-fr-draft');
+  var wasBottom = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 80;
+  var fresh = friendDetailSig.split('|')[0] !== req.id;
+  scroll.innerHTML = friendDetailBodyHTML(req);
+  foot.innerHTML = friendDetailFootHTML(req);
+  friendDetailSig = sig;
+  if (fresh || wasBottom || friendBusy[req.id]) scroll.scrollTop = scroll.scrollHeight;
+  if (keepFocus && req.status === 'pending' && !friendBusy[req.id]) {
+    var input = foot.querySelector('[data-fr-draft]');
+    if (input) { input.focus(); }
+  }
+}
+
+function openFriendDetail(id){
+  var req = friendFindReq(id);
+  if (!req || !friendDetailEl) return;
+  releaseInputFocus();
+  friendDetailId = id;
+  friendDetailSig = '';
+  friendDetailEl.classList.add('is-open');
+  friendDetailEl.setAttribute('aria-hidden', 'false');
+  renderFriendDetail();
+}
+
+function closeFriendDetail(){
+  if (!friendDetailEl) return;
+  friendDetailEl.classList.remove('is-open');
+  friendDetailEl.setAttribute('aria-hidden', 'true');
+  friendDetailId = null;
+  friendDetailSig = '';
+  var input = friendDetailEl.querySelector('[data-fr-draft]');
+  if (input) input.blur();
 }
 
 function renderFriendsView(){
@@ -355,12 +422,12 @@ function renderFriendsView(){
     ? items.map(friendCardHTML).join('')
     : '<div class="fr-empty">' + (friendsTab === 'in' ? '没有新的好友申请' : '还没有发出的申请') + '</div>';
   box.scrollTop = top;
-  $$('[data-fr-thread]', box).forEach(function(el){ el.scrollTop = el.scrollHeight; });
   $$('.friends-seg-btn[data-friends-tab]', friendsViewEl).forEach(function(btn){
     var on = btn.dataset.friendsTab === friendsTab;
     btn.classList.toggle('is-active', on);
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
   });
+  renderFriendDetail();
   if (friendsViewEl.classList.contains('is-open') && friendsTab === 'in') {
     var changed = false;
     friendList().forEach(function(r){ if (r && r.dir === 'in' && !r.seen) { r.seen = true; changed = true; } });
@@ -383,6 +450,7 @@ function openFriendsView(tab){
 
 function closeFriendsView(){
   if (!friendsViewEl) return;
+  closeFriendDetail();
   closeFriendAddSheet();
   friendsViewEl.classList.remove('is-open');
   friendsViewEl.setAttribute('aria-hidden', 'true');
@@ -540,26 +608,43 @@ function bindFriendsEvents(){
     if (btn) setFriendsTab(btn.dataset.friendsTab);
   });
 
+  function handleAct(e){
+    var btn = e.target.closest('[data-fr-act]');
+    if (!btn || btn.disabled || !friendDetailId) return;
+    var id = friendDetailId;
+    var act = btn.dataset.frAct;
+    if (act === 'accept') friendAccept(id);
+    else if (act === 'decline') friendDecline(id);
+    else if (act === 'send') friendSendReply(id);
+    else if (act === 'retry') friendRetry(id);
+    else if (act === 'chat') { var req = friendFindReq(id); if (req) { closeFriendsView(); openPM(req.name); } }
+  }
+
   var scroll = $('friendsScroll');
   if (scroll) {
     scroll.addEventListener('click', function(e){
-      var btn = e.target.closest('[data-fr-act]');
-      if (!btn || btn.disabled) return;
-      var card = btn.closest('[data-fr-id]');
-      var id = card && card.dataset.frId;
-      if (!id) return;
-      var act = btn.dataset.frAct;
-      if (act === 'accept') friendAccept(id);
-      else if (act === 'decline') friendDecline(id);
-      else if (act === 'send') friendSendReply(id);
-      else if (act === 'retry') friendRetry(id);
-      else if (act === 'chat') { var req = friendFindReq(id); if (req) { closeFriendsView(); openPM(req.name); } }
+      var card = e.target.closest('[data-fr-open]');
+      if (card && card.dataset.frId) openFriendDetail(card.dataset.frId);
     });
-    scroll.addEventListener('input', function(e){
+    scroll.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var card = e.target.closest('[data-fr-open]');
+      if (!card || !card.dataset.frId) return;
+      e.preventDefault();
+      openFriendDetail(card.dataset.frId);
+    });
+  }
+
+  var detailBack = $('friendDetailBack');
+  if (detailBack) detailBack.addEventListener('click', closeFriendDetail);
+  var foot = $('friendDetailFoot');
+  if (foot) {
+    foot.addEventListener('click', handleAct);
+    foot.addEventListener('input', function(e){
       var input = e.target.closest('[data-fr-draft]');
       if (input) friendDrafts[input.dataset.frDraft] = input.value;
     });
-    scroll.addEventListener('keydown', function(e){
+    foot.addEventListener('keydown', function(e){
       if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
       var input = e.target.closest('[data-fr-draft]');
       if (!input) return;
