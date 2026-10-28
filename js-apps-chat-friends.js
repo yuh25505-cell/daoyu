@@ -322,12 +322,21 @@ function friendStateText(req){
   return req.dir === 'out' ? '等待对方验证' : '待处理';
 }
 
-function friendInfoHTML(req, p){
-  return '<div class="fr-top"><div class="fr-avatar">' + friendAvatarInner(p) + '</div>' +
-    '<div class="fr-id">' + escapeHTML(friendLabel(p)) + '</div></div>' +
-    '<div class="fr-row"><span class="fr-row-icon">' + friendSvg(req.via === 'wechat' ? 'wechat' : 'phone', 1.8) + '</span>' +
+function friendInfoHTML(req, p, pair){
+  var top = '<div class="fr-top"><div class="fr-avatar">' + friendAvatarInner(p) + '</div>' +
+    '<div class="fr-id">' + escapeHTML(friendLabel(p)) + '</div></div>';
+  var viaIcon = friendSvg(req.via === 'wechat' ? 'wechat' : 'phone', 1.8);
+  var stateIcon = friendSvg('state', 1.8);
+  if (pair) {
+    return top + '<div class="fr-pair">' +
+      '<div class="fr-cell"><span class="fr-row-icon">' + viaIcon + '</span><span class="fr-cell-text"><b>来源</b><em>' + friendViaText(req.via) + '</em></span></div>' +
+      '<div class="fr-cell"><span class="fr-row-icon">' + stateIcon + '</span><span class="fr-cell-text"><b>状态</b><em>' + friendStateText(req) + '</em></span></div>' +
+      '</div>';
+  }
+  return top +
+    '<div class="fr-row"><span class="fr-row-icon">' + viaIcon + '</span>' +
     '<span class="fr-row-label">来源</span><span class="fr-row-value">' + friendViaText(req.via) + '</span></div>' +
-    '<div class="fr-row"><span class="fr-row-icon">' + friendSvg('state', 1.8) + '</span>' +
+    '<div class="fr-row"><span class="fr-row-icon">' + stateIcon + '</span>' +
     '<span class="fr-row-label">状态</span><span class="fr-row-value">' + friendStateText(req) + '</span></div>';
 }
 
@@ -336,7 +345,7 @@ function friendCardHTML(req){
   var p = findPersona(req.name);
   var first = req.thread.length ? req.thread[0].text : '';
   return '<article class="fr-card is-link" data-fr-id="' + escapeHTML(req.id) + '" data-fr-open="1" role="button" tabindex="0">' +
-    friendInfoHTML(req, p) +
+    friendInfoHTML(req, p, true) +
     (first ? '<div class="fr-first">' + escapeHTML(first) + '</div>' : '') +
     '</article>';
 }
