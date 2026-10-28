@@ -19,6 +19,7 @@ fs.writeFileSync('release-notes.txt', text + '\n', 'utf8');
 let version = '';
 try { version = String(JSON.parse(fs.readFileSync('package.json', 'utf8')).version || ''); } catch (e) {}
 const run = parseInt(process.env.GITHUB_RUN_NUMBER || '', 10) || 0;
-const file = (process.env.APK_NAME || '岛屿') + '.apk';
+/* 岛屿下载用的英文名安装包（GitHub 会改掉中文文件名，下载地址会对不上） */
+const file = 'island.apk';
 fs.writeFileSync('apk-update.json', JSON.stringify({ run, version, file, notes: text }, null, 2) + '\n', 'utf8');
 console.log('Release notes written:', title || '(无标题)');

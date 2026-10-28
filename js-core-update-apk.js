@@ -220,7 +220,7 @@ var IslandApkUpdate = (function(){
               _dlg.querySelector('.is-cancel').hidden = true;
               resolve(true);
             } else if (s.state === 'error') {
-              fail((s.error || '网络不太稳') + '\n\n你可以稍后再点一次「检查更新」重新下载。');
+              fail((/404/.test(s.error || '') ? '没有找到安装包文件，可能还在上传中' : (s.error || '网络不太稳')) + '\n\n你可以稍后再点一次「检查更新」重新下载。');
             } else if (s.state === 'cancelled') {
               hideDlg(); resolve(false);
             } else {
