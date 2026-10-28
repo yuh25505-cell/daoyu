@@ -152,6 +152,7 @@ jobs:
       - name: Prepare release notes
         id: notes
         run: |
+          cp "android/app/build/outputs/apk/release/${APK_NAME}.apk" android/app/build/outputs/apk/release/island.apk
           node release-notes.mjs
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
@@ -163,6 +164,7 @@ jobs:
           body_path: release-notes.txt
           files: |
             android/app/build/outputs/apk/release/${{ env.APK_NAME }}.apk
+            android/app/build/outputs/apk/release/island.apk
             apk-update.json
           make_latest: true
         env:
