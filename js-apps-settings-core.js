@@ -216,6 +216,7 @@ function renderIslandStorage(){
           'island.settings': '系统设置',
           'island.chats': '聊天列表',
           'island.contacts': '通讯录',
+          'island.friendRequests': '好友申请',
           'island.moments': '动态',
           'island.phoneCalls': '通话记录',
           'island.memory': '记忆数据',

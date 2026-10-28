@@ -22,6 +22,12 @@ var personaAddModeField = $('personaAddModeField'), personaAddModeOptions = $('p
 
 var personaAddMode = 'direct';
 
+var personaReceiveField = $('personaReceiveField'), personaViaOptions = $('personaViaOptions');
+
+var personaVerifyField = $('personaVerifyField'), personaVerifyInput = $('newVerifyMsg'), personaVerifyGenBtn = $('personaVerifyGenBtn');
+
+var personaVia = 'phone';
+
 var userPhoneInput = $('userPhone'), userWechatInput = $('userWechat');
 
 
@@ -195,9 +201,57 @@ function renderPersonaAddModeOptions(){
   });
 }
 
+function renderPersonaViaOptions(){
+  if (!personaViaOptions) return;
+  $$('.gender-option', personaViaOptions).forEach(function(btn){
+    var selected = btn.dataset.personaVia === personaVia;
+    btn.classList.toggle('is-selected', selected);
+    btn.setAttribute('aria-checked', selected ? 'true' : 'false');
+  });
+}
+
+/* 只有「新建」且选了「TA发送好友申请」时，才显示来源和验证信息 */
+function syncPersonaReceiveFields(){
+  var show = personaSheetMode === 'create' && personaAddMode === 'receive';
+  if (personaReceiveField) personaReceiveField.hidden = !show;
+  if (personaVerifyField) personaVerifyField.hidden = !show;
+}
+
 function setPersonaAddMode(value){
   personaAddMode = ['send', 'receive', 'direct'].indexOf(value) >= 0 ? value : 'direct';
   renderPersonaAddModeOptions();
+  syncPersonaReceiveFields();
+}
+
+function setPersonaVia(value){
+  personaVia = value === 'wechat' ? 'wechat' : 'phone';
+  renderPersonaViaOptions();
+}
+
+/* 用主API生成「TA 发来的验证信息」。返回 Promise<string> */
+function generatePersonaVerifyText(){
+  var name = nameInput.value.trim(), desc = descInput.value.trim();
+  if (!name && !desc) return Promise.reject(new Error('先填一下名字或人设描述，主API才知道 TA 会怎么说。'));
+  if (!isApiReady()) return Promise.reject(new Error('还没有配置主API。请先到「设置」里把主API配置好。'));
+  return friendGenerateVerifyText({
+    name: name, desc: desc, gender: personaGender,
+    socialId: personaSocialIdInput.value.trim()
+  }, personaVia);
+}
+
+function runPersonaVerifyGen(){
+  if (!personaVerifyGenBtn || personaVerifyGenBtn.disabled) return;
+  var label = personaVerifyGenBtn.innerHTML;
+  personaVerifyGenBtn.disabled = true;
+  personaVerifyGenBtn.textContent = '生成中…';
+  generatePersonaVerifyText().then(function(text){
+    personaVerifyInput.value = text;
+  }).catch(function(err){
+    islandAlert((err && err.message ? err.message : '未知原因') + '\n\n可以再点一次，或者自己手动填写。', { title: '生成失败' });
+  }).then(function(){
+    personaVerifyGenBtn.disabled = false;
+    personaVerifyGenBtn.innerHTML = label;
+  });
 }
 
 function openSheet(){
@@ -211,8 +265,12 @@ function openSheet(){
   avatarData = null;
   personaGender = 'unspecified';
   personaAddMode = 'direct';
+  personaVia = 'phone';
+  if (personaVerifyInput) personaVerifyInput.value = '';
   if (personaAddModeField) personaAddModeField.hidden = false;
   renderPersonaAddModeOptions();
+  renderPersonaViaOptions();
+  syncPersonaReceiveFields();
   renderAvatarPreview();
   renderPersonaGenderOptions();
   nameInput.disabled = false;
@@ -234,6 +292,7 @@ function openPersonaSheetForEdit(name){
   avatarData = found.avatar || null;
   personaGender = found.gender || 'unspecified';
   if (personaAddModeField) personaAddModeField.hidden = true;
+  syncPersonaReceiveFields();
   renderAvatarPreview();
   renderPersonaGenderOptions();
   nameInput.disabled = true;
@@ -255,6 +314,33 @@ function closeSheet(){
   nameInput.disabled = false;
 }
 
+/* 把角色放进「消息」和「联系人」（直接添加 / 同意好友申请后都走这里） */
+function addPersonaToLists(name, avatar, preview){
+  if (!findChatByName(name)) CHATS.unshift({ name: name, preview: preview || '你们还没有聊过天。', time: '刚刚', unread: 0, avatar: avatar || null });
+  saveChats();
+  var has = CONTACTS.some(function(c){ return c && c.name === name; });
+  if (!has) CONTACTS.push({ name: name, letter: getContactInitial(name), avatar: avatar || null });
+  CONTACTS.sort(function(a, b){ return compareContactNames(a && a.name, b && b.name); });
+  saveContacts();
+}
+
+function finishCreatePersona(entry, mode, verifyText){
+  State.personas.push(entry);
+  savePersonas();
+  if (mode === 'direct') {
+    addPersonaToLists(entry.name, entry.avatar);
+    MESSAGES[entry.name] = [];
+    saveMessages(entry.name);
+  } else if (mode === 'receive') {
+    friendCreateIncomingRequest(entry, personaVia, verifyText);
+  }
+  renderChats(); renderContacts();
+  closeSheet();
+  if (mode === 'direct') toast('已创建人设 · ' + entry.name);
+  else if (mode === 'send') islandAlert('已创建「' + entry.name + '」。到「联系人」里点「新朋友」，右上角搜 TA 的手机号或微信号，就能发送好友申请。', { title: '创建好了' });
+  else islandAlert('「' + entry.name + '」给你发来了好友申请，到「联系人」里点「新朋友」查看。', { title: '创建好了' });
+}
+
 function createPersona(){
   if (personaSheetMode === 'edit') {
     savePersonaEdit();
@@ -264,19 +350,35 @@ function createPersona(){
   if (!name) return;
   var acctPhone = cleanPhoneText(personaPhoneInput.value), acctWechat = cleanWechatText(personaWechatInput.value);
   if (!checkAccountFields(acctPhone, acctWechat)) return;
-  CHATS.unshift({ name: name, preview: '你们还没有聊过天。', time: '刚刚', unread: 0, avatar: avatarData });
-  saveChats();
-  var letter = getContactInitial(name);
-  CONTACTS.push({ name: name, letter: letter, avatar: avatarData });
-  CONTACTS.sort(function(a, b){ return compareContactNames(a && a.name, b && b.name); });
-  saveContacts();
-  MESSAGES[name] = [];
-  saveMessages(name);
-  State.personas.push({ name: name, desc: descInput.value.trim(), avatar: avatarData, gender: personaGender, addMode: personaAddMode, socialId: personaSocialIdInput.value.trim(), phone: acctPhone, wechatId: acctWechat, language:'zh-CN', splitPromptEnabled:true, disableSplitPromptForNonChinese:false, autoExpandTranslation:false, createdAt: Date.now() });
-  savePersonas();
-  renderChats(); renderContacts();
-  closeSheet();
-  toast('已创建人设 · ' + name);
+  var mode = personaAddMode;
+  if (mode === 'send' && !acctPhone && !acctWechat) {
+    islandAlert('选了「发送好友申请」，要先填 TA 的手机号或微信号，之后才能搜到 TA。', { title: '还不能创建' });
+    return;
+  }
+  if (mode === 'receive') {
+    if (personaVia === 'phone' && !acctPhone) { islandAlert('来源选了「手机号」，请先填 TA 的手机号。', { title: '还不能创建' }); return; }
+    if (personaVia === 'wechat' && !acctWechat) { islandAlert('来源选了「微信号」，请先填 TA 的微信号。', { title: '还不能创建' }); return; }
+  }
+  var entry = { name: name, desc: descInput.value.trim(), avatar: avatarData, gender: personaGender, addMode: mode, socialId: personaSocialIdInput.value.trim(), phone: acctPhone, wechatId: acctWechat, language:'zh-CN', splitPromptEnabled:true, disableSplitPromptForNonChinese:false, autoExpandTranslation:false, createdAt: Date.now() };
+  if (mode !== 'receive') { finishCreatePersona(entry, mode, ''); return; }
+
+  var typed = personaVerifyInput ? personaVerifyInput.value.trim() : '';
+  if (typed) { finishCreatePersona(entry, mode, typed); return; }
+  if (!isApiReady()) {
+    islandAlert('验证信息没填，主API又还没配置，没法自动生成。请手动填一句，或先到「设置」配置主API。', { title: '还不能创建' });
+    return;
+  }
+  var btnLabel = createBtn.textContent;
+  createBtn.disabled = true;
+  createBtn.textContent = '正在生成验证信息…';
+  friendGenerateVerifyText(entry, personaVia).then(function(text){
+    finishCreatePersona(entry, mode, text);
+  }).catch(function(err){
+    islandAlert('验证信息没有生成成功：' + (err && err.message ? err.message : '未知原因') + '\n\n可以再点一次，或者自己手动填写。', { title: '生成失败' });
+  }).then(function(){
+    createBtn.textContent = btnLabel;
+    createBtn.disabled = nameInput.value.trim().length === 0;
+  });
 }
 
 function savePersonaEdit(){
@@ -571,6 +673,14 @@ function bindChatPersonaEvents(){
       setPersonaGender(btn.dataset.personaGender || 'unspecified');
     });
   }
+  if (personaViaOptions) {
+    personaViaOptions.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-persona-via]');
+      if (!btn) return;
+      setPersonaVia(btn.dataset.personaVia);
+    });
+  }
+  if (personaVerifyGenBtn) personaVerifyGenBtn.addEventListener('click', runPersonaVerifyGen);
   if (createBtn) createBtn.addEventListener('click', createPersona);
   if (personaAcctGenBtn) personaAcctGenBtn.addEventListener('click', generatePersonaAccount);
   [personaPhoneInput, userPhoneInput].forEach(function(el){

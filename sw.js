@@ -1,7 +1,7 @@
-const CACHE_VERSION = '1.90.1-169f1994';
+const CACHE_VERSION = '1.94.0-b1d7c6f7';
 const CACHE_NAME = `island-${CACHE_VERSION}`;
 // 由 stamp-version.mjs 自动写入：每次发布内容变化，sw.js 的字节也跟着变，浏览器就能发现新版本。
-const BUILD_STAMP = '1.90.1-169f1994';
+const BUILD_STAMP = '1.94.0-b1d7c6f7';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const APP_SHELL = [
   './css-apps-polaroid.css',
   './css-apps-home-page2.css',
   './css-apps-chat.css',
+  './css-apps-chat-friends.css',
   './css-apps-phone.css',
   './css-apps-worldbook.css',
   './css-apps-settings.css',
@@ -53,6 +54,7 @@ const APP_SHELL = [
   './js-apps-chat-voicecall.js',
   './js-apps-chat-panel.js',
   './js-apps-chat-persona.js',
+  './js-apps-chat-friends.js',
   './js-apps-chat-settings.js',
   './js-apps-phone.js',
   './js-apps-worldbook.js',

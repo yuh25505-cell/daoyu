@@ -24,6 +24,7 @@
 <link href="./css-apps-polaroid.css" rel="stylesheet"/>
 <link href="./css-apps-home-page2.css" rel="stylesheet"/>
 <link href="./css-apps-chat.css" rel="stylesheet"/>
+<link href="./css-apps-chat-friends.css" rel="stylesheet"/>
 <link href="./css-apps-phone.css" rel="stylesheet"/>
 <link href="./css-apps-worldbook.css" rel="stylesheet"/>
 <link href="./css-apps-settings.css" rel="stylesheet"/>
@@ -269,7 +270,15 @@
 </div>
 <button class="search-cancel" type="button">取消</button>
 </div>
-<div class="panel-scroll"><div id="contactList"></div></div>
+<div class="panel-scroll">
+<button class="fr-entry" id="friendsEntry" type="button">
+<span aria-hidden="true" class="fr-entry-icon"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="10" cy="8.6" r="3.4"></circle><path d="M3.8 19.2a6.2 6.2 0 0 1 12.4 0"></path><path d="M19 7.2v5.6M16.2 10h5.6"></path></svg></span>
+<span class="fr-entry-name">新朋友</span>
+<span class="fr-badge" hidden="" id="friendsEntryBadge"></span>
+<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
+<div id="contactList"></div>
+</div>
 </section>
 <section class="tab-panel" data-panel="moments">
 <header class="panel-head">
@@ -333,6 +342,7 @@
 <button class="chat-tab" data-tab="contacts" type="button">
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="9.2" cy="9" r="3.2"></circle><path d="M3.6 19a5.6 5.6 0 0 1 11.2 0"></path><path d="M16 6.2a3 3 0 0 1 0 5.8"></path><path d="M17.4 13.6a5.4 5.4 0 0 1 3 4.4"></path></svg>
 <span>联系人</span>
+<i aria-hidden="true" class="fr-tab-dot" hidden="" id="friendsTabDot"></i>
 </button>
 <button class="chat-tab" data-tab="moments" type="button">
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="12" cy="12" r="8.5"></circle><path d="M15.5 8.5 13.4 13.4 8.5 15.5l2.1-4.9z"></path></svg>
@@ -354,6 +364,53 @@
 <button aria-checked="false" class="theme-option chat-theme-option" data-chat-appearance-choice="mono" role="radio" type="button"><span class="theme-option-main"><strong>Mono</strong></span><span aria-hidden="true" class="appearance-switch"></span></button>
 <button aria-checked="false" class="theme-option chat-theme-option" data-chat-appearance-choice="soft" role="radio" type="button"><span class="theme-option-main"><strong>柔和</strong></span><span aria-hidden="true" class="appearance-switch"></span></button>
 </div></div>
+</div>
+</div>
+<div aria-hidden="true" class="friends-view" data-swipe-back id="friendsView">
+<div class="friends-shell">
+<header class="friends-head">
+<button aria-label="返回联系人" class="friends-circle" data-swipe-back-close id="friendsBack" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button>
+<h1 class="friends-title">新朋友</h1>
+<button aria-label="添加朋友" class="friends-circle is-solid" id="friendsAddBtn" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24"><circle cx="10" cy="8.6" r="3.4"></circle><path d="M3.8 19.2a6.2 6.2 0 0 1 12.4 0"></path><path d="M19 7.2v5.6M16.2 10h5.6"></path></svg></button>
+</header>
+<div class="friends-seg" id="friendsSeg" role="tablist">
+<button aria-selected="true" class="friends-seg-btn is-active" data-friends-tab="in" role="tab" type="button">收到的<i class="fr-seg-dot" hidden="" id="friendsSegDot"></i></button>
+<button aria-selected="false" class="friends-seg-btn" data-friends-tab="out" role="tab" type="button">发出的</button>
+</div>
+<div class="friends-scroll" id="friendsScroll"></div>
+</div>
+<div class="fr-sheet-mask" id="friendAddMask"></div>
+<div aria-label="添加朋友" aria-modal="true" class="fr-sheet" id="friendAddSheet" role="dialog">
+<header class="fr-sheet-head">
+<button aria-label="关闭" class="friends-circle" id="friendAddClose" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+<h2 class="fr-sheet-title">添加朋友</h2>
+<button aria-label="发送申请" class="friends-circle is-solid" disabled="" id="friendAddSend" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24"><path d="M5 12.8 10 17.6 19 7.4"></path></svg></button>
+</header>
+<div class="friends-seg fr-sheet-seg" id="friendAddSeg" role="tablist">
+<button aria-selected="true" class="friends-seg-btn is-active" data-add-by="phone" role="tab" type="button">手机号</button>
+<button aria-selected="false" class="friends-seg-btn" data-add-by="wechat" role="tab" type="button">微信号</button>
+</div>
+<div class="fr-sheet-body">
+<div class="fr-big-card">
+<div class="fr-big-avatar" id="friendAddAvatar"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="12" cy="8.6" r="3.6"></circle><path d="M5 19.6a7 7 0 0 1 14 0"></path></svg></div>
+<div class="fr-search-field">
+<input autocapitalize="off" autocomplete="off" autocorrect="off" enterkeyhint="search" id="friendAddInput" inputmode="tel" maxlength="24" placeholder="输入手机号" spellcheck="false" type="text"/>
+<button aria-label="搜索" class="fr-search-go" id="friendAddSearch" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg></button>
+</div>
+</div>
+<div id="friendAddResult"></div>
+</div>
+</div>
+<div aria-hidden="true" class="friend-detail-view" data-swipe-back id="friendDetailView">
+<div class="friends-shell">
+<header class="friends-head">
+<button aria-label="返回" class="friends-circle" data-swipe-back-close id="friendDetailBack" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button>
+<h1 class="friends-title">好友申请</h1>
+<span class="friends-circle-spacer"></span>
+</header>
+<div class="friends-scroll" id="friendDetailScroll"></div>
+<div class="fr-detail-foot" id="friendDetailFoot"></div>
+</div>
 </div>
 </div>
 <div aria-hidden="true" class="pm-view" id="pmView">
@@ -2220,6 +2277,23 @@
 <button aria-checked="true" class="gender-option is-selected" data-persona-add-mode="direct" role="radio" type="button">直接添加</button>
 </div>
 </div>
+<div class="gender-field" hidden="" id="personaReceiveField">
+<div class="gender-field-label">来源</div>
+<div aria-label="来源" class="gender-options" id="personaViaOptions" role="radiogroup">
+<button aria-checked="true" class="gender-option is-selected" data-persona-via="phone" role="radio" type="button">手机号</button>
+<button aria-checked="false" class="gender-option" data-persona-via="wechat" role="radio" type="button">微信号</button>
+</div>
+</div>
+<div hidden="" id="personaVerifyField">
+<div class="field-row">
+<label class="field-label" for="newVerifyMsg">验证信息</label>
+<button class="import-btn" id="personaVerifyGenBtn" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.4l-1.9-5.6L4.5 10.9 10.1 9z"></path></svg>
+      用主API生成
+    </button>
+</div>
+<textarea class="field" id="newVerifyMsg" maxlength="80" placeholder="不填就由主API生成"></textarea>
+</div>
 <div class="field-row">
 <label class="field-label" for="newSocialId">ID</label>
 <button class="import-btn" id="personaAcctGenBtn" type="button">
@@ -2317,6 +2391,7 @@
 <script defer="" src="./js-apps-chat-voicecall.js"></script>
 <script defer="" src="./js-apps-chat-panel.js"></script>
 <script defer="" src="./js-apps-chat-persona.js"></script>
+<script defer="" src="./js-apps-chat-friends.js"></script>
 <script defer="" src="./js-apps-chat-settings.js"></script>
 <script defer="" src="./js-apps-phone.js"></script>
 <script defer="" src="./js-apps-worldbook.js"></script>

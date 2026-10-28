@@ -331,7 +331,11 @@ function compareContactNames(a, b){
 
 function renderContacts(){
   var box = $('contactList'); if (!box) return;
-  if (!CONTACTS.length) { box.innerHTML = '<div class="empty-state">还没有联系人<br>点右上角 ＋ 添加人设</div>'; return; }
+  if (!CONTACTS.length) {
+    box.innerHTML = '<div class="empty-state">还没有联系人<br>点右上角 ＋ 添加人设</div>';
+    if (typeof renderFriendBadges === 'function') renderFriendBadges();
+    return;
+  }
   var groups = {};
   CONTACTS.forEach(function(c){
     var letter = getContactInitial(c && c.name);
@@ -353,6 +357,7 @@ function renderContacts(){
     });
   });
   box.innerHTML = html;
+  if (typeof renderFriendBadges === 'function') renderFriendBadges();
 }
 
 
