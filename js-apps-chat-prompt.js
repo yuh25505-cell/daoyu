@@ -83,8 +83,19 @@ function buildMessages(name, options){
   if (persona && persona.desc) {
     sysParts.push('【角色人设】\n' + String(persona.desc).trim());
   }
+  var personaAcct = [];
+  if (persona && persona.socialId) personaAcct.push('社交软件网名：' + persona.socialId);
+  if (persona && persona.phone) personaAcct.push('手机号：' + persona.phone);
+  if (persona && persona.wechatId) personaAcct.push('微信号：' + persona.wechatId);
+  if (personaAcct.length) {
+    sysParts.push('【角色账号信息】\n' + personaAcct.join('\n') + '\n这些是你自己的账号信息，只有对方问起、或者剧情自然需要时才用，不要主动报出来。');
+  }
   var userPersona = '【用户人设】\n正在和你聊天的人名叫「' + (user.name || '我') + '」。';
   if (user.desc) userPersona += '\n' + String(user.desc).trim();
+  var userAcct = [];
+  if (user.phone) userAcct.push('手机号：' + user.phone);
+  if (user.wechatId) userAcct.push('微信号：' + user.wechatId);
+  if (userAcct.length) userPersona += '\n对方的' + userAcct.join('，') + '。只有需要时才用，不要主动提起。';
   userPersona += '\n请把对方当作「' + (user.name || '我') + '」来称呼和互动。';
   sysParts.push(userPersona);
 

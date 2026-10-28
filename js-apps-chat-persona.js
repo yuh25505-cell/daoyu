@@ -14,6 +14,12 @@ var importFileBtn = $('importFileBtn'), personaFileInput = $('personaFileInput')
 
 var personaGenderOptions = $('personaGenderOptions');
 
+var personaSocialIdInput = $('newSocialId'), personaPhoneInput = $('newPhone'), personaWechatInput = $('newWechat');
+
+var personaAcctGenBtn = $('personaAcctGenBtn');
+
+var userPhoneInput = $('userPhone'), userWechatInput = $('userWechat');
+
 
 var MAX_AVATAR = 4 * 1024 * 1024, MAX_PERSONA = 512 * 1024, AVATAR_MAX_EDGE = 256;
 
@@ -25,6 +31,100 @@ var personaSheetMode = 'create';
 
 var editingPersonaName = null;
 
+
+/* ---------- 手机号 / 微信号：输入清理、检查、副API生成 ---------- */
+function cleanPhoneText(v){ return String(v == null ? '' : v).replace(/[^\d+\- ]/g, '').trim().slice(0, 20); }
+
+function cleanWechatText(v){ return String(v == null ? '' : v).replace(/[^A-Za-z0-9_\-]/g, '').slice(0, 20); }
+
+function phoneLooksValid(v){
+  if (!v) return true;
+  var digits = v.replace(/\D/g, '').length;
+  return digits >= 6 && digits <= 15;
+}
+
+function wechatLooksValid(v){ return !v || /^[A-Za-z][A-Za-z0-9_-]{5,19}$/.test(v); }
+
+/* 检查通过返回 true；不通过会弹岛屿提示并返回 false */
+function checkAccountFields(phone, wechat){
+  if (!phoneLooksValid(phone)) {
+    islandAlert('手机号看起来不对，请检查一下。只能填数字、+ 和 -，数字要有 6 到 15 位。', { title: '手机号有问题' });
+    return false;
+  }
+  if (!wechatLooksValid(wechat)) {
+    islandAlert('微信号要 6 到 20 位，用字母开头，只能有字母、数字、下划线和减号。', { title: '微信号有问题' });
+    return false;
+  }
+  return true;
+}
+
+function parseAccountJson(text){
+  var raw = String(typeof stripThinkTags === 'function' ? stripThinkTags(text) : text || '');
+  var m = raw.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('副API没有按要求返回内容');
+  var obj;
+  try { obj = JSON.parse(m[0]); } catch (e) { throw new Error('副API返回的内容读不懂'); }
+  var out = {
+    socialId: String(obj.socialId || '').trim().slice(0, 24),
+    phone: cleanPhoneText(obj.phone),
+    wechatId: cleanWechatText(obj.wechatId)
+  };
+  if (!out.socialId || !out.phone || !out.wechatId) throw new Error('副API返回的信息不完整');
+  if (!phoneLooksValid(out.phone) || !wechatLooksValid(out.wechatId)) throw new Error('副API生成的号码格式不对');
+  return out;
+}
+
+function generatePersonaAccount(){
+  if (!personaAcctGenBtn || personaAcctGenBtn.disabled) return;
+  var name = nameInput.value.trim(), desc = descInput.value.trim();
+  if (!name && !desc) {
+    islandAlert('先填一下名字或人设描述，副API才知道该生成什么样的账号。', { title: '还不能生成' });
+    return;
+  }
+  if (!isSecondaryApiReady()) {
+    islandAlert('还没有配置副API。请先到「设置」里把副API配置好，再回来生成。', { title: '没有副API' });
+    return;
+  }
+  var hasOld = personaSocialIdInput.value.trim() || personaPhoneInput.value.trim() || personaWechatInput.value.trim();
+  var ask = hasOld
+    ? islandConfirm('已经填了内容，生成后会把现在的 ID、手机号和微信号都换掉。要继续吗？', { title: '重新生成', confirmText: '继续生成', cancelText: '不换了' })
+    : Promise.resolve(true);
+  ask.then(function(ok){
+    if (!ok) return;
+    var label = personaAcctGenBtn.innerHTML;
+    personaAcctGenBtn.disabled = true;
+    personaAcctGenBtn.textContent = '生成中…';
+    var gender = ({ male: '男', female: '女', nonbinary: '非二元性别' })[personaGender] || '未设置';
+    var prompt = [
+      '请根据下面的角色信息，为这个角色生成一组符合 TA 的身份、年龄、国家和性格的社交账号信息。',
+      '要求：',
+      '1. socialId：社交软件网名，24 个字以内，像真人随手起的，要符合角色性格，不要直接用真名。',
+      '2. phone：手机号。默认用中国大陆 11 位手机号（1 开头，第二位是 3 到 9），要像真实号码，不要 12345678 这种有规律的号码；如果角色设定明确在其他国家，就用那个国家常见的格式，只能有数字、+、-、空格。',
+      '3. wechatId：微信号，6 到 20 位，字母开头，只能有字母、数字、下划线、减号，要符合角色性格。',
+      '只输出一个 JSON 对象，格式：{"socialId":"","phone":"","wechatId":""}，不要输出别的文字。',
+      '',
+      '【角色名】' + (name || '未填写'),
+      '【性别】' + gender,
+      '【人设】' + (desc ? desc.slice(0, 3000) : '未填写')
+    ].join('\n');
+    var secCfg = getSecondaryApiConfig();
+    var cfg = Object.assign({}, secCfg, { maxTokens: Math.max(400, Math.min(1200, Number(secCfg.maxTokens) || 400)), temperature: 0.9 });
+    callApiOnce([
+      { role: 'system', content: '你是账号信息生成助手，只输出要求的 JSON，不要解释。' },
+      { role: 'user', content: prompt }
+    ], cfg).then(function(text){
+      var acct = parseAccountJson(text);
+      personaSocialIdInput.value = acct.socialId;
+      personaPhoneInput.value = acct.phone;
+      personaWechatInput.value = acct.wechatId;
+    }).catch(function(err){
+      islandAlert('没有生成成功：' + (err && err.message ? err.message : '未知原因') + '\n\n可以再点一次，或者自己手动填写。', { title: '生成失败' });
+    }).then(function(){
+      personaAcctGenBtn.disabled = false;
+      personaAcctGenBtn.innerHTML = label;
+    });
+  });
+}
 
 function renderAvatarPreview(){
   if (!avatarUploadBtn) return;
@@ -96,6 +196,7 @@ function openSheet(){
   renderPersonaGenderOptions();
   nameInput.disabled = false;
   nameInput.value = ''; descInput.value = '';
+  personaSocialIdInput.value = ''; personaPhoneInput.value = ''; personaWechatInput.value = '';
   createBtn.disabled = true;
   releaseInputFocus();
 }
@@ -116,6 +217,9 @@ function openPersonaSheetForEdit(name){
   nameInput.disabled = true;
   nameInput.value = found.name || '';
   descInput.value = found.desc || '';
+  personaSocialIdInput.value = found.socialId || '';
+  personaPhoneInput.value = found.phone || '';
+  personaWechatInput.value = found.wechatId || '';
   createBtn.disabled = false;
   releaseInputFocus();
 }
@@ -136,6 +240,8 @@ function createPersona(){
   }
   var name = nameInput.value.trim();
   if (!name) return;
+  var acctPhone = cleanPhoneText(personaPhoneInput.value), acctWechat = cleanWechatText(personaWechatInput.value);
+  if (!checkAccountFields(acctPhone, acctWechat)) return;
   CHATS.unshift({ name: name, preview: '你们还没有聊过天。', time: '刚刚', unread: 0, avatar: avatarData });
   saveChats();
   var letter = getContactInitial(name);
@@ -144,7 +250,7 @@ function createPersona(){
   saveContacts();
   MESSAGES[name] = [];
   saveMessages(name);
-  State.personas.push({ name: name, desc: descInput.value.trim(), avatar: avatarData, gender: personaGender, language:'zh-CN', splitPromptEnabled:true, disableSplitPromptForNonChinese:false, autoExpandTranslation:false, createdAt: Date.now() });
+  State.personas.push({ name: name, desc: descInput.value.trim(), avatar: avatarData, gender: personaGender, socialId: personaSocialIdInput.value.trim(), phone: acctPhone, wechatId: acctWechat, language:'zh-CN', splitPromptEnabled:true, disableSplitPromptForNonChinese:false, autoExpandTranslation:false, createdAt: Date.now() });
   savePersonas();
   renderChats(); renderContacts();
   closeSheet();
@@ -155,9 +261,14 @@ function savePersonaEdit(){
   if (!editingPersonaName) return;
   var found = findPersona(editingPersonaName);
   if (!found) { closeSheet(); return; }
+  var editPhone = cleanPhoneText(personaPhoneInput.value), editWechat = cleanWechatText(personaWechatInput.value);
+  if (!checkAccountFields(editPhone, editWechat)) return;
   found.desc = descInput.value.trim();
   found.avatar = avatarData;
   found.gender = personaGender;
+  found.socialId = personaSocialIdInput.value.trim();
+  found.phone = editPhone;
+  found.wechatId = editWechat;
   found.updatedAt = Date.now();
   savePersonas();
   for (var i = 0; i < CHATS.length; i++) {
@@ -229,6 +340,8 @@ function openUserSheetForCreate(){
   userAvatarData = null;
   renderUserAvatarPreview();
   userSocialIdInput.value = '';
+  userPhoneInput.value = '';
+  userWechatInput.value = '';
   userNameInput.value = '';
   userSignatureInput.value = '';
   userDescInput.value = '';
@@ -256,6 +369,8 @@ function openUserSheetForEdit(id){
   userAvatarData = found.avatar || null;
   renderUserAvatarPreview();
   userSocialIdInput.value = found.socialId || found.name || '';
+  userPhoneInput.value = found.phone || '';
+  userWechatInput.value = found.wechatId || '';
   userNameInput.value = found.name || '';
   userSignatureInput.value = found.signature || '';
   userDescInput.value = found.desc || '';
@@ -282,9 +397,11 @@ function createUserPersonaFromSheet(){
   var name = userNameInput.value.trim();
   var socialId = userSocialIdInput.value.trim() || name;
   if (!name) return;
+  var newPhone = cleanPhoneText(userPhoneInput.value), newWechat = cleanWechatText(userWechatInput.value);
+  if (!checkAccountFields(newPhone, newWechat)) return;
   var id = genId('up_');
   State.userPersonas.push({
-    id: id, socialId: socialId, name: name,
+    id: id, socialId: socialId, name: name, phone: newPhone, wechatId: newWechat,
     signature: userSignatureInput.value.trim(),
     desc: userDescInput.value.trim(),
     avatar: userAvatarData,
@@ -305,6 +422,8 @@ function saveUserPersonaEdit(){
   var name = userNameInput.value.trim();
   var socialId = userSocialIdInput.value.trim() || name;
   if (!name) return;
+  var savePhone = cleanPhoneText(userPhoneInput.value), saveWechat = cleanWechatText(userWechatInput.value);
+  if (!checkAccountFields(savePhone, saveWechat)) return;
   var found = null;
   for (var i = 0; i < State.userPersonas.length; i++) {
     if (State.userPersonas[i].id === editingUserPersonaId) { found = State.userPersonas[i]; break; }
@@ -312,6 +431,8 @@ function saveUserPersonaEdit(){
   if (!found) { closeUserSheet(); return; }
   found.name = name;
   found.socialId = socialId;
+  found.phone = savePhone;
+  found.wechatId = saveWechat;
   found.signature = userSignatureInput.value.trim();
   found.desc = userDescInput.value.trim();
   found.avatar = userAvatarData;
@@ -422,4 +543,11 @@ function bindChatPersonaEvents(){
     });
   }
   if (createBtn) createBtn.addEventListener('click', createPersona);
+  if (personaAcctGenBtn) personaAcctGenBtn.addEventListener('click', generatePersonaAccount);
+  [personaPhoneInput, userPhoneInput].forEach(function(el){
+    if (el) el.addEventListener('input', function(){ var c = String(el.value).replace(/[^\d+\- ]/g, ''); if (c !== el.value) el.value = c; });
+  });
+  [personaWechatInput, userWechatInput].forEach(function(el){
+    if (el) el.addEventListener('input', function(){ var c = String(el.value).replace(/[^A-Za-z0-9_\-]/g, ''); if (c !== el.value) el.value = c; });
+  });
 }
