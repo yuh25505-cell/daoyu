@@ -18,6 +18,10 @@ var personaSocialIdInput = $('newSocialId'), personaPhoneInput = $('newPhone'), 
 
 var personaAcctGenBtn = $('personaAcctGenBtn');
 
+var personaAddModeField = $('personaAddModeField'), personaAddModeOptions = $('personaAddModeOptions');
+
+var personaAddMode = 'direct';
+
 var userPhoneInput = $('userPhone'), userWechatInput = $('userWechat');
 
 
@@ -182,6 +186,20 @@ function setPersonaGender(value){
   renderPersonaGenderOptions();
 }
 
+function renderPersonaAddModeOptions(){
+  if (!personaAddModeOptions) return;
+  $$('.gender-option', personaAddModeOptions).forEach(function(btn){
+    var selected = btn.dataset.personaAddMode === personaAddMode;
+    btn.classList.toggle('is-selected', selected);
+    btn.setAttribute('aria-checked', selected ? 'true' : 'false');
+  });
+}
+
+function setPersonaAddMode(value){
+  personaAddMode = ['send', 'receive', 'direct'].indexOf(value) >= 0 ? value : 'direct';
+  renderPersonaAddModeOptions();
+}
+
 function openSheet(){
   if (!sheet) return;
   personaSheetMode = 'create';
@@ -192,6 +210,9 @@ function openSheet(){
   sheetMask.classList.add('is-open');
   avatarData = null;
   personaGender = 'unspecified';
+  personaAddMode = 'direct';
+  if (personaAddModeField) personaAddModeField.hidden = false;
+  renderPersonaAddModeOptions();
   renderAvatarPreview();
   renderPersonaGenderOptions();
   nameInput.disabled = false;
@@ -212,6 +233,7 @@ function openPersonaSheetForEdit(name){
   sheetMask.classList.add('is-open');
   avatarData = found.avatar || null;
   personaGender = found.gender || 'unspecified';
+  if (personaAddModeField) personaAddModeField.hidden = true;
   renderAvatarPreview();
   renderPersonaGenderOptions();
   nameInput.disabled = true;
@@ -250,7 +272,7 @@ function createPersona(){
   saveContacts();
   MESSAGES[name] = [];
   saveMessages(name);
-  State.personas.push({ name: name, desc: descInput.value.trim(), avatar: avatarData, gender: personaGender, socialId: personaSocialIdInput.value.trim(), phone: acctPhone, wechatId: acctWechat, language:'zh-CN', splitPromptEnabled:true, disableSplitPromptForNonChinese:false, autoExpandTranslation:false, createdAt: Date.now() });
+  State.personas.push({ name: name, desc: descInput.value.trim(), avatar: avatarData, gender: personaGender, addMode: personaAddMode, socialId: personaSocialIdInput.value.trim(), phone: acctPhone, wechatId: acctWechat, language:'zh-CN', splitPromptEnabled:true, disableSplitPromptForNonChinese:false, autoExpandTranslation:false, createdAt: Date.now() });
   savePersonas();
   renderChats(); renderContacts();
   closeSheet();
@@ -533,6 +555,13 @@ function bindChatPersonaEvents(){
   if (nameInput) {
     nameInput.addEventListener('input', function(){
       createBtn.disabled = nameInput.value.trim().length === 0;
+    });
+  }
+  if (personaAddModeOptions) {
+    personaAddModeOptions.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-persona-add-mode]');
+      if (!btn) return;
+      setPersonaAddMode(btn.dataset.personaAddMode);
     });
   }
   if (personaGenderOptions) {
