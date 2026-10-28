@@ -161,7 +161,9 @@ jobs:
           tag_name: apk-build-${{ github.run_number }}
           name: 岛屿 v${{ steps.notes.outputs.version }} APK（构建 ${{ github.run_number }}）
           body_path: release-notes.txt
-          files: android/app/build/outputs/apk/release/${{ env.APK_NAME }}.apk
+          files: |
+            android/app/build/outputs/apk/release/${{ env.APK_NAME }}.apk
+            apk-update.json
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
