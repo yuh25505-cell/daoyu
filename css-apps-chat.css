@@ -2655,3 +2655,16 @@ html[data-theme="dark"] .pm-ie-field input{ color-scheme:dark; }
 
 .pm-recall-pill{ gap:6px; }
 .pm-recall-view-btn{ pointer-events:auto; flex:none; border:none; background:none; padding:0; margin:0; font:inherit; font-weight:var(--island-fw-700, 700); color:var(--fg); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+
+
+/* ---------- 删除好友：设置按键 + 聊天页提示条 ---------- */
+.pm-chat-settings-danger button + button{ margin-top:10px; }
+.pm-chat-settings-danger button[hidden]{ display:none; }
+.pm-chat-settings-danger #pmSettingsDeleteFriend{ background:transparent; color:var(--fg); }
+.pm-friend-gate{ display:none; flex:none; align-items:center; gap:12px; padding:12px 14px calc(env(safe-area-inset-bottom, 0px) + var(--island-bottom-lift,10px)); border-top:0.5px solid rgba(16,16,16,.07); background:var(--bg); color:var(--fg); }
+.pm-view.is-not-friend .pm-friend-gate{ display:flex; }
+.pm-view.is-not-friend .pm-bar,
+.pm-view.is-not-friend .pm-panel{ display:none; }
+.pm-friend-gate-text{ flex:1 1 auto; min-width:0; font-size:calc(14px * var(--island-font-size-scale)); line-height:1.4; }
+.pm-friend-gate-btn{ flex:none; min-height:38px; padding:0 18px; border:none; border-radius:19px; background:var(--fg); color:var(--bg); font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); }
+.pm-friend-gate-btn:disabled{ opacity:.45; }

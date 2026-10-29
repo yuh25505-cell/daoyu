@@ -498,6 +498,10 @@ function bindPMChatSettingsEvents(){
   });
   var clearRecords = $('pmSettingsClearRecords');
   if (clearRecords) clearRecords.addEventListener('click', clearCurrentChatRecords);
+  var deleteFriendBtn = $('pmSettingsDeleteFriend');
+  if (deleteFriendBtn) deleteFriendBtn.addEventListener('click', function(){
+    if (currentName && typeof friendDeleteByUser === 'function') friendDeleteByUser(currentName);
+  });
 
   if (sessionToneImportBtn && sessionToneFileInput) {
     sessionToneImportBtn.addEventListener('click', function(){

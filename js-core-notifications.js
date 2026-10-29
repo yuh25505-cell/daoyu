@@ -198,6 +198,7 @@ function randomNextProactiveAt(now){
 function getProactiveCandidate(){
   var candidates = CHATS.filter(function(c){
     if (!c || !c.name) return false;
+    if (typeof friendIsActive === 'function' && !friendIsActive(c.name)) return false;
     var list = MESSAGES[c.name] || [];
     var state = typeof CHAT_MESSAGE_STORE_STATE !== 'undefined' ? CHAT_MESSAGE_STORE_STATE[c.name] : null;
     var cachedLatest = typeof CHAT_LATEST_MESSAGE_CACHE !== 'undefined' ? CHAT_LATEST_MESSAGE_CACHE[c.name] : null;

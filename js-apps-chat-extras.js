@@ -281,6 +281,15 @@ function processAiChatDirectives(name, rawText){
     return '';
   });
 
+  // Char 主动删除好友：[[DELETE_FRIEND reason="原因"]]。这里只记录，等这轮话都发完后由聊天界面执行。
+  var deleteFriend=null;
+  raw=raw.replace(/\[\[\s*DELETE_FRIEND\b([\s\S]*?)\]\]/gi,function(_,attrText){
+    var attrs=parseTransferDirectiveAttrs(attrText);
+    deleteFriend={reason:String(attrs.reason||attrs.text||attrs.note||'').trim().slice(0,120)};
+    changed=true; notices.push('删除了好友');
+    return '';
+  });
+
   // Char 主动引用：优先引用现有消息（id/index），也支持直接提供引用文本。
   raw=raw.replace(/\[\[\s*QUOTE\b([\s\S]*?)\]\]/gi,function(_,attrText){
     var attrs=parseTransferDirectiveAttrs(attrText);
@@ -349,7 +358,7 @@ function processAiChatDirectives(name, rawText){
     MESSAGES[name].push(event);changed=true;incomingCall={event:event,name:name,greeting:greeting};notices.push('语音来电');return '';
   });
   if(changed){var list2=MESSAGES[name], last=list2[list2.length-1];if(last)updateChatPreviewForMessage(name,last);saveMessages(name);saveChats();if(currentName===name){renderMessages(true);scrollBottom(true);}else renderChats();}
-  return {text:raw.replace(/\n{3,}/g,'\n\n').trim(),changed:changed,notices:notices,incomingCall:incomingCall,replyTo:generatedReplyTo};
+  return {text:raw.replace(/\n{3,}/g,'\n\n').trim(),changed:changed,notices:notices,incomingCall:incomingCall,replyTo:generatedReplyTo,deleteFriend:deleteFriend};
 }
 
 function processAiTransferDirectives(name, rawText){return processAiChatDirectives(name,rawText);}

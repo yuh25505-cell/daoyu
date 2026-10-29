@@ -131,7 +131,7 @@ function processAutoTranslationItems(name, items){
     out.push({ text: original, translation: translation });
     textCursor++;
   }
-  return { items:out, changed:processed.changed, notices:processed.notices || [], incomingCall:processed.incomingCall || null, replyTo:processed.replyTo || null };
+  return { items:out, changed:processed.changed, notices:processed.notices || [], incomingCall:processed.incomingCall || null, replyTo:processed.replyTo || null, deleteFriend:processed.deleteFriend || null };
 }
 
 

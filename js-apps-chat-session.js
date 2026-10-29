@@ -66,6 +66,7 @@ function openPM(name){
     if (CHATS[i].name === name && (CHATS[i].unread || CHATS[i].markedUnread)) { CHATS[i].unread = 0; CHATS[i].markedUnread = false; cleared = true; break; }
   }
   updateAiButtonVisibility();
+  if (typeof friendSyncGate === 'function') friendSyncGate();
   /* 非首屏必需的工作放到下一帧 / 转场之后：读样式、输入框测高、重绘会话列表与落盘。 */
   requestAnimationFrame(function(){
     if (currentName !== name) return;
@@ -121,6 +122,7 @@ function closePM(){
 function sendMessage(text, latestWindowReady){
   text = String(text || '').trim();
   if (!text || !currentName) return;
+  if (typeof friendNotFriendGuard === 'function' && friendNotFriendGuard(currentName)) return;
   var targetName = currentName;
   var windowState = CHAT_MESSAGE_STORE_STATE[targetName];
   if (!latestWindowReady && (!windowState || !windowState.loaded || ((Number(windowState.globalNewestSeq)||0) > (Number(windowState.newestSeq)||0) || windowState.hasNewer))) {
@@ -159,6 +161,7 @@ function splitReply(text){
 
 function scheduleReply(delay){
   if (replyTimer) { toast('AI 正在回复中'); return; }
+  if (typeof friendNotFriendGuard === 'function' && friendNotFriendGuard(currentName)) return;
   if (!isApiReady()) { toast('请先在设置中配置 AI 接口'); return; }
   var nameAtSchedule = currentName;
 
@@ -214,6 +217,7 @@ function scheduleReply(delay){
         if (transferResult.changed) {
           saveMessages(nameAtRequest); if (currentName === nameAtRequest) { renderMessages(true); scrollBottom(true); } renderChats(); saveChats(); maybeSummarizeShortTermMemory(nameAtRequest);
           if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name);
+          if (typeof friendApplyCharDelete === 'function') friendApplyCharDelete(nameAtRequest, transferResult);
           return;
         }
         toast('AI 返回为空'); return;
@@ -234,6 +238,7 @@ function scheduleReply(delay){
           }
           renderChats(); saveChats();
           maybeSummarizeShortTermMemory(nameAtRequest);
+          if (typeof friendApplyCharDelete === 'function') friendApplyCharDelete(nameAtRequest, transferResult);
           return;
         }
         var segment = segmentItems[index++];
@@ -257,6 +262,7 @@ function scheduleReply(delay){
           renderChats(); saveChats();
           maybeSummarizeShortTermMemory(nameAtRequest);
           if (transferResult.incomingCall && transferResult.incomingCall.event) showIncomingVoiceCall(transferResult.incomingCall.event, transferResult.incomingCall.name);
+          if (typeof friendApplyCharDelete === 'function') friendApplyCharDelete(nameAtRequest, transferResult);
         }
       }
       appendNextSegment();
