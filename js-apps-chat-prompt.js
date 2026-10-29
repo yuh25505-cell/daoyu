@@ -144,7 +144,7 @@ function buildMessages(name, options){
   var addressableRows = [];
   addressableList.slice(addressableStart).forEach(function(item, offset){
     var actualIndex = addressableStart + offset;
-    if (!item || item.recalled || item.type === 'voice_call_event' || item.type === 'voice_call') return;
+    if (!item || item.recalled || item.type === 'voice_call_event' || item.type === 'voice_call' || item.type === 'location') return;
     var preview = messageCopyText(item).replace(/\s+/g,' ').trim().slice(0,60) || '[消息]';
     addressableRows.push('索引 ' + actualIndex + '｜id="' + String(item.id || '') + '"｜' + (item.from === 'them' ? '角色' : '用户') + '｜类型=' + String(item.type || 'text') + '｜预览=' + preview);
   });
@@ -290,16 +290,7 @@ function buildMessages(name, options){
       }
       return;
     }
-    if (m && m.type === 'location') {
-      var locLat = normalizeCoordinate(m.lat, -90, 90);
-      var locLng = normalizeCoordinate(m.lng, -180, 180);
-      if (locLat != null && locLng != null) {
-        var locLabel = String(m.label || (m.source === 'virtual' ? '虚拟位置' : '我的当前位置'));
-        var locMode = m.source === 'virtual' ? '虚拟位置' : '手机当前位置';
-        out.push({ role: role, content: '【' + (role === 'user' ? '用户分享了位置' : '角色分享了位置') + '】\n位置名称：' + locLabel + '\n位置类型：' + locMode + '\n纬度：' + locLat + '\n经度：' + locLng + '\n请把这条位置消息当作真实聊天中的位置分享来理解；不要擅自声称知道更精确的门牌号或街道，除非上下文明确提供。' });
-      }
-      return;
-    }
+    if (m && m.type === 'location') return;
     if (m && m.type === 'voice_call_event') {
       out.push({ role: role, content:'【角色主动语音来电】\n来电状态：' + String(m.handledStatus || 'pending') + (m.greeting ? '\n来电开场白：' + String(m.greeting) : '') + '\n这是聊天应用内的虚拟语音来电。' });
       return;

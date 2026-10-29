@@ -596,8 +596,8 @@ function messageCopyText(msg){
   }
   if (msg.type === 'location') {
     var label = String(msg.label || (msg.source === 'virtual' ? '虚拟位置' : '当前位置')).trim();
-    var lat = normalizeCoordinate(msg.lat, -90, 90), lng = normalizeCoordinate(msg.lng, -180, 180);
-    return (label || '[位置]') + (lat != null && lng != null ? '\n' + lat.toFixed(6) + ', ' + lng.toFixed(6) : '');
+    var addr = String(msg.address || '').trim();
+    return (label || '[位置]') + (addr ? '\n' + addr : '');
   }
   if (msg.type === 'transfer') {
     var amount = normalizeTransferAmount(msg.amount);
