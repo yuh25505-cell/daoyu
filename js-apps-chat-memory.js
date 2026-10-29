@@ -656,10 +656,7 @@ function memoryMessageText(msg){
     var vt = getVoiceTranscript(msg);
     return who + '：' + (vt ? '[语音] ' + vt : '[语音消息，' + Math.max(1, Math.round(Number(msg.duration) || 1)) + '秒；当前无可靠转写]');
   }
-  if (msg.type === 'location') {
-    var lat = normalizeCoordinate(msg.lat, -90, 90), lng = normalizeCoordinate(msg.lng, -180, 180);
-    return timePrefix + who + '：[' + (msg.source === 'virtual' ? '虚拟位置' : '真实手机位置') + '] ' + String(msg.label || '当前位置') + (lat != null && lng != null ? '（纬度：' + lat + '，经度：' + lng + '）' : '');
-  }
+  if (msg.type === 'location') return '';
   if (msg.type === 'file') {
     return timePrefix + who + '：[文件] ' + String(msg.name || msg.text || '未命名文件') + '（' + String(msg.mime || '未知类型') + '，' + formatFileSize(msg.size) + ')' + (msg.content ? '\n文件内容：' + clampFileText(msg.content, 6000) : '\n文件正文未成功读取');
   }

@@ -2,7 +2,7 @@
  * 拆分自原 app.js；所有 js 文件以经典脚本方式共享全局作用域，需按 index.html 中的顺序加载。 */
 'use strict';
 
-var phoneApp = $('phoneApp'), phoneBack = $('phoneBack'), phoneContactsBack = $('phoneContactsBack'), phoneFavoritesBack = $('phoneFavoritesBack'), phoneContactDetailBack = $('phoneContactDetailBack'), phoneDetailBack = $('phoneDetailBack'), phoneRecentList = $('phoneRecentList'), phoneRecentManage = $('phoneRecentManage'), phoneRecentSelection = $('phoneRecentSelection'), phoneRecentCharFilter = $('phoneRecentCharFilter'), phoneRecentSelectAll = $('phoneRecentSelectAll'), phoneRecentSelectionCount = $('phoneRecentSelectionCount'), phoneRecentDelete = $('phoneRecentDelete'), phoneRecentCancel = $('phoneRecentCancel'), phoneContactList = $('phoneContactList'), phoneFavoriteList = $('phoneFavoriteList'), phoneContactCallList = $('phoneContactCallList'), phoneContactDetailTitle = $('phoneContactDetailTitle'), phoneDetailTitle = $('phoneDetailTitle'), phoneDetailScroll = $('phoneDetailScroll'), phoneDetailFavorite = $('phoneDetailFavorite'), phoneBottomNav = $('phoneBottomNav');
+var phoneApp = $('phoneApp'), phoneBack = $('phoneBack'), phoneContactsBack = $('phoneContactsBack'), phoneFavoritesBack = $('phoneFavoritesBack'), phoneContactDetailBack = $('phoneContactDetailBack'), phoneDetailBack = $('phoneDetailBack'), phoneRecentList = $('phoneRecentList'), phoneRecentManage = $('phoneRecentManage'), phoneRecentSelection = $('phoneRecentSelection'), phoneRecentCharFilter = $('phoneRecentCharFilter'), phoneRecentSelectAll = $('phoneRecentSelectAll'), phoneRecentSelectionCount = $('phoneRecentSelectionCount'), phoneRecentDelete = $('phoneRecentDelete'), phoneRecentCancel = $('phoneRecentCancel'), phoneContactList = $('phoneContactList'), phoneFavoriteList = $('phoneFavoriteList'), phoneContactCallList = $('phoneContactCallList'), phoneContactDetailTitle = $('phoneContactDetailTitle'), phoneDetailTitle = $('phoneDetailTitle'), phoneDetailScroll = $('phoneDetailScroll'), phoneDetailFavorite = $('phoneDetailFavorite'), phoneBottomNav = $('phoneBottomNav'), phoneSearchOpen = $('phoneSearchOpen'), phoneSearchField = $('phoneSearchField'), phoneSearchInput = $('phoneSearchInput'), phoneSearchClose = $('phoneSearchClose');
 
 
 
@@ -17,6 +17,23 @@ var phoneRecentManageMode = false;
 var phoneRecentSelectedSessions = {};
 
 var phoneRecentCharFilterValue = '';
+
+var phoneSearchQuery = '';
+
+var PHONE_ICON_CALL = '<svg viewBox="0 0 24 24"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.58a1 1 0 0 1-.25 1.01l-2.2 2.2Z"></path></svg>';
+var PHONE_ICON_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8.5 7H17v8.5"></path></svg>';
+var PHONE_ICON_IN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 7 7 17M15.5 17H7V8.5"></path></svg>';
+var PHONE_ICON_FAV = '<svg class="phone-call-fav" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.9l2.72 5.52 6.09.88-4.41 4.3 1.04 6.07L12 16.81l-5.44 2.86 1.04-6.07-4.41-4.3 6.09-.88L12 2.9Z"></path></svg>';
+
+
+function phoneSearchMatch(){
+  var q = String(phoneSearchQuery || '').trim().toLowerCase();
+  if (!q) return true;
+  for (var i = 0; i < arguments.length; i++) {
+    if (String(arguments[i] || '').toLowerCase().indexOf(q) >= 0) return true;
+  }
+  return false;
+}
 
 
 function phoneCallBySessionId(sessionId){
@@ -36,7 +53,8 @@ function getPhoneRecentSelectedSessionIds(){
 function phoneRecentSelectionVisibleRows(){
   var filter = String(phoneRecentCharFilterValue || '');
   return phoneSortedCalls(function(record){
-    return !filter || String(record && record.name || '') === filter;
+    if (filter && String(record && record.name || '') !== filter) return false;
+    return phoneSearchMatch(record && record.name, record && record.preview);
   });
 }
 
@@ -69,8 +87,8 @@ function updatePhoneRecentSelectionUI(){
     phoneRecentSelectAll.textContent = allSelected ? '取消全选' : '全选当前';
   }
   if (phoneRecentManage) {
-    phoneRecentManage.textContent = phoneRecentManageMode ? '完成' : '选择';
-    phoneRecentManage.setAttribute('aria-label', phoneRecentManageMode ? '完成选择' : '选择通话记录');
+    phoneRecentManage.textContent = phoneRecentManageMode ? '完成' : '编辑';
+    phoneRecentManage.setAttribute('aria-label', phoneRecentManageMode ? '完成编辑' : '编辑通话记录');
   }
 }
 
@@ -142,6 +160,7 @@ function deletePhoneCallSessions(sessionIds){
     }
   });
 
+  ids.forEach(function(id){ delete phoneCallDbCache[id]; });
   phoneRecentSelectedSessions = {};
   return Promise.all([savePhoneCalls()].concat(changedMessageKeys.map(function(name){ return saveMessages(name); }))).then(function(){
     renderPhoneLists();
@@ -286,6 +305,15 @@ function formatPhoneCallTime(ts){
 }
 
 
+function formatPhoneListDate(ts){
+  var d = new Date(Number(ts || 0));
+  if (!isFinite(d.getTime())) return '';
+  var now = new Date();
+  if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()) return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+}
+
+
 function formatPhoneCallDuration(ms){
   ms = Math.max(0, Number(ms) || 0);
   var total = Math.floor(ms / 1000);
@@ -313,34 +341,35 @@ function phoneSortedCalls(filterFn){
 }
 
 
-function phoneStarHTML(record){
-  return '<button type="button" class="phone-call-star ' + (record.favorite ? 'is-favorite' : '') + '" data-phone-call-favorite="' + escapeHTML(record.sessionId) + '" aria-label="' + (record.favorite ? '取消收藏' : '收藏通话') + '" title="' + (record.favorite ? '取消收藏' : '收藏通话') + '">' +
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.9l2.72 5.52 6.09.88-4.41 4.3 1.04 6.07L12 16.81l-5.44 2.86 1.04-6.07-4.41-4.3 6.09-.88L12 2.9Z"></path></svg>' +
-    '</button>';
+function phoneCallRowHTML(record, selectable){
+  var sessionId = String(record.sessionId || '');
+  var selected = !!selectable && !!phoneRecentSelectedSessions[sessionId];
+  var name = String(record.name || '未知联系人');
+  var sub = String(record.preview || '语音通话');
+  return '<div class="phone-call-item' + (selectable ? ' phone-call-item-selectable' + (selected ? ' is-selected' : '') : '') + '" data-phone-call-session="' + escapeHTML(sessionId) + '" role="button" tabindex="0"' + (selectable ? ' aria-pressed="' + (selected ? 'true' : 'false') + '"' : '') + '>' +
+    (selectable ? '<label class="phone-call-select" aria-label="选择与 ' + escapeHTML(name) + ' 的通话"><input type="checkbox" data-phone-call-select="' + escapeHTML(sessionId) + '" ' + (selected ? 'checked' : '') + '><span aria-hidden="true"></span></label>' : '') +
+    phoneCallAvatarHTML(record.name) +
+    '<div class="phone-call-copy">' +
+      '<div class="phone-call-top"><strong>' + escapeHTML(name) + '</strong>' + (record.favorite ? PHONE_ICON_FAV : '') + '</div>' +
+      '<div class="phone-call-sub">' + (record.direction === 'in' ? PHONE_ICON_IN : PHONE_ICON_OUT) + '<span>' + escapeHTML(sub) + '</span></div>' +
+    '</div>' +
+    '<div class="phone-call-side"><span class="phone-call-time">' + escapeHTML(formatPhoneListDate(record.updatedAt || record.startedAt)) + '</span>' + (selectable ? '' : '<span class="phone-call-go" aria-hidden="true">' + PHONE_ICON_CALL + '</span>') + '</div>' +
+  '</div>';
+}
+
+
+function phoneEmptyHTML(icon, title, text){
+  return '<div class="phone-empty"><div class="phone-empty-icon">' + escapeHTML(icon) + '</div><strong>' + escapeHTML(title) + '</strong>' + (text ? '<span>' + escapeHTML(text) + '</span>' : '') + '</div>';
 }
 
 
 function renderPhoneCallItems(box, rows, emptyTitle, emptyText){
   if (!box) return;
   if (!rows.length) {
-    box.innerHTML = '<div class="phone-empty"><div class="phone-empty-icon">电</div><strong>' + escapeHTML(emptyTitle || '暂无通话记录') + '</strong><span>' + escapeHTML(emptyText || '') + '</span></div>';
+    box.innerHTML = String(phoneSearchQuery || '').trim() ? phoneEmptyHTML('搜', '没有结果', '') : phoneEmptyHTML('电', emptyTitle || '暂无通话记录', emptyText || '');
     return;
   }
-  box.innerHTML = rows.map(function(record){
-    var count = Number(record.messageCount || getVoiceCallMessages(record.name, record.sessionId).length || 0);
-    var meta = (count ? count + ' 段对话 · ' : '') + formatPhoneCallDuration(record.durationMs);
-    return '<div class="phone-call-item" data-phone-call-session="' + escapeHTML(record.sessionId) + '" role="button" tabindex="0">' +
-      phoneCallAvatarHTML(record.name) +
-      '<div class="phone-call-copy">' +
-        '<div class="phone-call-top"><strong>' + escapeHTML(record.name || '未知联系人') + '</strong></div>' +
-        '<div class="phone-call-preview">' + escapeHTML(record.preview || '语音通话') + '</div>' +
-        '<div class="phone-call-meta">' + escapeHTML(meta) + '</div>' +
-      '</div>' +
-      '<div class="phone-call-side">' +
-        '<div class="phone-call-side-actions"><span class="phone-call-time">' + escapeHTML(formatPhoneCallTime(record.updatedAt || record.startedAt)) + '</span>' + phoneStarHTML(record) + '<span class="phone-call-chevron" aria-hidden="true">›</span></div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+  box.innerHTML = rows.map(function(record){ return phoneCallRowHTML(record, false); }).join('');
 }
 
 
@@ -369,42 +398,25 @@ function renderPhoneRecentList(){
   }
   if (!phoneRecentList) return;
   if (!rows.length) {
-    phoneRecentList.innerHTML = '<div class="phone-empty"><div class="phone-empty-icon">电</div><strong>暂无匹配通话</strong><span>切换 char 筛选条件，或退出选择模式查看全部记录。</span></div>';
+    phoneRecentList.innerHTML = phoneEmptyHTML('电', '暂无匹配通话', '');
     updatePhoneRecentSelectionUI();
     return;
   }
-  phoneRecentList.innerHTML = rows.map(function(record){
-    var count = Number(record.messageCount || getVoiceCallMessages(record.name, record.sessionId).length || 0);
-    var meta = (count ? count + ' 段对话 · ' : '') + formatPhoneCallDuration(record.durationMs);
-    var sessionId = String(record.sessionId || '');
-    var selected = !!phoneRecentSelectedSessions[sessionId];
-    return '<div class="phone-call-item phone-call-item-selectable ' + (selected ? 'is-selected' : '') + '" data-phone-call-session="' + escapeHTML(sessionId) + '" role="button" tabindex="0" aria-pressed="' + (selected ? 'true' : 'false') + '">' +
-      '<label class="phone-call-select" aria-label="选择与 ' + escapeHTML(record.name || '未知联系人') + ' 的通话"><input type="checkbox" data-phone-call-select="' + escapeHTML(sessionId) + '" ' + (selected ? 'checked' : '') + '><span aria-hidden="true"></span></label>' +
-      phoneCallAvatarHTML(record.name) +
-      '<div class="phone-call-copy">' +
-        '<div class="phone-call-top"><strong>' + escapeHTML(record.name || '未知联系人') + '</strong></div>' +
-        '<div class="phone-call-preview">' + escapeHTML(record.preview || '语音通话') + '</div>' +
-        '<div class="phone-call-meta">' + escapeHTML(meta) + '</div>' +
-      '</div>' +
-      '<div class="phone-call-side">' +
-        '<div class="phone-call-side-actions"><span class="phone-call-time">' + escapeHTML(formatPhoneCallTime(record.updatedAt || record.startedAt)) + '</span><span class="phone-call-chevron" aria-hidden="true">›</span></div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+  phoneRecentList.innerHTML = rows.map(function(record){ return phoneCallRowHTML(record, true); }).join('');
   updatePhoneRecentSelectionUI();
 }
 
 
 function renderPhoneFavoriteList(){
-  renderPhoneCallItems(phoneFavoriteList, phoneSortedCalls(function(record){ return !!record.favorite; }), '暂无收藏通话', '点击通话右侧的星标，即可把这条通话加入收藏。');
+  renderPhoneCallItems(phoneFavoriteList, phoneSortedCalls(function(record){ return !!record.favorite && phoneSearchMatch(record.name, record.preview); }), '暂无收藏通话', '点击通话右侧的星标，即可把这条通话加入收藏。');
 }
 
 
 function renderPhoneContactList(){
   if (!phoneContactList) return;
-  var names = getPhoneContactNames();
+  var names = getPhoneContactNames().filter(function(name){ return phoneSearchMatch(name); });
   if (!names.length) {
-    phoneContactList.innerHTML = '<div class="phone-empty"><div class="phone-empty-icon">人</div><strong>暂无联系人</strong><span>创建 char 后，这里会显示每个 char 的独立通话记录页。</span></div>';
+    phoneContactList.innerHTML = String(phoneSearchQuery || '').trim() ? phoneEmptyHTML('搜', '没有结果', '') : phoneEmptyHTML('人', '暂无联系人', '创建 char 后，这里会显示每个 char 的独立通话记录页。');
     return;
   }
   var groups = {};
@@ -420,8 +432,8 @@ function renderPhoneContactList(){
       var count = getPhoneContactCallRows(name).length;
       html += '<button type="button" class="phone-contact-item" data-phone-contact-name="' + escapeHTML(name) + '">' +
         phoneCallAvatarHTML(name, 'phone-contact-avatar') +
-        '<span class="phone-contact-copy"><strong class="phone-contact-name">' + escapeHTML(name) + '</strong><span class="phone-contact-meta">' + count + ' 条通话记录 · 查看全部</span></span>' +
-        '<span class="phone-contact-arrow">›</span></button>';
+        '<span class="phone-contact-copy"><strong class="phone-contact-name">' + escapeHTML(name) + '</strong><span class="phone-contact-meta">' + count + ' 条通话记录</span></span>' +
+        '</button>';
     });
   });
   phoneContactList.innerHTML = html;
@@ -438,16 +450,95 @@ function renderPhoneContactDetail(name){
 }
 
 
+var phoneCallDbCache = {};
+var phoneCallDbPending = {};
+
+function phoneMergeCallRows(a, b){
+  var seen = {}, out = [];
+  (a || []).concat(b || []).forEach(function(msg){
+    if (!msg) return;
+    var key = String(msg.id || '') || ('seq' + String(msg.__islandSeq || '')) || '';
+    if (!key || key === 'seq') key = 't' + String(msg.createdAt || '') + ':' + String(msg.text || '');
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push(msg);
+  });
+  return out.sort(function(x, y){ return Number(x.createdAt || 0) - Number(y.createdAt || 0); });
+}
+
+function loadPhoneCallRowsFromDB(record){
+  var name = String(record && record.name || '');
+  var sessionId = String(record && record.sessionId || '');
+  if (!name || !sessionId || typeof IslandDB === 'undefined' || !IslandDB || typeof IslandDB.chatReadPage !== 'function') return Promise.resolve([]);
+  if (phoneCallDbPending[sessionId]) return phoneCallDbPending[sessionId];
+  var startedAt = Number(record.startedAt || 0);
+  var found = [];
+  var promise = Promise.resolve().then(function(){
+    return typeof IslandDB.chatFlush === 'function' ? IslandDB.chatFlush() : null;
+  }).catch(function(){ return null; }).then(function(){
+    var before = 0, scanned = 0;
+    function walk(){
+      return IslandDB.chatReadPage(name, { beforeSeq:before, limit:500, withMedia:false }).then(function(page){
+        var rows = Array.isArray(page && page.rows) ? page.rows : [];
+        if (!rows.length) return found;
+        scanned += rows.length;
+        rows.forEach(function(msg){
+          if (msg && msg.type === 'voice_call' && String(msg.callSessionId || '') === sessionId) found.push(msg);
+        });
+        var oldest = rows[0];
+        var oldestAt = Number(oldest && oldest.createdAt || 0);
+        before = Number(oldest && oldest.__islandSeq) || 0;
+        if (!page.hasMore || !before) return found;
+        if (startedAt && oldestAt && oldestAt < startedAt - 6 * 3600 * 1000) return found;
+        if (scanned >= 200000) return found;
+        return walk();
+      });
+    }
+    return walk();
+  }).catch(function(){ return found; }).then(function(rows){
+    delete phoneCallDbPending[sessionId];
+    var ended = Number(record.endedAt || 0) > 0 || (record.status && record.status !== 'ongoing');
+    if (ended && rows.length) phoneCallDbCache[sessionId] = rows;
+    return rows;
+  });
+  phoneCallDbPending[sessionId] = promise;
+  return promise;
+}
+
+function phoneCallDetailHTML(record, rows){
+  var callName = String(record.name || '对方');
+  var avatar = getAvatar(callName);
+  var metaParts = [formatPhoneListDate(record.startedAt || record.updatedAt), formatPhoneCallDuration(record.durationMs)].filter(Boolean);
+  return '<div class="phone-detail-profile">' +
+    '<div class="phone-detail-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(callName.charAt(0) || '?')) + '</div>' +
+    '<div class="phone-detail-name">' + escapeHTML(callName) + '</div>' +
+    '<div class="phone-detail-meta">' + escapeHTML(metaParts.join('　')) + '</div>' +
+  '</div>' + rows.map(function(msg){
+    var isMe = msg.from === 'me';
+    return '<div class="pm-voice-call-turn ' + (isMe ? 'is-me' : 'is-char') + '">' +
+      '<div class="pm-voice-call-turn-copy">' +
+        '<div class="pm-voice-call-turn-bubble">' + escapeHTML(String(msg.text || '')) + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function phoneCurrentDetailSessionId(){
+  return phoneDetailFavorite ? String(phoneDetailFavorite.dataset.phoneCallFavorite || '') : '';
+}
+
 function renderPhoneCallDetail(sessionId){
   if (!phoneDetailScroll) return;
+  sessionId = String(sessionId || '');
   var record = phoneCallBySessionId(sessionId);
   if (!record) {
     phoneDetailTitle.textContent = '通话';
     if (phoneDetailFavorite) phoneDetailFavorite.classList.remove('is-favorite');
-    phoneDetailScroll.innerHTML = '<div class="phone-empty"><strong>找不到这条通话</strong></div>';
+    phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '找不到这条通话', '');
     return;
   }
-  var rows = getVoiceCallMessages(record.name, sessionId);
+  var memoryRows = getVoiceCallMessages(record.name, sessionId);
+  var rows = phoneMergeCallRows(memoryRows, phoneCallDbCache[sessionId]);
   phoneDetailTitle.textContent = record.name || '通话';
   if (phoneDetailFavorite) {
     phoneDetailFavorite.classList.toggle('is-favorite', !!record.favorite);
@@ -455,26 +546,30 @@ function renderPhoneCallDetail(sessionId){
     phoneDetailFavorite.setAttribute('title', record.favorite ? '取消收藏' : '收藏通话');
     phoneDetailFavorite.dataset.phoneCallFavorite = record.sessionId;
   }
-  if (!rows.length) {
-    phoneDetailScroll.innerHTML = '<div class="phone-empty"><strong>这通电话没有可显示的文字记录</strong><span>可能只建立了通话连接，还没有产生对话内容。</span></div>';
-    return;
+  var expected = Number(record.messageCount || 0);
+  var needDb = !phoneCallDbCache[sessionId] && (rows.length === 0 || rows.length < expected);
+  if (!rows.length && needDb) {
+    phoneDetailScroll.innerHTML = phoneCallDetailHTML(record, []);
+  } else if (!rows.length) {
+    phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '这通电话没有可显示的文字记录', '');
+  } else {
+    phoneDetailScroll.innerHTML = phoneCallDetailHTML(record, rows);
+    requestAnimationFrame(function(){ phoneDetailScroll.scrollTop = phoneDetailScroll.scrollHeight; });
   }
-  var persona = getActiveUserPersona();
-  var userAvatar = persona && persona.avatar ? persona.avatar : '';
-  var callName = String(record.name || '对方');
-  phoneDetailScroll.innerHTML = rows.map(function(msg){
-    var isMe = msg.from === 'me';
-    var avatar = isMe ? userAvatar : getAvatar(callName);
-    var initial = isMe ? String(persona && persona.name || '我').charAt(0) : callName.charAt(0);
-    return '<div class="pm-voice-call-turn ' + (isMe ? 'is-me' : 'is-char') + '">' +
-      (!isMe ? '<div class="pm-voice-call-turn-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(initial || '?')) + '</div>' : '') +
-      '<div class="pm-voice-call-turn-copy">' +
-        '<div class="pm-voice-call-turn-bubble">' + escapeHTML(String(msg.text || '')) + '</div>' +
-      '</div>' +
-      (isMe ? '<div class="pm-voice-call-turn-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(initial || '?')) + '</div>' : '') +
-    '</div>';
-  }).join('');
-  requestAnimationFrame(function(){ phoneDetailScroll.scrollTop = phoneDetailScroll.scrollHeight; });
+  if (needDb) {
+    loadPhoneCallRowsFromDB(record).then(function(dbRows){
+      if (phoneCurrentDetailSessionId() !== sessionId) return;
+      if (!phoneCallBySessionId(sessionId)) return;
+      var merged = phoneMergeCallRows(getVoiceCallMessages(record.name, sessionId), dbRows);
+      if (!merged.length) {
+        phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '这通电话没有可显示的文字记录', '');
+        return;
+      }
+      if (merged.length === rows.length && rows.length) return;
+      phoneDetailScroll.innerHTML = phoneCallDetailHTML(record, merged);
+      requestAnimationFrame(function(){ phoneDetailScroll.scrollTop = phoneDetailScroll.scrollHeight; });
+    });
+  }
 }
 
 
@@ -489,6 +584,22 @@ function renderPhoneLists(){
   if (phoneDetailTitle && phoneDetailTitle.textContent && phoneApp && phoneApp.querySelector('[data-phone-panel="call-detail"].is-active')) {
     var sid = phoneDetailFavorite && phoneDetailFavorite.dataset.phoneCallFavorite;
     if (sid) renderPhoneCallDetail(sid);
+  }
+}
+
+
+function setPhoneSearch(on){
+  if (!phoneBottomNav) return;
+  on = !!on;
+  phoneBottomNav.classList.toggle('is-searching', on);
+  if (phoneSearchField) phoneSearchField.hidden = !on;
+  if (phoneSearchClose) phoneSearchClose.hidden = !on;
+  if (!on) {
+    phoneSearchQuery = '';
+    if (phoneSearchInput) phoneSearchInput.value = '';
+    renderPhoneLists();
+  } else if (phoneSearchInput) {
+    setTimeout(function(){ phoneSearchInput.focus(); }, 40);
   }
 }
 
@@ -540,6 +651,7 @@ function closePhoneApp(){
   phoneApp.classList.remove('is-open');
   phoneApp.setAttribute('aria-hidden','true');
   setPhoneRecentSelectionMode(false);
+  setPhoneSearch(false);
   setPhonePanel('recent');
   phoneCurrentContactName = '';
 }
@@ -553,7 +665,10 @@ function openPhoneCallDetail(sessionId){
   phoneApp.querySelectorAll('[data-phone-panel]').forEach(function(panel){
     panel.classList.toggle('is-active', panel.dataset.phonePanel === 'call-detail');
   });
-  if (phoneBottomNav) phoneBottomNav.querySelectorAll('[data-phone-tab]').forEach(function(tab){ tab.classList.remove('is-active'); });
+  if (phoneBottomNav) {
+    phoneBottomNav.classList.add('is-hidden');
+    phoneBottomNav.querySelectorAll('[data-phone-tab]').forEach(function(tab){ tab.classList.remove('is-active'); });
+  }
 }
 
 
@@ -652,6 +767,12 @@ function bindPhoneEvents(){
     var tab = e.target.closest('[data-phone-tab]');
     if (!tab) return;
     setPhonePanel(tab.dataset.phoneTab || 'recent');
+  });
+  if (phoneSearchOpen) phoneSearchOpen.addEventListener('click', function(){ setPhoneSearch(true); });
+  if (phoneSearchClose) phoneSearchClose.addEventListener('click', function(){ setPhoneSearch(false); });
+  if (phoneSearchInput) phoneSearchInput.addEventListener('input', function(){
+    phoneSearchQuery = String(phoneSearchInput.value || '');
+    renderPhoneLists();
   });
   if (phoneDetailFavorite) phoneDetailFavorite.addEventListener('click', function(){
     var sid = phoneDetailFavorite.dataset.phoneCallFavorite || '';

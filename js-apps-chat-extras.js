@@ -401,7 +401,7 @@ function sendLocationMessage(locationData){
   if (lat == null || lng == null) return false;
   var label = String(locationData.label || '').trim() || '当前位置';
   var msg = {
-    id: genId('loc_'), from:'me', type:'location', label:label, lat:lat, lng:lng,
+    id: genId('loc_'), from:'me', type:'location', label:label, address:String(locationData.address || '').trim(), lat:lat, lng:lng,
     source: locationData.source === 'virtual' ? 'virtual' : 'gps',
     accuracy: Number.isFinite(Number(locationData.accuracy)) ? Math.round(Number(locationData.accuracy)) : null,
     createdAt:Date.now(), text:'[位置] ' + label
@@ -425,10 +425,13 @@ function shareCurrentLocation(){
   closeLocationModal();
   toast('正在定位…');
   getPositionRobust().then(function(pos){
-    var ok = sendLocationMessage({
-      lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, label:'我的当前位置', source:'gps'
+    return reverseGeocodeLocation(pos.coords.latitude, pos.coords.longitude).then(function(place){
+      var ok = sendLocationMessage({
+        lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy,
+        label:String(place && place.title || '').trim() || '我的当前位置', address:place && place.address, source:'gps'
+      });
+      if (!ok) toast('位置发送失败');
     });
-    if (!ok) toast('位置发送失败');
   }, function(err){
     var msg = '无法获取当前位置';
     if (err && err.code === 1) msg = '定位权限未开启，请允许应用访问位置';
@@ -447,10 +450,245 @@ function sendCustomLocation(){
   else toast('虚拟位置发送失败');
 }
 
+/* ===== 位置地图（不依赖梯子）：腾讯 / 高德 / OpenStreetMap 瓦片自动轮换 ===== */
+var LOC_TILE = 256;
+var LOC_SOURCES = [
+  { id:'tencent', name:'腾讯地图', gcj:true, maxZoom:18, url:function(z, x, y){ var n = Math.pow(2, z); return 'https://rt' + ((x + y) % 4) + '.map.gtimg.com/realtimerender?z=' + z + '&x=' + x + '&y=' + (n - 1 - y) + '&type=vector&style=0'; } },
+  { id:'amap', name:'高德地图', gcj:true, maxZoom:18, url:function(z, x, y){ return 'https://webrd0' + (1 + ((x + y) % 4)) + '.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x=' + x + '&y=' + y + '&z=' + z; } },
+  { id:'osm', name:'© OpenStreetMap', gcj:false, maxZoom:19, url:function(z, x, y){ return 'https://tile.openstreetmap.org/' + z + '/' + x + '/' + y + '.png'; } }
+];
+var locSourcePref = { cn:'', world:'' };
+try { locSourcePref = Object.assign(locSourcePref, JSON.parse(localStorage.getItem('island.locSrc') || '{}')); } catch(e) {}
+
+function locOutOfChina(lat, lng){ return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271; }
+
+function locWgsToGcj(lat, lng){
+  if (locOutOfChina(lat, lng)) return { lat:lat, lng:lng };
+  var a = 6378245.0, ee = 0.00669342162296594323, PI = Math.PI;
+  function tLat(x, y){ var r = -100 + 2*x + 3*y + 0.2*y*y + 0.1*x*y + 0.2*Math.sqrt(Math.abs(x)); r += (20*Math.sin(6*x*PI) + 20*Math.sin(2*x*PI)) * 2/3; r += (20*Math.sin(y*PI) + 40*Math.sin(y/3*PI)) * 2/3; r += (160*Math.sin(y/12*PI) + 320*Math.sin(y*PI/30)) * 2/3; return r; }
+  function tLng(x, y){ var r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x)); r += (20*Math.sin(6*x*PI) + 20*Math.sin(2*x*PI)) * 2/3; r += (20*Math.sin(x*PI) + 40*Math.sin(x/3*PI)) * 2/3; r += (150*Math.sin(x/12*PI) + 300*Math.sin(x/30*PI)) * 2/3; return r; }
+  var dLat = tLat(lng - 105, lat - 35), dLng = tLng(lng - 105, lat - 35);
+  var rad = lat / 180 * PI, magic = Math.sin(rad); magic = 1 - ee * magic * magic;
+  var sq = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((a * (1 - ee)) / (magic * sq) * PI);
+  dLng = (dLng * 180) / (a / sq * Math.cos(rad) * PI);
+  return { lat:lat + dLat, lng:lng + dLng };
+}
+
+function locSourceOrder(lat, lng){
+  var cn = !locOutOfChina(lat, lng);
+  var order = cn ? [0, 1, 2] : [2, 1, 0];
+  var pref = cn ? locSourcePref.cn : locSourcePref.world;
+  for (var i = 0; i < order.length; i++) {
+    if (LOC_SOURCES[order[i]].id === pref) { var hit = order.splice(i, 1)[0]; order.unshift(hit); break; }
+  }
+  return order;
+}
+
+function locRememberSource(lat, lng, id){
+  var key = locOutOfChina(lat, lng) ? 'world' : 'cn';
+  if (locSourcePref[key] === id) return;
+  locSourcePref[key] = id;
+  try { localStorage.setItem('island.locSrc', JSON.stringify(locSourcePref)); } catch(e) {}
+}
+
+function locWorldPx(lat, lng, z){
+  var s = LOC_TILE * Math.pow(2, z), sin = Math.sin(lat * Math.PI / 180);
+  sin = Math.max(-0.9999, Math.min(0.9999, sin));
+  return { x:(lng + 180) / 360 * s, y:(0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * s };
+}
+
+function locPinPx(lat, lng, src, z){
+  var c = src.gcj ? locWgsToGcj(lat, lng) : { lat:lat, lng:lng };
+  return locWorldPx(c.lat, c.lng, z);
+}
+
+function locTilesAround(cx, cy, z, W, H, src){
+  var n = Math.pow(2, z), out = [];
+  var x0 = Math.floor((cx - W / 2) / LOC_TILE), x1 = Math.floor((cx + W / 2) / LOC_TILE);
+  var y0 = Math.floor((cy - H / 2) / LOC_TILE), y1 = Math.floor((cy + H / 2) / LOC_TILE);
+  for (var ty = y0; ty <= y1; ty++) {
+    if (ty < 0 || ty >= n) continue;
+    for (var tx = x0; tx <= x1; tx++) {
+      var wx = ((tx % n) + n) % n;
+      out.push({ key:src.id + ':' + z + ':' + tx + ':' + ty, url:src.url(z, wx, ty), dx:Math.round(tx * LOC_TILE - cx), dy:Math.round(ty * LOC_TILE - cy) });
+    }
+  }
+  return out;
+}
+
+function locThumbInner(lat, lng, pos){
+  var order = locSourceOrder(lat, lng);
+  var src = LOC_SOURCES[order[Math.min(pos, order.length - 1)]];
+  var z = Math.min(16, src.maxZoom);
+  var p = locPinPx(lat, lng, src, z);
+  var tiles = locTilesAround(p.x, p.y, z, 264, 150, src).map(function(t){
+    return '<img class="pm-loc-tile" alt="" draggable="false" decoding="async" data-pos="' + pos + '" data-sid="' + src.id + '" style="left:calc(50% + ' + t.dx + 'px);top:calc(50% + ' + t.dy + 'px)" src="' + escapeHTML(t.url) + '">';
+  }).join('');
+  return '<div class="pm-loc-layer">' + tiles + '</div><span class="pm-loc-pin"></span><span class="pm-loc-attr">' + escapeHTML(src.name) + '</span>';
+}
+
+function locThumbHTML(lat, lng){
+  return '<div class="pm-loc-map pm-loc-map--thumb" data-lat="' + lat + '" data-lng="' + lng + '" data-pos="0">' + locThumbInner(lat, lng, 0) + '</div>';
+}
+
+function locArmThumb(host){
+  if (host.dataset.armed) return;
+  host.dataset.armed = '1';
+  setTimeout(function(){
+    if (host.isConnected && !host.dataset.okc) locAdvanceThumb(host);
+  }, 5500);
+}
+
+function locAdvanceThumb(host){
+  var lat = Number(host.dataset.lat), lng = Number(host.dataset.lng);
+  var pos = (Number(host.dataset.pos) || 0) + 1;
+  if (pos >= locSourceOrder(lat, lng).length) { host.classList.add('is-dead'); return; }
+  host.dataset.pos = String(pos);
+  host.dataset.fails = '0';
+  host.dataset.armed = '';
+  delete host.dataset.okc;
+  host.innerHTML = locThumbInner(lat, lng, pos);
+  locArmThumb(host);
+}
+
+document.addEventListener('error', function(e){
+  var t = e.target;
+  if (!t || t.tagName !== 'IMG' || !t.classList || !t.classList.contains('pm-loc-tile')) return;
+  var host = t.closest('.pm-loc-map');
+  if (!host) return;
+  if (host._locLive) { host._locLive.tileResult(false, t); return; }
+  if (String(t.dataset.pos) !== String(host.dataset.pos || 0)) return;
+  host.dataset.fails = String((Number(host.dataset.fails) || 0) + 1);
+  if (!host.dataset.okc && Number(host.dataset.fails) >= 3) locAdvanceThumb(host);
+}, true);
+
+document.addEventListener('load', function(e){
+  var t = e.target;
+  if (!t || t.tagName !== 'IMG' || !t.classList || !t.classList.contains('pm-loc-tile')) return;
+  var host = t.closest('.pm-loc-map');
+  if (!host) return;
+  if (host._locLive) { host._locLive.tileResult(true, t); return; }
+  if (String(t.dataset.pos) !== String(host.dataset.pos || 0)) return;
+  if (!host.dataset.okc) {
+    host.dataset.okc = '1';
+    locRememberSource(Number(host.dataset.lat), Number(host.dataset.lng), t.dataset.sid);
+  }
+}, true);
+
+(function(){
+  function scan(node){
+    if (!node || node.nodeType !== 1) return;
+    if (node.matches && node.matches('.pm-loc-map--thumb')) locArmThumb(node);
+    if (node.querySelectorAll) node.querySelectorAll('.pm-loc-map--thumb').forEach(locArmThumb);
+  }
+  function start(){
+    new MutationObserver(function(list){
+      for (var i = 0; i < list.length; i++) for (var j = 0; j < list[i].addedNodes.length; j++) scan(list[i].addedNodes[j]);
+    }).observe(document.body, { childList:true, subtree:true });
+    scan(document.body);
+  }
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+
+var activeLocationLive = null;
+
+function createLocationLiveMap(host, lat, lng, onDead){
+  var order = locSourceOrder(lat, lng), si = 0, z = 16, ok = 0, bad = 0, timer = 0, dead = false, drag = null;
+  var tiles = {}, cx = 0, cy = 0;
+  host.innerHTML = '';
+  host.className = 'pm-location-map-frame pm-loc-map pm-loc-map--live';
+  var layer = document.createElement('div'); layer.className = 'pm-loc-layer';
+  var pin = document.createElement('span'); pin.className = 'pm-loc-pin';
+  var attr = document.createElement('span'); attr.className = 'pm-loc-attr';
+  var zoomBox = document.createElement('div'); zoomBox.className = 'pm-loc-zoom';
+  zoomBox.innerHTML = '<button type="button" data-loc-zoom="1" aria-label="放大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button type="button" data-loc-zoom="-1" aria-label="缩小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>';
+  host.appendChild(layer); host.appendChild(pin); host.appendChild(attr); host.appendChild(zoomBox);
+  var api = {};
+  function src(){ return LOC_SOURCES[order[si]]; }
+  function pinPx(){ return locPinPx(lat, lng, src(), z); }
+  function scale(){ var r = host.getBoundingClientRect(); return host.offsetWidth ? (r.width / host.offsetWidth || 1) : 1; }
+  function arm(){
+    clearTimeout(timer);
+    timer = setTimeout(function(){ if (!dead && ok === 0) next(); }, 6000);
+  }
+  function next(){
+    si++; ok = 0; bad = 0;
+    if (si >= order.length) { dead = true; clearTimeout(timer); if (onDead) onDead(); return; }
+    z = Math.min(z, src().maxZoom);
+    tiles = {}; layer.innerHTML = '';
+    var p = pinPx(); cx = p.x; cy = p.y;
+    render(); arm();
+  }
+  function render(){
+    if (dead) return;
+    var s = src();
+    var W = (host.clientWidth || 360) + 256, H = (host.clientHeight || 480) + 256;
+    var specs = locTilesAround(cx, cy, z, W, H, s), keep = {};
+    specs.forEach(function(t){
+      keep[t.key] = true;
+      var img = tiles[t.key];
+      if (!img) {
+        img = document.createElement('img');
+        img.className = 'pm-loc-tile'; img.alt = ''; img.draggable = false; img.decoding = 'async';
+        img.dataset.sid = s.id; img.dataset.pos = String(si);
+        img.src = t.url;
+        tiles[t.key] = img; layer.appendChild(img);
+      }
+      img.style.left = 'calc(50% + ' + t.dx + 'px)'; img.style.top = 'calc(50% + ' + t.dy + 'px)';
+    });
+    Object.keys(tiles).forEach(function(k){ if (!keep[k]) { tiles[k].remove(); delete tiles[k]; } });
+    var p = pinPx();
+    pin.style.left = 'calc(50% + ' + Math.round(p.x - cx) + 'px)';
+    pin.style.top = 'calc(50% + ' + Math.round(p.y - cy) + 'px)';
+    attr.textContent = s.name;
+  }
+  api.tileResult = function(good, img){
+    if (dead || String(img.dataset.pos) !== String(si)) return;
+    if (good) { if (!ok) locRememberSource(lat, lng, img.dataset.sid); ok++; }
+    else { bad++; if (ok === 0 && bad >= 3) next(); }
+  };
+  function setZoom(delta){
+    var nz = Math.max(4, Math.min(src().maxZoom, z + delta));
+    if (nz === z) return;
+    var f = Math.pow(2, nz - z); cx *= f; cy *= f; z = nz;
+    tiles = {}; layer.innerHTML = '';
+    render();
+  }
+  host.addEventListener('pointerdown', function(e){
+    if (e.target.closest && e.target.closest('.pm-loc-zoom')) return;
+    drag = { x:e.clientX, y:e.clientY, cx:cx, cy:cy };
+    try { host.setPointerCapture(e.pointerId); } catch(err) {}
+  });
+  host.addEventListener('pointermove', function(e){
+    if (!drag) return;
+    var k = scale();
+    cx = drag.cx - (e.clientX - drag.x) / k; cy = drag.cy - (e.clientY - drag.y) / k;
+    render();
+  });
+  function endDrag(){ drag = null; }
+  host.addEventListener('pointerup', endDrag);
+  host.addEventListener('pointercancel', endDrag);
+  zoomBox.addEventListener('click', function(e){
+    var b = e.target.closest('[data-loc-zoom]');
+    if (b) setZoom(Number(b.dataset.locZoom));
+  });
+  api.destroy = function(){ dead = true; clearTimeout(timer); host._locLive = null; };
+  host._locLive = api;
+  var p0 = pinPx(); cx = p0.x; cy = p0.y;
+  render(); arm();
+  return api;
+}
+
 function locationMapUrl(msg){
   var lat = normalizeCoordinate(msg && msg.lat, -90, 90), lng = normalizeCoordinate(msg && msg.lng, -180, 180);
   if (lat == null || lng == null) return '';
-  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + ',' + lng);
+  var name = String(msg && msg.label || '当前位置');
+  if (!locOutOfChina(lat, lng)) {
+    var g = locWgsToGcj(lat, lng);
+    return 'https://uri.amap.com/marker?position=' + g.lng.toFixed(6) + ',' + g.lat.toFixed(6) + '&name=' + encodeURIComponent(name) + '&coordinate=gaode&callnative=1';
+  }
+  return 'https://www.openstreetmap.org/?mlat=' + lat + '&mlon=' + lng + '#map=17/' + lat + '/' + lng;
 }
 
 function openSharedLocation(msg){
@@ -467,17 +705,20 @@ function locationGeoUri(msg){
 
 function openMapAppChooser(msg){
   if (!msg || msg.source === 'virtual') return;
-  var geo = locationGeoUri(msg), fallback = locationMapUrl(msg);
+  var geo = locationGeoUri(msg), web = locationMapUrl(msg);
   if (!geo) return;
-  var opened = false;
-  try {
-    var a = document.createElement('a');
-    a.href = geo; a.setAttribute('aria-hidden','true');
-    a.style.position='fixed'; a.style.left='-9999px'; a.style.width='1px'; a.style.height='1px'; a.style.opacity='0';
-    document.body.appendChild(a); a.click(); a.remove(); opened = true;
-  } catch(e) {}
-  if (!opened && fallback) {
-    try { window.open(fallback, '_blank', 'noopener,noreferrer'); } catch(err) { try { location.href = fallback; } catch(_) {} }
+  var isAndroid = /Android/i.test(navigator.userAgent || '');
+  if (isAndroid) {
+    try {
+      var a = document.createElement('a');
+      a.href = geo; a.setAttribute('aria-hidden', 'true');
+      a.style.position = 'fixed'; a.style.left = '-9999px'; a.style.width = '1px'; a.style.height = '1px'; a.style.opacity = '0';
+      document.body.appendChild(a); a.click(); a.remove();
+      return;
+    } catch(e) {}
+  }
+  if (web) {
+    try { window.open(web, '_blank', 'noopener,noreferrer'); } catch(err) { try { location.href = web; } catch(_) {} }
   }
 }
 
@@ -487,27 +728,59 @@ function openLocationMapView(msg){
   if (lat == null || lng == null) return;
   activeLocationMapMessage = msg;
   var label = String(msg.label || '我的当前位置');
+  var addr = String(msg.address || '').trim();
   if (pmLocationMapTitle) pmLocationMapTitle.textContent = label;
   if (pmLocationMapInfoTitle) pmLocationMapInfoTitle.textContent = label;
-  if (pmLocationMapInfoMeta) pmLocationMapInfoMeta.textContent = '手机当前位置 · ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
-  var dLat = 0.008, dLng = Math.max(0.008, 0.008 / Math.max(0.15, Math.cos(lat * Math.PI / 180)));
-  var bbox = [lng-dLng, lat-dLat, lng+dLng, lat+dLat].join(',');
-  var iframeUrl = 'https://www.openstreetmap.org/export/embed.html?bbox=' + encodeURIComponent(bbox) + '&layer=mapnik&marker=' + encodeURIComponent(lat + ',' + lng);
-  if (pmLocationMapFrame) {
-    pmLocationMapFrame.hidden = false;
-    pmLocationMapFrame.src = iframeUrl;
-  }
+  if (pmLocationMapInfoMeta) { pmLocationMapInfoMeta.textContent = addr; pmLocationMapInfoMeta.hidden = !addr; }
   if (pmLocationMapFallback) pmLocationMapFallback.hidden = true;
   pmLocationMapView.classList.add('is-open');
-  pmLocationMapView.setAttribute('aria-hidden','false');
+  pmLocationMapView.setAttribute('aria-hidden', 'false');
+  if (activeLocationLive) { activeLocationLive.destroy(); activeLocationLive = null; }
+  if (pmLocationMapFrame) {
+    activeLocationLive = createLocationLiveMap(pmLocationMapFrame, lat, lng, function(){
+      if (pmLocationMapFallback) pmLocationMapFallback.hidden = false;
+    });
+  }
 }
 
 function closeLocationMapView(){
   if (!pmLocationMapView) return;
   pmLocationMapView.classList.remove('is-open');
-  pmLocationMapView.setAttribute('aria-hidden','true');
+  pmLocationMapView.setAttribute('aria-hidden', 'true');
   activeLocationMapMessage = null;
-  if (pmLocationMapFrame) pmLocationMapFrame.src = 'about:blank';
+  if (activeLocationLive) { activeLocationLive.destroy(); activeLocationLive = null; }
+  if (pmLocationMapFrame) pmLocationMapFrame.innerHTML = '';
+}
+
+/* 把经纬度换成“地点名 + 区”。几个公共服务同时问，谁先答到用谁；4 秒都没答到就只用默认名字。 */
+function reverseGeocodeLocation(lat, lng){
+  return new Promise(function(resolve){
+    var done = false, pending = 2;
+    function finish(v){ if (done) return; done = true; resolve(v || {}); }
+    function miss(){ pending--; if (pending <= 0) finish({}); }
+    setTimeout(function(){ finish({}); }, 4000);
+    function get(url){
+      var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      if (ctl) setTimeout(function(){ try { ctl.abort(); } catch(e) {} }, 3800);
+      return fetch(url, ctl ? { signal:ctl.signal } : undefined).then(function(r){ return r.ok ? r.json() : null; });
+    }
+    function uniq(list){ var out = []; list.forEach(function(v){ v = String(v || '').trim(); if (v && out.indexOf(v) < 0) out.push(v); }); return out; }
+    get('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=zh-CN&lat=' + lat + '&lon=' + lng).then(function(d){
+      var a = d && d.address;
+      if (!a) return miss();
+      var area = uniq([a.city || a.town || a.village || a.county, a.city_district || a.district || a.suburb]).join('');
+      var title = String(d.name || a.amenity || a.building || a.road || a.neighbourhood || a.suburb || '').trim();
+      if (!title && !area) return miss();
+      finish({ title:title || area, address:title ? area : '' });
+    }).catch(miss);
+    get('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' + lat + '&longitude=' + lng + '&localityLanguage=zh').then(function(d){
+      if (!d) return miss();
+      var title = String(d.locality || d.city || '').trim();
+      var area = uniq([d.principalSubdivision, d.city && d.city !== d.locality ? d.city : '']).join('');
+      if (!title && !area) return miss();
+      setTimeout(function(){ finish({ title:title || area, address:title ? area : '' }); }, 900);
+    }).catch(miss);
+  });
 }
 
 function saveCurrentCharacterLanguage(id){

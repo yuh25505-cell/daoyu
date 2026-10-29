@@ -161,15 +161,13 @@ function bubbleHTML(msg, entering, index){
     var locationLng = normalizeCoordinate(msg.lng, -180, 180);
     if (locationLat != null && locationLng != null) {
       var locationLabel = String(msg.label || (msg.source === 'virtual' ? '虚拟位置' : '我的当前位置'));
-      var locationType = msg.source === 'virtual' ? '虚拟位置' : '当前位置';
+      var locationAddress = String(msg.address || '').trim();
       var isRealLocation = msg.source !== 'virtual';
-      var locationAction = isRealLocation ? '<button type="button" class="pm-location-card pm-location-card--real" data-location-open="' + index + '" aria-label="打开地图">' : '<div class="pm-location-card pm-location-card--virtual">';
-      var locationClose = isRealLocation ? '</button>' : '</div>';
-      body = locationAction +
-        '<div class="pm-location-card-map"><span class="pm-location-card-pin">' + toolIcon('<path d="M12 21s6.5-5.4 6.5-10.4a6.5 6.5 0 1 0-13 0C5.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.4" r="2.4"/>') + '</span><span class="pm-location-card-grid"></span></div>' +
-        '<div class="pm-location-card-body"><div class="pm-location-card-title">' + escapeHTML(locationLabel) + '</div>' +
-        '<div class="pm-location-card-meta">' + escapeHTML(locationType) + ' · ' + escapeHTML(locationLat.toFixed(6)) + ', ' + escapeHTML(locationLng.toFixed(6)) + '</div></div>' +
-        locationClose;
+      body = '<div class="pm-location-card chat-bubble chat-bubble--location ' + (isRealLocation ? 'pm-location-card--real" data-location-open="' + index + '" role="button" tabindex="0" aria-label="打开地图"' : 'pm-location-card--virtual"') + '>' +
+        '<div class="pm-location-card-title">' + escapeHTML(locationLabel) + '</div>' +
+        (locationAddress ? '<div class="pm-location-card-meta">' + escapeHTML(locationAddress) + '</div>' : '') +
+        locThumbHTML(locationLat, locationLng) +
+        '</div>';
     } else {
       body = '<div class="pm-bubble chat-bubble chat-bubble--text">位置数据无效</div>';
     }
