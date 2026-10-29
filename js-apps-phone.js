@@ -160,6 +160,7 @@ function deletePhoneCallSessions(sessionIds){
     }
   });
 
+  ids.forEach(function(id){ delete phoneCallDbCache[id]; });
   phoneRecentSelectedSessions = {};
   return Promise.all([savePhoneCalls()].concat(changedMessageKeys.map(function(name){ return saveMessages(name); }))).then(function(){
     renderPhoneLists();
@@ -449,31 +450,66 @@ function renderPhoneContactDetail(name){
 }
 
 
-function renderPhoneCallDetail(sessionId){
-  if (!phoneDetailScroll) return;
-  var record = phoneCallBySessionId(sessionId);
-  if (!record) {
-    phoneDetailTitle.textContent = '通话';
-    if (phoneDetailFavorite) phoneDetailFavorite.classList.remove('is-favorite');
-    phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '找不到这条通话', '');
-    return;
-  }
-  var rows = getVoiceCallMessages(record.name, sessionId);
-  phoneDetailTitle.textContent = record.name || '通话';
-  if (phoneDetailFavorite) {
-    phoneDetailFavorite.classList.toggle('is-favorite', !!record.favorite);
-    phoneDetailFavorite.setAttribute('aria-label', record.favorite ? '取消收藏' : '收藏通话');
-    phoneDetailFavorite.setAttribute('title', record.favorite ? '取消收藏' : '收藏通话');
-    phoneDetailFavorite.dataset.phoneCallFavorite = record.sessionId;
-  }
-  if (!rows.length) {
-    phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '这通电话没有可显示的文字记录', '');
-    return;
-  }
+var phoneCallDbCache = {};
+var phoneCallDbPending = {};
+
+function phoneMergeCallRows(a, b){
+  var seen = {}, out = [];
+  (a || []).concat(b || []).forEach(function(msg){
+    if (!msg) return;
+    var key = String(msg.id || '') || ('seq' + String(msg.__islandSeq || '')) || '';
+    if (!key || key === 'seq') key = 't' + String(msg.createdAt || '') + ':' + String(msg.text || '');
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push(msg);
+  });
+  return out.sort(function(x, y){ return Number(x.createdAt || 0) - Number(y.createdAt || 0); });
+}
+
+function loadPhoneCallRowsFromDB(record){
+  var name = String(record && record.name || '');
+  var sessionId = String(record && record.sessionId || '');
+  if (!name || !sessionId || typeof IslandDB === 'undefined' || !IslandDB || typeof IslandDB.chatReadPage !== 'function') return Promise.resolve([]);
+  if (phoneCallDbPending[sessionId]) return phoneCallDbPending[sessionId];
+  var startedAt = Number(record.startedAt || 0);
+  var found = [];
+  var promise = Promise.resolve().then(function(){
+    return typeof IslandDB.chatFlush === 'function' ? IslandDB.chatFlush() : null;
+  }).catch(function(){ return null; }).then(function(){
+    var before = 0, scanned = 0;
+    function walk(){
+      return IslandDB.chatReadPage(name, { beforeSeq:before, limit:500, withMedia:false }).then(function(page){
+        var rows = Array.isArray(page && page.rows) ? page.rows : [];
+        if (!rows.length) return found;
+        scanned += rows.length;
+        rows.forEach(function(msg){
+          if (msg && msg.type === 'voice_call' && String(msg.callSessionId || '') === sessionId) found.push(msg);
+        });
+        var oldest = rows[0];
+        var oldestAt = Number(oldest && oldest.createdAt || 0);
+        before = Number(oldest && oldest.__islandSeq) || 0;
+        if (!page.hasMore || !before) return found;
+        if (startedAt && oldestAt && oldestAt < startedAt - 6 * 3600 * 1000) return found;
+        if (scanned >= 200000) return found;
+        return walk();
+      });
+    }
+    return walk();
+  }).catch(function(){ return found; }).then(function(rows){
+    delete phoneCallDbPending[sessionId];
+    var ended = Number(record.endedAt || 0) > 0 || (record.status && record.status !== 'ongoing');
+    if (ended && rows.length) phoneCallDbCache[sessionId] = rows;
+    return rows;
+  });
+  phoneCallDbPending[sessionId] = promise;
+  return promise;
+}
+
+function phoneCallDetailHTML(record, rows){
   var callName = String(record.name || '对方');
   var avatar = getAvatar(callName);
   var metaParts = [formatPhoneListDate(record.startedAt || record.updatedAt), formatPhoneCallDuration(record.durationMs)].filter(Boolean);
-  phoneDetailScroll.innerHTML = '<div class="phone-detail-profile">' +
+  return '<div class="phone-detail-profile">' +
     '<div class="phone-detail-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(callName.charAt(0) || '?')) + '</div>' +
     '<div class="phone-detail-name">' + escapeHTML(callName) + '</div>' +
     '<div class="phone-detail-meta">' + escapeHTML(metaParts.join('　')) + '</div>' +
@@ -485,7 +521,55 @@ function renderPhoneCallDetail(sessionId){
       '</div>' +
     '</div>';
   }).join('');
-  requestAnimationFrame(function(){ phoneDetailScroll.scrollTop = phoneDetailScroll.scrollHeight; });
+}
+
+function phoneCurrentDetailSessionId(){
+  return phoneDetailFavorite ? String(phoneDetailFavorite.dataset.phoneCallFavorite || '') : '';
+}
+
+function renderPhoneCallDetail(sessionId){
+  if (!phoneDetailScroll) return;
+  sessionId = String(sessionId || '');
+  var record = phoneCallBySessionId(sessionId);
+  if (!record) {
+    phoneDetailTitle.textContent = '通话';
+    if (phoneDetailFavorite) phoneDetailFavorite.classList.remove('is-favorite');
+    phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '找不到这条通话', '');
+    return;
+  }
+  var memoryRows = getVoiceCallMessages(record.name, sessionId);
+  var rows = phoneMergeCallRows(memoryRows, phoneCallDbCache[sessionId]);
+  phoneDetailTitle.textContent = record.name || '通话';
+  if (phoneDetailFavorite) {
+    phoneDetailFavorite.classList.toggle('is-favorite', !!record.favorite);
+    phoneDetailFavorite.setAttribute('aria-label', record.favorite ? '取消收藏' : '收藏通话');
+    phoneDetailFavorite.setAttribute('title', record.favorite ? '取消收藏' : '收藏通话');
+    phoneDetailFavorite.dataset.phoneCallFavorite = record.sessionId;
+  }
+  var expected = Number(record.messageCount || 0);
+  var needDb = !phoneCallDbCache[sessionId] && (rows.length === 0 || rows.length < expected);
+  if (!rows.length && needDb) {
+    phoneDetailScroll.innerHTML = phoneCallDetailHTML(record, []);
+  } else if (!rows.length) {
+    phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '这通电话没有可显示的文字记录', '');
+  } else {
+    phoneDetailScroll.innerHTML = phoneCallDetailHTML(record, rows);
+    requestAnimationFrame(function(){ phoneDetailScroll.scrollTop = phoneDetailScroll.scrollHeight; });
+  }
+  if (needDb) {
+    loadPhoneCallRowsFromDB(record).then(function(dbRows){
+      if (phoneCurrentDetailSessionId() !== sessionId) return;
+      if (!phoneCallBySessionId(sessionId)) return;
+      var merged = phoneMergeCallRows(getVoiceCallMessages(record.name, sessionId), dbRows);
+      if (!merged.length) {
+        phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '这通电话没有可显示的文字记录', '');
+        return;
+      }
+      if (merged.length === rows.length && rows.length) return;
+      phoneDetailScroll.innerHTML = phoneCallDetailHTML(record, merged);
+      requestAnimationFrame(function(){ phoneDetailScroll.scrollTop = phoneDetailScroll.scrollHeight; });
+    });
+  }
 }
 
 
