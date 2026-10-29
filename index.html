@@ -451,7 +451,7 @@
         <button type="button" class="pm-chat-settings-row" id="pmSettingsExportRecords"><span><strong>导出聊天记录</strong></span><span class="pm-chat-settings-chevron">›</span></button>
         <button type="button" class="pm-chat-settings-row" id="pmSettingsImportRecords"><span><strong>导入聊天记录</strong></span><span class="pm-chat-settings-chevron">›</span></button>
       </div>
-      <div class="pm-chat-settings-danger"><button type="button" id="pmSettingsClearRecords">清空聊天记录</button></div>
+      <div class="pm-chat-settings-danger"><button type="button" id="pmSettingsClearRecords">清空聊天记录</button><button type="button" id="pmSettingsDeleteFriend">删除好友</button></div>
     </div>
   </div>
   <input accept="image/*" hidden id="pmSettingsCharAvatarInput" type="file" />
@@ -984,6 +984,10 @@
 <button aria-label="更多" class="pm-bar-btn" id="pmPlusBtn" type="button">
 <img alt="更多" src="https://nos.netease.com/vcloud-statistic/nrtc/baf2a43f-1760-4469-972c-966152b79db9.png" style="width:24px;height:24px;object-fit:contain;display:block;"/>
 </button>
+</div>
+<div class="pm-friend-gate" id="pmFriendGate">
+<span class="pm-friend-gate-text" id="pmFriendGateText"></span>
+<button class="pm-friend-gate-btn" id="pmFriendGateBtn" type="button">重新添加</button>
 </div>
 <div aria-hidden="true" class="char-language-modal" id="charLanguageModal">
 <div class="char-language-backdrop" data-char-language-close=""></div>

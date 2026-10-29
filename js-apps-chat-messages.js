@@ -570,6 +570,7 @@ var charAvatarTapState = { element:null, time:0, x:0, y:0 };
 
 function sendPoke(target){
   if (!currentName) return false;
+  if (typeof friendNotFriendGuard === 'function' && friendNotFriendGuard(currentName)) return false;
   if (!Array.isArray(MESSAGES[currentName])) MESSAGES[currentName] = [];
   var targetKey = normalizePokeTarget(target);
   if (!targetKey) return false;

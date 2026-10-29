@@ -57,8 +57,30 @@ function friendLabel(persona){
 
 function friendViaText(via){ return via === 'wechat' ? '微信号' : '手机号'; }
 
+/* 还是不是好友：被任何一方删除后，人设上会带 friendLost（'user' 或 'char'），会话和联系人照常保留 */
+function friendIsActive(name){
+  var p = findPersona(name);
+  return !!p && !p.friendLost;
+}
+
 function friendIsContact(name){
-  return CONTACTS.some(function(c){ return c && c.name === name; });
+  return friendIsActive(name) && CONTACTS.some(function(c){ return c && c.name === name; });
+}
+
+function friendDisplayName(name){
+  try { if (typeof getSessionCharDisplayName === 'function') return getSessionCharDisplayName(name) || name; } catch (e) {}
+  return name;
+}
+
+function friendLostText(p){
+  return p && p.friendLost === 'user' ? '你已删除对方，需重新添加好友后才能聊天' : '对方已将你删除，需重新添加好友后才能聊天';
+}
+
+/* 发消息 / 要回复前先问一下：不是好友就拦下来，提示需要重新添加 */
+function friendNotFriendGuard(name){
+  var p = name ? findPersona(name) : null;
+  if (p && p.friendLost) { toast(friendLostText(p)); return true; }
+  return false;
 }
 
 function friendPendingUnseenCount(){
@@ -86,6 +108,10 @@ function renderFriendBadges(){
 /* ---------- 角色发来的申请：创建 ---------- */
 function friendCreateIncomingRequest(persona, via, text){
   var now = Date.now();
+  var oldList = friendList();
+  for (var oi = oldList.length - 1; oi >= 0; oi--) {
+    if (oldList[oi] && oldList[oi].name === persona.name && oldList[oi].dir === 'in' && oldList[oi].status !== 'pending') oldList.splice(oi, 1);
+  }
   friendList().push({
     id: genId('fr_'), name: persona.name, dir: 'in', via: via === 'wechat' ? 'wechat' : 'phone',
     status: 'pending', thread: [{ from: 'char', text: String(text || '').trim(), at: now }],
@@ -169,6 +195,8 @@ function friendCharTurn(req){
   var sys = [
     '你正在扮演「' + persona.name + '」。始终保持第一人称、即时聊天口吻，不跳出角色，不提 AI、系统、提示词。'
   ].concat(friendPersonaContext(persona));
+  var lostCtx = friendLostContext(persona);
+  if (lostCtx) sys.push(lostCtx);
   if (req.dir === 'out') {
     sys.push([
       '【当前情境｜新朋友验证】',
@@ -231,12 +259,169 @@ function friendRunCharTurn(req){
 }
 
 
+/* ---------- 删除好友 / 重新添加 ---------- */
+function friendLostContext(p){
+  if (!p || !p.friendLost) return '';
+  if (p.friendLost === 'user') return '【前情】你和对方之前是好友，后来对方把你删除了。';
+  return '【前情】你和对方之前是好友，后来你因为' + (p.friendLostReason || '一些矛盾') + '把对方删除了。';
+}
+
+function friendPushSystem(name, systemType, text){
+  if (!Array.isArray(MESSAGES[name])) MESSAGES[name] = [];
+  MESSAGES[name].push({ id: genId('sys_'), from: 'me', type: 'system', systemType: systemType, text: text, createdAt: Date.now() });
+}
+
+function friendRefreshChat(name){
+  saveMessages(name);
+  savePersonas();
+  renderChats();
+  renderContacts();
+  if (currentName === name && typeof renderMessages === 'function') { renderMessages(true); scrollBottom(true); }
+  friendSyncGate();
+  renderFriendsView();
+}
+
+function friendDeleteByUser(name){
+  var p = findPersona(name);
+  if (!p || p.friendLost) return;
+  islandConfirm('聊天记录和联系人会保留，但需要重新添加好友后才能继续聊天。', {
+    title: '删除好友「' + friendDisplayName(name) + '」', confirmText: '删除', danger: true
+  }).then(function(ok){
+    var cur = findPersona(name);
+    if (!ok || !cur || cur.friendLost) return;
+    cur.friendLost = 'user';
+    cur.friendLostAt = Date.now();
+    cur.friendLostReason = '';
+    cur.readdDueAt = null;
+    friendPushSystem(name, 'friend_deleted', friendLostText(cur));
+    if (typeof closePMChatSettings === 'function') closePMChatSettings();
+    friendRefreshChat(name);
+    toast('已删除好友');
+  });
+}
+
+function friendDeleteByChar(name, reason){
+  var p = findPersona(name);
+  if (!p || p.friendLost) return false;
+  p.friendLost = 'char';
+  p.friendLostAt = Date.now();
+  p.friendLostReason = String(reason || '').trim().slice(0, 120);
+  p.readdDueAt = Date.now() + 45000 + Math.floor(Math.random() * 75000);
+  friendPushSystem(name, 'friend_deleted', friendLostText(p));
+  friendRefreshChat(name);
+  return true;
+}
+
+function friendApplyCharDelete(name, result){
+  if (!result || !result.deleteFriend) return;
+  var reason = result.deleteFriend.reason;
+  setTimeout(function(){ friendDeleteByChar(name, reason); }, 600);
+}
+
+/* 角色删了你之后，过一会儿会自己再来加你 */
+function friendGenerateReaddText(p, via){
+  var user = getActiveUserPersona() || {};
+  var why = p.friendLostReason || '一时冲动';
+  var prompt = [
+    '你是角色「' + p.name + '」。你之前因为「' + why + '」把「' + (user.name || '我') + '」从好友里删除了，现在你想通过' + friendViaText(via) + '重新加回对方，需要写一句验证信息。',
+    '要求：',
+    '1. 完全符合角色的人设、性格、说话习惯，以及你和对方之间的关系设定，语气要和你删除对方时的心情、现在的心情吻合（拉不下脸、嘴硬、认错、撒娇都可以）。',
+    '2. 像真人重新加好友时随手打的话，一到两句，不超过 40 个字。',
+    '3. 只输出这句验证信息本身，不要加引号，不要加任何说明。',
+    '',
+    friendPersonaContext(p).join('\n\n')
+  ].join('\n');
+  var cfg = Object.assign({}, getApiConfig(), { temperature: 0.9 });
+  return callApiOnce([
+    { role: 'system', content: '你是角色扮演助手，只输出角色会写的验证信息本身，不要解释。' },
+    { role: 'user', content: prompt }
+  ], cfg).then(function(text){
+    var line = friendCleanLine(text).split(/\r?\n/)[0].trim().slice(0, 80);
+    if (!line) throw new Error('主API没有返回内容');
+    return line;
+  });
+}
+
+var friendReaddBusy = Object.create(null);
+
+function friendCheckReadds(){
+  var now = Date.now();
+  (State.personas || []).forEach(function(p){
+    if (!p || p.friendLost !== 'char' || !p.readdDueAt || p.readdDueAt > now || friendReaddBusy[p.name]) return;
+    var pending = friendList().some(function(r){ return r && r.name === p.name && r.status === 'pending'; });
+    if (pending) return;
+    friendReaddBusy[p.name] = true;
+    var via = (p.wechatId && !p.phone) ? 'wechat' : 'phone';
+    var gen = isApiReady() ? friendGenerateReaddText(p, via) : Promise.reject(new Error('no api'));
+    gen.catch(function(){ return '我是' + friendLabel(p) + '，重新加一下你'; }).then(function(text){
+      delete friendReaddBusy[p.name];
+      var cur = findPersona(p.name);
+      if (!cur || cur.friendLost !== 'char') return;
+      cur.readdDueAt = null;
+      savePersonas();
+      friendCreateIncomingRequest(cur, via, text);
+      friendSyncGate();
+      toast('「' + friendLabel(cur) + '」给你发来了好友申请');
+    });
+  });
+}
+
+/* 聊天页：不是好友时，用提示条换掉输入栏 */
+function friendSyncGate(){
+  var view = $('pmView'), gate = $('pmFriendGate');
+  var name = (typeof currentName !== 'undefined') ? currentName : null;
+  var p = name ? findPersona(name) : null;
+  var lost = !!(p && p.friendLost);
+  var del = $('pmSettingsDeleteFriend');
+  if (del) del.hidden = lost;
+  if (!view || !gate) return;
+  view.classList.toggle('is-not-friend', lost);
+  if (!lost) return;
+  var pendIn = null, pendOut = null;
+  friendList().forEach(function(r){
+    if (!r || r.name !== name || r.status !== 'pending') return;
+    if (r.dir === 'in') pendIn = r; else pendOut = r;
+  });
+  var text = $('pmFriendGateText'), btn = $('pmFriendGateBtn');
+  if (text) text.textContent = friendLostText(p);
+  if (btn) {
+    btn.textContent = pendIn ? '查看申请' : (pendOut ? '等待验证' : '重新添加');
+    btn.disabled = !!pendOut && !pendIn;
+  }
+  if (typeof closePanel === 'function') closePanel();
+}
+
+function friendGateAction(){
+  var name = currentName;
+  var p = name ? findPersona(name) : null;
+  if (!p || !p.friendLost) return;
+  var pendIn = null;
+  friendList().forEach(function(r){ if (r && r.name === name && r.status === 'pending' && r.dir === 'in') pendIn = r; });
+  closePM();
+  if (pendIn) { openFriendsView('in'); openFriendDetail(pendIn.id); return; }
+  openFriendsView('out');
+  openFriendAddSheet();
+  var by = p.phone ? 'phone' : (p.wechatId ? 'wechat' : 'phone');
+  setFriendAddBy(by);
+  var input = $('friendAddInput');
+  if (input) input.value = by === 'phone' ? (p.phone || '') : (p.wechatId || '');
+  if (input && input.value) friendSearch();
+}
+
+
 /* ---------- 同意 / 不同意 ---------- */
 /* 成为好友：放进「消息」「联系人」，验证时说过的话变成聊天的第一批消息 */
 function friendFinalizeAccepted(req){
   var persona = findPersona(req.name);
   if (!persona) return;
   var name = req.name;
+  if (persona.friendLost || persona.readdDueAt) {
+    persona.friendLost = null;
+    persona.friendLostAt = null;
+    persona.friendLostReason = '';
+    persona.readdDueAt = null;
+    savePersonas();
+  }
   req.status = 'accepted';
   req.handledAt = Date.now();
   req.updatedAt = Date.now();
@@ -255,6 +440,8 @@ function friendFinalizeAccepted(req){
   saveChats();
   renderChats();
   renderContacts();
+  if (currentName === name && typeof renderMessages === 'function') { renderMessages(true); scrollBottom(true); }
+  friendSyncGate();
 }
 
 function friendAccept(id){
@@ -437,6 +624,7 @@ function renderFriendsView(){
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   renderFriendDetail();
+  friendSyncGate();
   if (friendsViewEl.classList.contains('is-open') && friendsTab === 'in') {
     var changed = false;
     friendList().forEach(function(r){ if (r && r.dir === 'in' && !r.seen) { r.seen = true; changed = true; } });
@@ -587,7 +775,7 @@ function friendSendRequest(){
   var text = (verify && verify.value.trim()) || ('我是' + getActiveUserSocialId());
   var list = friendList();
   for (var i = list.length - 1; i >= 0; i--) {
-    if (list[i] && list[i].name === f.persona.name && list[i].dir === 'out' && list[i].status === 'declined') list.splice(i, 1);
+    if (list[i] && list[i].name === f.persona.name && list[i].dir === 'out' && list[i].status !== 'pending') list.splice(i, 1);
   }
   var now = Date.now();
   var req = {
@@ -662,6 +850,12 @@ function bindFriendsEvents(){
       friendSendReply(input.dataset.frDraft);
     });
   }
+
+  var gateBtn = $('pmFriendGateBtn');
+  if (gateBtn) gateBtn.addEventListener('click', friendGateAction);
+  setInterval(friendCheckReadds, 15000);
+  setTimeout(friendCheckReadds, 4000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) friendCheckReadds(); });
 
   var mask = $('friendAddMask');
   if (mask) mask.addEventListener('click', closeFriendAddSheet);
