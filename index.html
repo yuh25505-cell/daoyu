@@ -1134,26 +1134,18 @@
 <div class="phone-shell">
 <section class="phone-panel is-active" data-phone-panel="recent">
 <header class="phone-head">
-<button aria-label="返回桌面" class="ph-btn" id="phoneBack" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
-<div class="phone-head-center"><h1 class="phone-title">最近通话</h1></div>
-<button aria-label="选择通话记录" class="ph-btn phone-recent-manage-btn" id="phoneRecentManage" type="button">选择</button>
+<button aria-label="编辑通话记录" class="ph-pill" id="phoneRecentManage" type="button">编辑</button>
+<h1 class="phone-title">通话</h1>
+<button aria-label="返回桌面" class="ph-circle" id="phoneBack" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg></button>
 </header>
-<div class="phone-summary phone-summary-compact">
-<div class="phone-eyebrow">RECENTS</div>
-<h2>最近通话</h2>
-</div>
 <div class="phone-recent-selection" id="phoneRecentSelection" hidden>
 <div class="phone-recent-selection-row">
-<label class="phone-recent-filter-label" for="phoneRecentCharFilter">char</label>
 <select class="phone-recent-char-filter" id="phoneRecentCharFilter" aria-label="按 char 筛选通话"></select>
 <button class="phone-selection-link" id="phoneRecentSelectAll" type="button">全选当前</button>
 </div>
 <div class="phone-recent-selection-row phone-recent-selection-actions">
 <span class="phone-selection-count" id="phoneRecentSelectionCount">已选 0 条</span>
 <button class="phone-selection-delete" id="phoneRecentDelete" type="button" disabled>删除</button>
-<button class="phone-selection-cancel" id="phoneRecentCancel" type="button">完成</button>
 </div>
 </div>
 <div class="phone-list" id="phoneRecentList"></div>
@@ -1161,71 +1153,63 @@
 
 <section class="phone-panel" data-phone-panel="contacts">
 <header class="phone-head">
-<button aria-label="返回桌面" class="ph-btn" id="phoneContactsBack" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
-<div class="phone-head-center"><h1 class="phone-title">联系人</h1></div>
-<div class="phone-head-spacer"></div>
+<span class="ph-slot"></span>
+<h1 class="phone-title">联系人</h1>
+<button aria-label="返回桌面" class="ph-circle" id="phoneContactsBack" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg></button>
 </header>
-<div class="phone-summary phone-summary-compact">
-<div class="phone-eyebrow">CONTACTS</div>
-<h2>联系人</h2>
-</div>
 <div class="phone-list" id="phoneContactList"></div>
 </section>
 
 <section class="phone-panel" data-phone-panel="favorites">
 <header class="phone-head">
-<button aria-label="返回桌面" class="ph-btn" id="phoneFavoritesBack" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
-<div class="phone-head-center"><h1 class="phone-title">收藏</h1></div>
-<div class="phone-head-spacer"></div>
+<span class="ph-slot"></span>
+<h1 class="phone-title">收藏</h1>
+<button aria-label="返回桌面" class="ph-circle" id="phoneFavoritesBack" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg></button>
 </header>
-<div class="phone-summary phone-summary-compact">
-<div class="phone-eyebrow">FAVORITES</div>
-<h2>收藏</h2>
-</div>
 <div class="phone-list" id="phoneFavoriteList"></div>
 </section>
 
 <section class="phone-panel" data-phone-panel="contact-detail">
 <header class="phone-head">
-<button aria-label="返回联系人" class="ph-btn" id="phoneContactDetailBack" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
-<div class="phone-head-center"><h1 class="phone-title" id="phoneContactDetailTitle">联系人</h1></div>
-<div class="phone-head-spacer"></div>
+<button aria-label="返回联系人" class="ph-circle" id="phoneContactDetailBack" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button>
+<h1 class="phone-title" id="phoneContactDetailTitle">联系人</h1>
+<span class="ph-slot"></span>
 </header>
 <div class="phone-list" id="phoneContactCallList"></div>
 </section>
 
 <section class="phone-panel" data-phone-panel="call-detail">
 <header class="phone-head">
-<button aria-label="返回通话列表" class="ph-btn" id="phoneDetailBack" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
-<div class="phone-head-center"><h1 class="phone-title" id="phoneDetailTitle">通话</h1></div>
-<button aria-label="收藏通话" class="ph-btn phone-detail-favorite" id="phoneDetailFavorite" type="button" title="收藏通话">
-<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.8 2.55 5.17 5.71.83-4.13 4.03.98 5.69L12 16.84 6.89 19.52l.98-5.69-4.13-4.03 5.71-.83L12 3.8Z"></path></svg>
-</button>
+<button aria-label="返回通话列表" class="ph-circle" id="phoneDetailBack" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button>
+<h1 class="phone-title" id="phoneDetailTitle">通话</h1>
+<button aria-label="收藏通话" class="ph-circle phone-detail-favorite" id="phoneDetailFavorite" type="button" title="收藏通话"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.8 2.55 5.17 5.71.83-4.13 4.03.98 5.69L12 16.84 6.89 19.52l.98-5.69-4.13-4.03 5.71-.83L12 3.8Z"></path></svg></button>
 </header>
 <div class="phone-detail-scroll" id="phoneDetailScroll"></div>
 </section>
 
 <nav class="phone-bottom-nav" id="phoneBottomNav" aria-label="电话">
-<button type="button" class="phone-bottom-tab is-active" data-phone-tab="recent" aria-label="最近通话">
-<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.8 4.8h2.9l1.15 3.05-1.75 1.45a11.2 11.2 0 0 0 5.6 5.6l1.45-1.75 3.05 1.15v2.9c0 .66-.54 1.2-1.2 1.2C11.2 18.4 5.6 12.8 5.6 6c0-.66.54-1.2 1.2-1.2Z"></path></svg>
-<span>最近通话</span>
+<div class="phone-nav-pill">
+<button type="button" class="phone-bottom-tab is-active" data-phone-tab="recent" aria-label="通话">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6"></circle><path d="M12 7.4V12l3 1.9"></path></svg>
+<span>通话</span>
 </button>
 <button type="button" class="phone-bottom-tab" data-phone-tab="contacts" aria-label="联系人">
-<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3.8 18.2c.65-3.02 2.35-4.52 5.2-4.52s4.55 1.5 5.2 4.52"></path><path d="M16 6.3a3 3 0 0 1 0 5.5M16.3 13.95c2.12.2 3.45 1.44 3.95 3.7"></path></svg>
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.6" r="3.6"></circle><path d="M4.8 19.6c.7-3.6 3.5-5.4 7.2-5.4s6.5 1.8 7.2 5.4"></path></svg>
 <span>联系人</span>
 </button>
 <button type="button" class="phone-bottom-tab" data-phone-tab="favorites" aria-label="收藏">
 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.8 2.55 5.17 5.71.83-4.13 4.03.98 5.69L12 16.84 6.89 19.52l.98-5.69-4.13-4.03 5.71-.83L12 3.8Z"></path></svg>
 <span>收藏</span>
 </button>
+</div>
+<button type="button" class="phone-nav-search" id="phoneSearchOpen" aria-label="搜索">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.2"></circle><path d="m15.4 15.4 4.6 4.6"></path></svg>
+</button>
+<div class="phone-nav-field" id="phoneSearchField" hidden>
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.2"></circle><path d="m15.4 15.4 4.6 4.6"></path></svg>
+<input id="phoneSearchInput" type="search" placeholder="搜索" autocomplete="off" enterkeyhint="search"/>
+</div>
+<button type="button" class="phone-nav-search phone-nav-search-close" id="phoneSearchClose" aria-label="关闭搜索" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg></button>
 </nav>
 </div>
 </div>
