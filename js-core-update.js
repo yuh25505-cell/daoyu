@@ -13,6 +13,11 @@
 var IslandUpdate = (function(){
   var EXPECT_KEY = 'island.update.expect';     /* localStorage：刷新前写下"我要更新到哪个构建号" */
   var LAST_CHECK_KEY = 'island.update.lastCheck';
+  var SNOOZE_KEY = 'island.update.snooze';       /* 点了「稍后」的版本，一段时间内不再弹 */
+  var SNOOZE_MS = 6 * 60 * 60 * 1000;            /* 「稍后」后 6 小时再提醒 */
+  var AUTO_GAP_MS = 10 * 60 * 1000;              /* 自动检查最短间隔 10 分钟 */
+  var AUTO_LOOP_MS = 30 * 60 * 1000;             /* 开着岛屿时每 30 分钟看一次 */
+  var _autoAt = 0, _autoBusy = false;
   var MAX_TRIES = 2;                           /* 同一个目标构建号最多自动提示强制刷新的次数 */
   var _busy = false, _remote = null;
 
@@ -35,6 +40,17 @@ var IslandUpdate = (function(){
       var t = setTimeout(function(){ reject(new Error(msg || '超时')); }, ms);
       promise.then(function(v){ clearTimeout(t); resolve(v); }, function(e){ clearTimeout(t); reject(e); });
     });
+  }
+
+  /* 「稍后」记录：同一个新版本 6 小时内不重复弹；再出更新的版本会立刻提醒 */
+  function shouldPrompt(key){
+    var s = lsGet(SNOOZE_KEY);
+    return !(s && s.key === key && Date.now() - s.at < SNOOZE_MS);
+  }
+  function markDismissed(key){ lsSet(SNOOZE_KEY, { key:key, at:Date.now() }); }
+  function clearDismissed(){ lsDel(SNOOZE_KEY); }
+  function dialogBusy(){
+    try { return !!islandDialogCurrent || (document.querySelector('.island-dialog.is-open') !== null); } catch(e){ return false; }
   }
 
   /* ---------- 检查 ---------- */
@@ -301,9 +317,17 @@ var IslandUpdate = (function(){
         return;
       }
       announceAvailable(res);
-      return islandConfirm('发现新版本 ' + fmtInfo(res.remote) + '（当前 ' + fmtInfo({ version:localVersion(), build:localBuild() }) + '）。\n\n更新只会刷新程序文件，不会清除你的聊天、人设和设置等本地数据。刷新前会先保存并留一份安全快照。', {
-        title:'发现新版本', confirmText:'立即更新', cancelText:'稍后'
-      }).then(function(ok){ if (ok) return doApply(res.remote.build, false); });
+      return promptUpdate(res);
+    });
+  }
+
+  /* 弹窗：发现新版本。手动检查和自动检查共用 */
+  function promptUpdate(res){
+    return islandConfirm('发现新版本 ' + fmtInfo(res.remote) + '（当前 ' + fmtInfo({ version:localVersion(), build:localBuild() }) + '）。', {
+      title:'发现新版本', confirmText:'立即更新', cancelText:'稍后'
+    }).then(function(ok){
+      if (ok) { clearDismissed(); return doApply(res.remote.build, false); }
+      markDismissed(res.remote.build);
     });
   }
 
@@ -316,6 +340,25 @@ var IslandUpdate = (function(){
       setCard('更新失败：' + (err && err.message ? err.message : err) + '。当前版本和数据都没有变化。', 'error');
       toast('更新失败，已保留当前版本');
     });
+  }
+
+  /* 自动检查：发现新版本直接弹窗。启动后、切回岛屿、开着岛屿时定时，都会触发 */
+  function autoCheck(force){
+    if (isNativeApp()) {
+      return window.IslandApkUpdate ? IslandApkUpdate.autoCheck(force) : Promise.resolve();
+    }
+    if (_busy || _autoBusy) return Promise.resolve();
+    if (document.hidden) return Promise.resolve();
+    if (!force && Date.now() - _autoAt < AUTO_GAP_MS) return Promise.resolve();
+    if (lsGet(EXPECT_KEY)) return Promise.resolve();   /* 刚更新完正在核对，先不打扰 */
+    _autoAt = Date.now();
+    _autoBusy = true;
+    return check().then(function(res){
+      if (res.state !== 'available') return;
+      announceAvailable(res);
+      if (!shouldPrompt(res.remote.build) || dialogBusy()) return;
+      return promptUpdate(res);
+    }).catch(function(){}).then(function(){ _autoBusy = false; });
   }
 
   /* 用户点"强制刷新"：不管版本是否一致，都重新下载全部程序文件 */
@@ -348,23 +391,18 @@ var IslandUpdate = (function(){
     stripCacheParam();
     /* 等启动动画结束（约 3.5 秒）再核对，避免弹窗被启动层盖住 */
     setTimeout(verifyAfterReload, 3800);
-    /* 静默检查：网页版启动几秒后看一眼线上有没有新版本，有就在设置里亮"有新版本"，不打断使用 */
-    if (!isNativeApp()) {
-      setTimeout(function(){
-        var last = lsGet(LAST_CHECK_KEY);
-        if (last && Date.now() - last.at < 30 * 60 * 1000 && last.build === localBuild()) return;
-        check().then(function(res){ if (res.state === 'available') announceAvailable(res); });
-      }, 6000);
-    } else {
-      setTimeout(function(){
-        if (!window.IslandApkUpdate) return;
-        IslandApkUpdate.cleanup();
-        IslandApkUpdate.silentCheck();
-      }, 6000);
-    }
+    /* 自动检查：启动几秒后看一次；之后每次切回岛屿、以及开着时每 30 分钟看一次，有新版本就弹窗 */
+    setTimeout(function(){
+      if (isNativeApp() && window.IslandApkUpdate) IslandApkUpdate.cleanup();
+      autoCheck(true);
+    }, 6000);
+    document.addEventListener('visibilitychange', function(){
+      if (!document.hidden) setTimeout(function(){ autoCheck(false); }, 1200);
+    });
+    setInterval(function(){ autoCheck(false); }, AUTO_LOOP_MS);
   }
 
-  var ui = { setRowStatus:setRowStatus, setCard:setCard, setBusyUi:setBusyUi, fmtBuild:fmtBuild, lsGet:lsGet, lsSet:lsSet, withTimeout:withTimeout };
+  var ui = { shouldPrompt:shouldPrompt, markDismissed:markDismissed, clearDismissed:clearDismissed, dialogBusy:dialogBusy, setRowStatus:setRowStatus, setCard:setCard, setBusyUi:setBusyUi, fmtBuild:fmtBuild, lsGet:lsGet, lsSet:lsSet, withTimeout:withTimeout };
 
-  return { check:check, apply:apply, bind:bind, isNativeApp:isNativeApp, runCheck:runCheck, runForce:runForce, ui:ui };
+  return { check:check, apply:apply, autoCheck:autoCheck, bind:bind, isNativeApp:isNativeApp, runCheck:runCheck, runForce:runForce, ui:ui };
 })();

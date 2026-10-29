@@ -1,5 +1,7 @@
 /* 岛屿 · APK 应用内更新（仅安卓安装包里生效）
  *
+ * 自动检查：启动后、切回岛屿、开着时定时，发现新版本会直接弹窗；点「稍后」同一版本 6 小时内不再弹。
+ *
  * 流程：读 GitHub 上最新发布的安装包 → 和本机安装的打包序号对比 → 有新的就在岛屿里下载（带进度弹窗）
  *      → 下载完调起系统安装页面 → 用户点「安装」覆盖更新，聊天、人设、设置等本地数据保留。
  * 本机打包序号 = 安装包 versionCode − 100000（见 patch_android.mjs）；线上序号取自发布标签 apk-build-N。
@@ -9,7 +11,8 @@
 var IslandApkUpdate = (function(){
   var BASE_CODE = 100000;
   var LAST_KEY = 'island.apk.lastCheck';
-  var _busy = false, _plugin = null;
+  var AUTO_GAP_MS = 10 * 60 * 1000;
+  var _busy = false, _plugin = null, _autoAt = 0;
   var _dlg = null, _timer = 0, _cancelling = false;
 
   function ui(){ return (window.IslandUpdate && IslandUpdate.ui) || {}; }
@@ -100,8 +103,16 @@ var IslandApkUpdate = (function(){
     var text = '新版本 ' + label(remote) + ' 已经发布了。';
     if (remote.size) text += '安装包约 ' + fmtMB(remote.size) + '。';
     if (notes) text += '\n\n这次更新：\n' + notes;
-    text += '\n\n点「下载并安装」，下载完会自动打开安装页面，你的聊天、人设和设置都会保留。';
     return text;
+  }
+
+  /* 弹窗：发现新版本。手动检查和自动检查共用 */
+  function promptUpdate(remote){
+    return islandConfirm(foundMessage(remote), { title: '发现新版本', confirmText: '下载并安装', cancelText: '稍后' }).then(function(ok){
+      var u = ui();
+      if (ok) { if (u.clearDismissed) u.clearDismissed(); return startFlow(remote); }
+      if (u.markDismissed) u.markDismissed('apk-' + remote.run);
+    });
   }
 
   /* ---------- 允许安装应用 ---------- */
@@ -283,9 +294,7 @@ var IslandApkUpdate = (function(){
         return;
       }
       announce(res);
-      return islandConfirm(foundMessage(res.remote), { title: '发现新版本', confirmText: '下载并安装', cancelText: '稍后' }).then(function(ok){
-        if (ok) return startFlow(res.remote);
-      });
+      return promptUpdate(res.remote);
     }).catch(function(err){
       if (u.setBusyUi) u.setBusyUi(false);
       if (u.setRowStatus && u.fmtBuild) u.setRowStatus(u.fmtBuild(), false);
@@ -294,13 +303,19 @@ var IslandApkUpdate = (function(){
     }).then(function(){ _busy = false; });
   }
 
-  /* 启动几秒后静默看一眼，有新版本只在设置里亮「有新版本」，不打断使用 */
-  function silentCheck(){
-    if (_busy || !plugin()) return;
+  /* 自动检查：有新版本直接弹窗。启动后、切回岛屿、开着岛屿时定时，都会触发 */
+  function autoCheck(force){
+    if (_busy || !plugin() || document.hidden) return Promise.resolve();
+    if (!force && Date.now() - _autoAt < AUTO_GAP_MS) return Promise.resolve();
     var u = ui();
-    var last = u.lsGet ? u.lsGet(LAST_KEY) : null;
-    if (last && Date.now() - last.at < 30 * 60 * 1000) return;
-    check().then(function(res){ if (res.state === 'available') announce(res); }).catch(function(){});
+    _autoAt = Date.now();
+    _busy = true;
+    return check().then(function(res){
+      if (res.state !== 'available') return;
+      announce(res);
+      if (!u.shouldPrompt || !u.shouldPrompt('apk-' + res.remote.run) || (u.dialogBusy && u.dialogBusy())) return;
+      return promptUpdate(res.remote);
+    }).catch(function(){}).then(function(){ _busy = false; });
   }
 
   /* 清掉上次下载留下的安装包 */
@@ -309,5 +324,5 @@ var IslandApkUpdate = (function(){
     if (p) p.cleanApkCache().catch(function(){});
   }
 
-  return { run: run, silentCheck: silentCheck, cleanup: cleanup };
+  return { run: run, autoCheck: autoCheck, cleanup: cleanup };
 })();
