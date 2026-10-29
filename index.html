@@ -528,14 +528,11 @@
 <section aria-hidden="true" class="pm-voice-call-view" id="pmVoiceCallView">
 <div class="pm-voice-call-shell">
 <header class="pm-voice-call-head">
-<button aria-label="返回聊天" class="ph-btn" id="pmVoiceCallBack" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
+<button aria-label="返回聊天" class="ph-circle" id="pmVoiceCallBack" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5.5 8.5 12 15 18.5"></path></svg></button>
 <div class="pm-voice-call-head-center">
 <div class="pm-voice-call-label">语音通话</div>
 <div class="pm-voice-call-name" id="pmVoiceCallName">角色</div>
 </div>
-<div class="pm-voice-call-head-spacer"></div>
 </header>
 <div class="pm-voice-call-body">
 <div class="pm-voice-call-profile">
@@ -544,9 +541,7 @@
 <div class="pm-voice-call-status" id="pmVoiceCallStatus">正在连接…</div>
 <div class="pm-voice-call-duration" id="pmVoiceCallDuration">00:00</div>
 </div>
-<div class="pm-voice-call-turns" id="pmVoiceCallTurns">
-<div class="pm-voice-call-empty" id="pmVoiceCallEmpty">可以直接说话，也可以切换成文字输入。</div>
-</div>
+<div class="pm-voice-call-turns" id="pmVoiceCallTurns"></div>
 </div>
 <div class="pm-voice-call-incoming-actions" id="pmVoiceCallIncomingActions" hidden>
 <button class="pm-voice-call-incoming-decline" id="pmVoiceCallIncomingDecline" type="button">拒接</button>
@@ -555,19 +550,18 @@
 <div class="pm-voice-call-composer" id="pmVoiceCallComposer">
 <div class="pm-voice-call-input-row">
 <button aria-label="开始说话" class="pm-voice-call-mic" id="pmVoiceCallMicBtn" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><rect height="10.5" rx="5.2" width="7" x="8.5" y="3.2"></rect><path d="M5.5 11.2a6.5 6.5 0 0 0 13 0M12 17.7v3.1M9 20.8h6"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><rect height="10.5" rx="5.2" width="7" x="8.5" y="3.2"></rect><path d="M5.5 11.2a6.5 6.5 0 0 0 13 0M12 17.7v3.1M9 20.8h6"></path></svg>
 </button>
 <div class="pm-voice-call-textbox" id="pmVoiceCallTextbox">
-<textarea autocomplete="off" id="pmVoiceCallInput" maxlength="2000" placeholder="输入文字，或点击左侧说话……" rows="1"></textarea>
+<textarea autocomplete="off" id="pmVoiceCallInput" maxlength="2000" placeholder="信息" rows="1"></textarea>
 <button aria-label="发送文字" class="pm-voice-call-send" id="pmVoiceCallSend" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" viewbox="0 0 24 24"><path d="M4.5 12h14"></path><path d="m13.5 6 6 6-6 6"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" viewbox="0 0 24 24"><path d="M12 19V6"></path><path d="m6.5 11.5 5.5-5.5 5.5 5.5"></path></svg>
 </button>
 </div>
 <button aria-label="结束通话" class="pm-voice-call-end" id="pmVoiceCallEnd" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M7.2 3.8 9.4 8l-2 2.2a12 12 0 0 0 6.4 6.4l2.2-2 4.2 2.2-1 3.2c-.3.9-1.2 1.4-2.1 1.2C10.4 19.7 4.3 13.6 2.8 6.9c-.2-.9.3-1.8 1.2-2.1z"></path><path d="m17.1 5.9 2.8 2.8M19.9 5.9l-2.8 2.8"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M7.2 3.8 9.4 8l-2 2.2a12 12 0 0 0 6.4 6.4l2.2-2 4.2 2.2-1 3.2c-.3.9-1.2 1.4-2.1 1.2C10.4 19.7 4.3 13.6 2.8 6.9c-.2-.9.3-1.8 1.2-2.1z"></path><path d="m17.1 5.9 2.8 2.8M19.9 5.9l-2.8 2.8"></path></svg>
 </button>
 </div>
-<div class="pm-voice-call-foot-hint" id="pmVoiceCallHint">点击麦克风后自动检测你开始和结束说话，不需要长按。</div>
 </div>
 </div>
 </section>

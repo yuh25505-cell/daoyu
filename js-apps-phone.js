@@ -470,19 +470,19 @@ function renderPhoneCallDetail(sessionId){
     phoneDetailScroll.innerHTML = phoneEmptyHTML('电', '这通电话没有可显示的文字记录', '');
     return;
   }
-  var persona = getActiveUserPersona();
-  var userAvatar = persona && persona.avatar ? persona.avatar : '';
   var callName = String(record.name || '对方');
-  phoneDetailScroll.innerHTML = rows.map(function(msg){
+  var avatar = getAvatar(callName);
+  var metaParts = [formatPhoneListDate(record.startedAt || record.updatedAt), formatPhoneCallDuration(record.durationMs)].filter(Boolean);
+  phoneDetailScroll.innerHTML = '<div class="phone-detail-profile">' +
+    '<div class="phone-detail-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(callName.charAt(0) || '?')) + '</div>' +
+    '<div class="phone-detail-name">' + escapeHTML(callName) + '</div>' +
+    '<div class="phone-detail-meta">' + escapeHTML(metaParts.join('　')) + '</div>' +
+  '</div>' + rows.map(function(msg){
     var isMe = msg.from === 'me';
-    var avatar = isMe ? userAvatar : getAvatar(callName);
-    var initial = isMe ? String(persona && persona.name || '我').charAt(0) : callName.charAt(0);
     return '<div class="pm-voice-call-turn ' + (isMe ? 'is-me' : 'is-char') + '">' +
-      (!isMe ? '<div class="pm-voice-call-turn-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(initial || '?')) + '</div>' : '') +
       '<div class="pm-voice-call-turn-copy">' +
         '<div class="pm-voice-call-turn-bubble">' + escapeHTML(String(msg.text || '')) + '</div>' +
       '</div>' +
-      (isMe ? '<div class="pm-voice-call-turn-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(initial || '?')) + '</div>' : '') +
     '</div>';
   }).join('');
   requestAnimationFrame(function(){ phoneDetailScroll.scrollTop = phoneDetailScroll.scrollHeight; });
@@ -581,7 +581,10 @@ function openPhoneCallDetail(sessionId){
   phoneApp.querySelectorAll('[data-phone-panel]').forEach(function(panel){
     panel.classList.toggle('is-active', panel.dataset.phonePanel === 'call-detail');
   });
-  if (phoneBottomNav) phoneBottomNav.querySelectorAll('[data-phone-tab]').forEach(function(tab){ tab.classList.remove('is-active'); });
+  if (phoneBottomNav) {
+    phoneBottomNav.classList.add('is-hidden');
+    phoneBottomNav.querySelectorAll('[data-phone-tab]').forEach(function(tab){ tab.classList.remove('is-active'); });
+  }
 }
 
 

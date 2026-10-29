@@ -50,22 +50,16 @@ function renderVoiceCallTurns(){
     return item && item.type === 'voice_call' && item.callSessionId === voiceCallState.sessionId;
   });
   if (!turns.length) {
-    pmVoiceCallTurns.innerHTML = '<div class="pm-voice-call-empty" id="pmVoiceCallEmpty">可以直接说话，也可以切换成文字输入。</div>';
+    pmVoiceCallTurns.innerHTML = '';
     return;
   }
-  var persona = getActiveUserPersona();
-  var userAvatar = persona && persona.avatar ? persona.avatar : '';
   var html = '';
   turns.forEach(function(m){
     var isMe = m.from === 'me';
-    var avatar = isMe ? userAvatar : getAvatar(name);
-    var initial = isMe ? String(persona && persona.name || '我').charAt(0) : name.charAt(0);
     html += '<div class="pm-voice-call-turn ' + (isMe ? 'is-me' : 'is-char') + '">' +
-      (!isMe ? '<div class="pm-voice-call-turn-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(initial || '?')) + '</div>' : '') +
       '<div class="pm-voice-call-turn-copy">' +
         '<div class="pm-voice-call-turn-bubble">' + escapeHTML(String(m.text || '')) + '</div>' +
       '</div>' +
-      (isMe ? '<div class="pm-voice-call-turn-avatar">' + (avatar ? '<img src="' + escapeHTML(avatar) + '" alt="">' : escapeHTML(initial || '?')) + '</div>' : '') +
     '</div>';
   });
   pmVoiceCallTurns.innerHTML = html;
@@ -117,12 +111,6 @@ function updateVoiceCallControls(){
     pmVoiceCallMicBtn.classList.toggle('is-listening', !!voiceCallState.micOn && !voiceCallState.processing);
     pmVoiceCallMicBtn.classList.toggle('is-speaking', !!voiceCallState.recording);
     pmVoiceCallMicBtn.setAttribute('aria-label', voiceCallState.micOn ? '停止自动听说' : '开始自动听说');
-  }
-  if (pmVoiceCallHint) {
-    if (voiceCallState.processing) pmVoiceCallHint.textContent = '正在处理这句话；处理完成后会继续自动聆听。';
-    else if (voiceCallState.recording) pmVoiceCallHint.textContent = '正在录音，停止说话后会自动转文字并发送给对方。';
-    else if (voiceCallState.micOn) pmVoiceCallHint.textContent = '自动听说已开启：说完停一下即可自动发送，不需要长按。';
-    else pmVoiceCallHint.textContent = '点击左侧麦克风开始自动听说；中间也可以直接输入文字。';
   }
 }
 
@@ -311,7 +299,7 @@ function startVoiceCallMic(){
   if (voiceCallState.processing) return Promise.resolve(false);
   if (!isSttReady()) {
     setVoiceCallStatus('请先在设置中配置语音转文字接口');
-    if (pmVoiceCallHint) pmVoiceCallHint.textContent = '语音通话需要可用的 STT API；文字输入仍然可以正常使用。';
+    setVoiceCallStatus('语音通话需要可用的 STT API；文字输入仍然可以正常使用。');
     return Promise.resolve(false);
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {

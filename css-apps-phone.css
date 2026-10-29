@@ -2,8 +2,9 @@
  * 样式参考 iOS 电话：胶囊/圆形玻璃按钮、圆形头像、右侧日期 + 蓝色拨号圆钮、悬浮玻璃底栏。
  * 加载顺序见 index.html：core-base → core-shared → home → music → chat → phone → worldbook → settings → 其余占位 App。 */
 
-.phone-app{
+.phone-app,.pm-voice-call-view{
   --bg:var(--bg-pure);
+  --vc-me:#1b7cf6; --vc-them:#e9e9eb; --vc-them-fg:#111;
   --ph-blue:#1677ff;
   --ph-glass:rgba(255,255,255,.74);
   --ph-glass-bd:rgba(16,16,16,.07);
@@ -16,7 +17,9 @@
   --ph-line:rgba(60,60,67,.16);
   --ph-av-a:#abbfe3; --ph-av-b:#7f87be;
 }
-html[data-theme="dark"] .phone-app{
+html[data-theme="dark"] .phone-app,
+html[data-theme="dark"] .pm-voice-call-view{
+  --vc-them:#27272a; --vc-them-fg:#f5f5f5;
   --ph-blue:#3b8cff;
   --ph-glass:rgba(44,44,48,.72);
   --ph-glass-bd:rgba(255,255,255,.10);
@@ -30,7 +33,9 @@ html[data-theme="dark"] .phone-app{
   --ph-av-a:#6577a8; --ph-av-b:#434a7d;
 }
 @media (prefers-color-scheme: dark){
-  html:not([data-theme]) .phone-app{
+  html:not([data-theme]) .phone-app,
+  html:not([data-theme]) .pm-voice-call-view{
+    --vc-them:#27272a; --vc-them-fg:#f5f5f5;
     --ph-blue:#3b8cff;
     --ph-glass:rgba(44,44,48,.72);
     --ph-glass-bd:rgba(255,255,255,.10);
@@ -181,19 +186,8 @@ html[data-theme="dark"] .phone-app{
 .phone-nav-field input::-webkit-search-cancel-button,.phone-nav-field input::-webkit-search-decoration{ -webkit-appearance:none; display:none; }
 
 /* ===== 通话详情 ===== */
-.phone-detail-scroll{ flex:1 1 auto; min-height:0; overflow:auto; padding:8px 14px calc(28px + var(--island-sab)); -webkit-overflow-scrolling:touch; }
+.phone-panel[data-phone-panel="call-detail"] .phone-title{ visibility:hidden; }
+.phone-detail-profile{ display:flex; flex-direction:column; align-items:center; padding:2px 0 14px; }
+.phone-detail-meta{ margin-top:8px; color:var(--fg-soft); font-size:calc(13px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; }
+.phone-detail-scroll{ flex:1 1 auto; min-height:0; overflow:auto; padding:8px 18px calc(28px + var(--island-sab)); -webkit-overflow-scrolling:touch; }
 
-.phone-transcript-row{ display:flex; flex-direction:column; align-items:flex-start; margin:0 0 16px; }
-.phone-transcript-row.is-me{ align-items:flex-end; }
-.phone-transcript-label{ margin:0 4px 5px; color:var(--fg-faint); font-size:calc(10px * var(--island-font-size-scale)); }
-.phone-transcript-bubble{
-  max-width:min(84%,430px); padding:10px 12px; border:1px solid var(--track); border-radius:16px;
-  background:var(--card-bg); color:var(--fg); font-size:calc(13px * var(--island-font-size-scale)); line-height:1.6;
-  white-space:pre-wrap; word-break:break-word;
-}
-.phone-transcript-row.is-me .phone-transcript-bubble{ background:var(--bubble-bg); }
-.phone-transcript-time{ margin:5px 4px 0; flex:none; color:var(--fg-faint); font-size:calc(10.5px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; }
-
-@media (max-width:520px){
-.phone-transcript-bubble{ max-width:88%; }
-}
