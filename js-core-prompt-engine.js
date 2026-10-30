@@ -60,6 +60,8 @@ var PromptEngine = (function(){
   def({ id:'user_persona', name:'用户人设', cat:'base', anchor:'relationship_context', kind:'data', provider:'user_persona', required:true, template:'{{content}}' });
 
   def({ id:'mem_char', name:'角色记忆', cat:'memory', anchor:'memory_context', kind:'data', provider:'mem_char', template:'【角色记忆】\n{{content}}' });
+  def({ id:'mem_facts', name:'结构化记忆（事实 / 事件 / 偏好）', cat:'memory', anchor:'memory_context', kind:'data', provider:'mem_facts', template:'【结构化记忆】\n{{content}}' });
+  def({ id:'mem_plans', name:'待履行的承诺与计划', cat:'memory', anchor:'memory_context', kind:'data', provider:'mem_plans', template:'【待履行的承诺与计划】\n{{content}}\n未发生的计划不要说成已经发生；时间已过但没确认完成的，可以自然地向对方确认。' });
   def({ id:'mem_important', name:'重要记忆', cat:'memory', anchor:'memory_context', kind:'data', provider:'mem_important', template:'【重要记忆】\n{{content}}' });
   def({ id:'mem_aged', name:'鱼的记忆 / 模糊记忆 / 短期记忆', cat:'memory', anchor:'memory_context', kind:'data', provider:'mem_aged', template:'{{content}}' });
   def({ id:'mem_vector', name:'向量记忆', cat:'memory', anchor:'memory_context', kind:'data', provider:'mem_vector', template:'【向量记忆·语义检索结果】\n{{content}}' });

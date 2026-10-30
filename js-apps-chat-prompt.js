@@ -56,6 +56,7 @@ function registerChatPromptProviders(){
   P('mem_char', function(ctx){ return getCharacterMemoryText(ctx.persona); });
   P('mem_important', function(ctx){
     var m = ctx.shortMemory, mode = ctx.memoryMode;
+    if (typeof isFactsModuleEnabled === 'function' && isFactsModuleEnabled()) return '';
     if (!(mode === 'summary' || mode === 'hybrid') || !m.importantMemories || !m.importantMemories.length) return '';
     return m.importantMemories.slice().sort(function(a,b){ return (Number(a.createdAt)||0) - (Number(b.createdAt)||0); })
       .map(function(item){ return item.text; }).join('\n');

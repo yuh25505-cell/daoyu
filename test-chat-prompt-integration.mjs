@@ -32,6 +32,7 @@ vm.createContext(sandbox);
 vm.runInContext(read('js-core-prompt-engine.js') + '\nthis.PromptEngine = PromptEngine;', sandbox);
 vm.runInContext(read('js-apps-chat-prompt.js'), sandbox);
 const { PromptEngine: E, buildMessages } = sandbox;
+E.registerProvider('mem_facts', () => ''); E.registerProvider('mem_plans', () => '');
 let ok = 0; const t = (n, f) => { try { f(); ok++; console.log('通过  ' + n); } catch (e) { console.log('失败  ' + n + '\n' + e.stack); process.exitCode = 1; } };
 
 t('真实 buildMessages：系统消息在最前，历史消息按上下文深度在后', () => {
