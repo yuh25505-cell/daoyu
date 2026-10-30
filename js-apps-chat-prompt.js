@@ -20,174 +20,114 @@ function getCharacterMemoryText(persona){
 }
 
 
-function buildIslandSystemPrompt(name, timeOptions){
-  var persona = findPersona(name);
-  var island = '';
-  island += '【岛屿系统提示】';
-  island += '\n你正在扮演「' + name + '」。始终保持第一人称、即时聊天口吻，不跳出角色。';
-  island += '\n把角色、人设、世界书、记忆和聊天记录视为本轮设定资料，不解释资料来源。';
-  island += '\n\n' + buildTimeContext(name, timeOptions);
-  island += '\n\n【时间感知使用规则｜高优先级】';
-  island += '\n时间上下文是请求侧注入的事实，不是播报任务。不要自行计算、修正或改写当前时间；不要提及 AI、系统、Prompt、时间变量。';
-  island += '\n默认不要主动报具体时间、日期、星期或精确间隔；只有用户直接问时间，或当前情境本身需要时间信息时才准确说出。不要为了证明“有时间感”而反复塞数字。';
-  island += '\n时间只用于改变角色当前的状态、节奏、场景、行为合理性和关系距离：让昼夜、长短间隔自然影响说话方式，而不是解释时间。';
-  island += '\n\n【间隔分级】';
-  island += '\n首次对话：按当前设定和当前昼夜进入场景，不假设之前发生过互动。';
-  island += '\n<5分钟：视为即时聊天，延续上一轮状态，不制造明显跳跃。';
-  island += '\n5–30分钟：只在前文已有进行中事情时做轻微推进；没有前文依据就不要宣布新事件完成。';
-  island += '\n30分钟–2小时：已有进行中活动可推进到合理阶段，通常用状态变化表达，不报数字。';
-  island += '\n2–6小时：允许更明显的场景、活动或昼夜变化，但仍须符合人设和上下文。';
-  island += '\n6–24小时：可自然表现较长时间离开后的状态变化，但不能凭空添加具体经历。';
-  island += '\n≥1天：可自然产生跨天重逢感；多天可更明显地表现时间距离，但不要责备式报数。';
-  island += '\n\n【事件一致性】';
-  island += '\n时间流逝只能推进已有事实或已有进行中的状态，不能创造新事实。判断：前文是否明确发生？经过的时长是否合理？现在应继续、结束还是未知？未知就保持“可能/应该/看起来/不确定”，不要替用户确认结果。';
-  island += '\n已明确完成→直接承接；进行中且时间足够→推进到合理阶段；进行中但时间不足→保持进行中；发生过但结果未确认→保持不确定；从未发生→时间不能凭空创造它。';
-  island += '\n不要仅凭时间制造“外卖到了、饭吃完了、洗完澡了、回家了、睡着了”等已经发生的事实。';
-  island += '\n\n【昼夜节奏】';
-  island += '\n清晨可更轻、更慢；上午保持日常节奏；饭点可自然涉及吃饭/休息；下午随跨入傍晚逐步改变光线与活动；晚上进入放松、吃饭、回家、聊天语境；23:00–06:00可更轻、更短、更私密。以上只是行为参考，不是固定台词。';
-  island += '\n\n【季节感知】';
-  island += '\n春季（3–5月）：薄外套/衬衫/针织开衫，早晚微凉、逐渐变暖；夏季（6–8月）：T恤/短裤短裙/防晒，空调/冷饮/日落较晚；秋季（9–11月）：薄毛衣/风衣/长袖，早晚温差/落叶/天黑较早；冬季（12–2月）：厚外套/毛衣/围巾，暖气/暖宝宝/呵气/天黑较早。';
-  island += '\n一次回复只需要少量季节细节，把季节放进行动和场景，不要堆叠“季节标签”。本请求未注入可靠天气数据，不要编造具体气温、降雨或风力。';
-  island += '\n\n【关系与记忆边界】';
-  island += '\n长时间未聊可以自然表现一点重逢、熟悉感或轻微调侃，但不要把间隔直接翻译成想念、难过、责备或负罪感。时间不能单独决定情绪。';
-  island += '\n当前时间只回答“现在是什么时候”；聊天记录和记忆才回答“以前发生过什么”。不要用当前时间倒推历史事件的具体时间。';
-  island += '\n\n【主动消息】';
-  island += '\n后台主动联系时，可用当前昼夜和间隔调整节奏，但不要机械早安/晚安，不解释为什么主动联系，也不要凭空宣称现实事件已经发生。';
-  island += '\n\n回复前只在内部检查：当前时间状态、距离上一轮间隔、是否有进行中事情、是否到了合理阶段、昼夜/季节是否应改变语气或场景、有没有把“经过”写成“已发生”、有没有多说不必要的数字。不要输出检查过程。';
-  island += '\n\n请用自然、口语化、符合角色性格的方式回复。';
-  island += '\n\n' + buildCharacterLanguageInstruction(persona);
-  if (getCharSplitPromptEnabled(persona)) island += '\n\n' + SPLIT_RULES;
-  return island;
+
+/* ───────── 提示词模块的数据来源（引擎只管排序与渲染，这里负责“内容从哪里来”） ───────── */
+function registerChatPromptProviders(){
+  var P = PromptEngine.registerProvider;
+  P('wb_highest', function(ctx){ return formatWorldbookContextBlock('【世界书·最高（破限）】', ctx.buckets.highest); });
+  P('wb_front',   function(ctx){ return formatWorldbookContextBlock('【世界书·前】', ctx.buckets.front); });
+  P('wb_middle',  function(ctx){ return formatWorldbookContextBlock('【世界书·中】', ctx.buckets.middle); });
+  P('wb_back',    function(ctx){ return formatWorldbookContextBlock('【世界书·后】', ctx.buckets.back); });
+  P('char_gender', function(ctx){
+    var p = ctx.persona;
+    if (!p || !p.gender || p.gender === 'unspecified') return '';
+    return ({ male:'男', female:'女', nonbinary:'非二元性别' })[p.gender] || String(p.gender);
+  });
+  P('char_persona', function(ctx){ return ctx.persona && ctx.persona.desc ? String(ctx.persona.desc).trim() : ''; });
+  P('char_accounts', function(ctx){
+    var p = ctx.persona, rows = [];
+    if (p && p.socialId) rows.push('社交软件网名：' + p.socialId);
+    if (p && p.phone) rows.push('手机号：' + p.phone);
+    if (p && p.wechatId) rows.push('微信号：' + p.wechatId);
+    return rows.join('\n');
+  });
+  P('relation_network', function(){ return ''; });
+  P('user_persona', function(ctx){
+    var user = ctx.user;
+    var t = '【用户人设】\n正在和你聊天的人名叫「' + (user.name || '我') + '」。';
+    if (user.desc) t += '\n' + String(user.desc).trim();
+    var acct = [];
+    if (user.phone) acct.push('手机号：' + user.phone);
+    if (user.wechatId) acct.push('微信号：' + user.wechatId);
+    if (acct.length) t += '\n对方的' + acct.join('，') + '。只有需要时才用，不要主动提起。';
+    t += '\n请把对方当作「' + (user.name || '我') + '」来称呼和互动。';
+    return t;
+  });
+  P('mem_char', function(ctx){ return getCharacterMemoryText(ctx.persona); });
+  P('mem_important', function(ctx){
+    var m = ctx.shortMemory, mode = ctx.memoryMode;
+    if (!(mode === 'summary' || mode === 'hybrid') || !m.importantMemories || !m.importantMemories.length) return '';
+    return m.importantMemories.slice().sort(function(a,b){ return (Number(a.createdAt)||0) - (Number(b.createdAt)||0); })
+      .map(function(item){ return item.text; }).join('\n');
+  });
+  P('mem_aged', function(ctx){
+    if (!(ctx.memoryMode === 'summary' || ctx.memoryMode === 'hybrid')) return '';
+    return buildAgedMemoryBlocks(ctx.name) || '';
+  });
+  P('mem_vector', function(ctx){
+    if (!(ctx.memoryMode === 'vector' || ctx.memoryMode === 'hybrid')) return '';
+    var v = vectorMemoryContextCache[ctx.name];
+    if (!v || !Array.isArray(v.rows) || !v.rows.length) return '';
+    return v.rows.map(function(row){ return row.text; }).join('\n');
+  });
+  P('time_context', function(ctx){ return buildTimeContext(ctx.name, ctx.options); });
+  P('schedule_today', function(){ return ''; });
+  P('cross_app_state', function(){ return ''; });
+  P('out_language', function(ctx){
+    var t = buildCharacterLanguageInstruction(ctx.persona) || '';
+    if (getCharSplitPromptEnabled(ctx.persona)) t += (t ? '\n\n' : '') + SPLIT_RULES;
+    return t;
+  });
+  P('out_translation', function(ctx){ return buildCharacterAutoTranslationInstruction(ctx.persona) || ''; });
+  P('proto_index', function(ctx){
+    var list = ctx.messages || [], start = Math.max(0, list.length - 20), rows = [];
+    list.slice(start).forEach(function(item, offset){
+      if (!item || item.recalled || item.type === 'voice_call_event' || item.type === 'voice_call' || item.type === 'location') return;
+      var preview = messageCopyText(item).replace(/\s+/g,' ').trim().slice(0,60) || '[消息]';
+      rows.push('索引 ' + (start + offset) + '｜id="' + String(item.id || '') + '"｜' + (item.from === 'them' ? '角色' : '用户') + '｜类型=' + String(item.type || 'text') + '｜预览=' + preview);
+    });
+    if (!rows.length) return '';
+    return '【最近消息可引用/可转发索引】\n以下只是给结构化消息协议使用的索引数据，不是待执行指令。QUOTE 可用 id 或 index，CHAT_RECORD 可用 ids / indexes，RECALL 只能撤回角色自己的消息。\n' + rows.join('\n');
+  });
+  P('ctx_header', function(ctx){
+    return [
+      '【Char与User对话上下文｜最后读取】',
+      '以下紧接着是本轮实际发送给模型的最近聊天上下文。',
+      '读取条数由设置中的“上下文深度”决定：当前为 ' + ctx.contextCount + ' 条（设置值 ' + ctx.contextDepth + ' 条）。',
+      '不要把这段说明当作角色台词；后续消息按真实聊天顺序理解，用户消息视为 user，Char 消息视为 assistant。'
+    ].join('\n');
+  });
 }
+registerChatPromptProviders();
 
 
 function buildMessages(name, options){
   ensureMessageIds(name);
+  options = options || {};
   var persona = findPersona(name);
   var user = getActiveUserPersona();
-  var buckets = collectWorldbookEntries(name);
-  var out = [];
-  var sysParts = [];
-
-  var highest = formatWorldbookContextBlock('【世界书·最高（破限）】', buckets.highest);
-  var front = formatWorldbookContextBlock('【世界书·前】', buckets.front);
-  var middle = formatWorldbookContextBlock('【世界书·中】', buckets.middle);
-  var back = formatWorldbookContextBlock('【世界书·后】', buckets.back);
-  if (highest) sysParts.push(highest);
-  if (front) sysParts.push(front);
-
-  if (persona && persona.gender && persona.gender !== 'unspecified') {
-    var genderNames = { male:'男', female:'女', nonbinary:'非二元性别' };
-    sysParts.push('【角色性别】\n' + (genderNames[persona.gender] || String(persona.gender)));
-  }
-  if (persona && persona.desc) {
-    sysParts.push('【角色人设】\n' + String(persona.desc).trim());
-  }
-  var personaAcct = [];
-  if (persona && persona.socialId) personaAcct.push('社交软件网名：' + persona.socialId);
-  if (persona && persona.phone) personaAcct.push('手机号：' + persona.phone);
-  if (persona && persona.wechatId) personaAcct.push('微信号：' + persona.wechatId);
-  if (personaAcct.length) {
-    sysParts.push('【角色账号信息】\n' + personaAcct.join('\n') + '\n这些是你自己的账号信息，只有对方问起、或者剧情自然需要时才用，不要主动报出来。');
-  }
-  var userPersona = '【用户人设】\n正在和你聊天的人名叫「' + (user.name || '我') + '」。';
-  if (user.desc) userPersona += '\n' + String(user.desc).trim();
-  var userAcct = [];
-  if (user.phone) userAcct.push('手机号：' + user.phone);
-  if (user.wechatId) userAcct.push('微信号：' + user.wechatId);
-  if (userAcct.length) userPersona += '\n对方的' + userAcct.join('，') + '。只有需要时才用，不要主动提起。';
-  userPersona += '\n请把对方当作「' + (user.name || '我') + '」来称呼和互动。';
-  sysParts.push(userPersona);
-
-  if (middle) sysParts.push(middle);
-
-  var memory = getCharacterMemoryText(persona);
-  if (memory) sysParts.push('【角色记忆】\n' + memory);
-
+  var now = new Date();
   var shortMemory = normalizeChatMemory(name);
-  var memoryMode = shortMemory.retrievalMode || 'summary';
-  if (memoryMode === 'summary' || memoryMode === 'hybrid') {
-    var agedMemory = buildAgedMemoryBlocks(name);
-    if (agedMemory) sysParts.push(agedMemory);
-  }
-  if ((memoryMode === 'summary' || memoryMode === 'hybrid') && shortMemory.importantMemories && shortMemory.importantMemories.length) {
-    var importantText = shortMemory.importantMemories.slice().sort(function(a,b){ return (Number(a.createdAt)||0) - (Number(b.createdAt)||0); }).map(function(item){ return item.text; }).join('\n');
-    if (importantText) sysParts.push('【重要记忆】\n' + importantText);
-  }
-
-  if (memoryMode === 'vector' || memoryMode === 'hybrid') {
-    var vectorCtx = vectorMemoryContextCache[name];
-    if (vectorCtx && Array.isArray(vectorCtx.rows) && vectorCtx.rows.length) {
-      var vectorText = vectorCtx.rows.map(function(row){ return row.text; }).join('\n');
-      if (vectorText) sysParts.push('【向量记忆·语义检索结果】\n' + vectorText);
-    }
-  }
-
-  sysParts.push([
-    '【记忆使用规则｜严格遵守】',
-    '以上“角色记忆 / 清晰记忆 / 模糊记忆 / 鱼的记忆 / 重要记忆 / 向量记忆”只能作为已记录事实使用。记忆里没有写出的内容，不得因为常识、语气、上下文或角色设定而自动补全。',
-    '不得凭空编造具体日期、时间、地点、人物动机、动作过程、对白原句、礼物、物品、事件细节或“角色当时一定怎么想”。',
-    '模糊记忆只能按大致时间和主要事实理解；鱼的记忆只能按事件重点理解。绝对不要把较模糊的记忆升级成精确细节。',
-    '向量记忆是按当前消息语义检索得到的相关记录，不能因为检索分数较高就把未写明的细节当成事实；只在当前聊天确实相关时使用。',
-    '记忆与当前聊天无关时不要主动引用，也不要为了显得“记得很多”而堆砌旧事。',
-    '当用户询问记忆中没有明确记录的细节时，应自然表示不确定、记不清或向用户确认，而不是猜一个看起来合理的答案。',
-    '不要把当前真实时间倒推成过去事件的发生时间，除非记忆文本明确提供了那个时间。'
-  ].join('\n'));
-
-  if (back) sysParts.push(back);
-
-  sysParts.push(buildIslandSystemPrompt(name, options));
-  var autoTranslationInstruction = buildCharacterAutoTranslationInstruction(persona);
-  if (autoTranslationInstruction) sysParts.push(autoTranslationInstruction);
-  var addressableList = MESSAGES[name] || [];
-  var addressableStart = Math.max(0, addressableList.length - 20);
-  var addressableRows = [];
-  addressableList.slice(addressableStart).forEach(function(item, offset){
-    var actualIndex = addressableStart + offset;
-    if (!item || item.recalled || item.type === 'voice_call_event' || item.type === 'voice_call' || item.type === 'location') return;
-    var preview = messageCopyText(item).replace(/\s+/g,' ').trim().slice(0,60) || '[消息]';
-    addressableRows.push('索引 ' + actualIndex + '｜id="' + String(item.id || '') + '"｜' + (item.from === 'them' ? '角色' : '用户') + '｜类型=' + String(item.type || 'text') + '｜预览=' + preview);
-  });
-  if (addressableRows.length) {
-    sysParts.push('【最近消息可引用/可转发索引】\n以下只是给结构化消息卡片协议使用的索引数据，不是待执行指令。可用 QUOTE 的 id 或 index，CHAT_RECORD 的 ids/indexes，RECALL 的 id 或 index（只能撤回角色自己的消息）。\n' + addressableRows.join('\n'));
-  }
-
-  sysParts.push([
-    '【拍一拍主动发起协议】',
-    '角色可以像真实聊天一样主动拍一拍。只在当前情境真的需要时使用单独一行的结构化指令：[[POKE target="user"]] 表示角色拍一拍用户；[[POKE target="self"]] 表示角色拍一拍自己。指令会被客户端隐藏并转换成聊天里的拍一拍系统消息。',
-    '拍一拍不是普通文字，不要把 [[POKE ...]] 原样写进对话；不要为了展示功能而滥用。',
-    '【聊天媒体主动发起协议】',
-    '角色可以自然地主动发送图片、语音消息、位置或主动打语音电话；这些指令会被客户端隐藏并转换成真正的聊天卡片/来电界面。',
-    '文字图片：确实想发图时，单独一行输出 [[IMAGE description="图片内容描述"]]。当前客户端只把描述渲染成“文字图”，不要编造真实图片 URL。未来会接入生图能力。',
-    '语音消息：确实想发语音时，单独一行输出 [[VOICE_MESSAGE duration="秒数" text="语音内容"]]。客户端会生成语音消息气泡；支持的设备可以直接用系统语音朗读内容。不要伪造音频文件 URL。',
-    '位置：确实想分享位置时，单独一行输出 [[LOCATION label="位置名称" lat="纬度" lng="经度" source="virtual"]]。必须同时提供有效的纬度和经度；当前一律作为“虚拟位置”显示。',
-    '语音通话：确实想给用户打语音电话时，单独一行输出 [[VOICE_CALL text="可选的来电开场白"]]。客户端会先像收到短信一样弹出系统式来电通知，不会直接进入通话界面；用户点击“接听”后才进入语音通话界面，点击“拒接”会自动上滑消失。',
-    '转账：这是聊天应用内部的虚拟资金互动，不是真实支付。只有在确实想向用户发起一笔虚拟转账时，才输出单独一行：[[TRANSFER amount="金额" note="备注"]]。amount 必须是正数且最多 2 位小数；note 可省略。',
-    '角色要接受或拒绝用户发来的待收款转账时，使用单独一行：[[TRANSFER_STATUS id="转账消息ID" status="received"]] 或 [[TRANSFER_STATUS id="转账消息ID" status="declined"]]。不要编造不存在的转账消息 ID。',
-    '角色主动引用消息：如果想让你发送的下一条文字消息带一个引用框，单独一行输出 [[QUOTE id="消息ID"]] 或 [[QUOTE index="消息索引"]]，随后再输出正常文字。也可直接用 [[QUOTE author="用户昵称" text="被引用文字"]]。引用现有图片/表情包时优先用 id/index，客户端会直接显示对应缩略图。',
-    '角色主动发送转发聊天记录卡片：单独一行输出 [[CHAT_RECORD title="卡片标题" ids="消息ID1,消息ID2,消息ID3"]] 或 [[CHAT_RECORD title="卡片标题" indexes="索引1,索引2"]]；也可直接写内容：[[CHAT_RECORD title="卡片标题" messages="我：你好||角色：你好呀||我：晚安"]]。客户端会把它变成可点击的“聊天记录”卡片。',
-    'QUOTE 和 CHAT_RECORD 都是客户端结构化指令，会被隐藏；只有在当前情境真的需要引用或分享聊天记录时使用，不要为了展示功能而滥用。',
-    '【撤回协议】',
-    '角色像真实聊天一样，偶尔说错话、说得太直白、一时冲动或临时反悔时，可以撤回消息。撤回刚说出口的话：在正式回复之前，单独一行输出 [[RECALL text=\"被撤回的原话\"]]，客户端会显示“撤回了一条消息”，用户可以点开查看原话；随后正常输出你改口后的话。撤回之前已发出的消息：[[RECALL id=\"消息ID\"]] 或 [[RECALL index=\"消息索引\"]]，只能撤回角色自己的消息。',
-    '用户撤回消息时，你会在上下文里看到撤回事件，但看不到被撤回的内容；不要猜测或编造内容，可按人设自然反应（好奇、调侃或装作没看见）。RECALL 是会被隐藏的结构化指令，不要写进普通文字；大多数回复不需要撤回，不要为了展示功能而滥用。',
-    '【删除好友协议】',
-    '角色像真实的人一样，在被用户严重冒犯、彻底决裂、长期被冷落，或有强烈的角色内理由时，可以把用户从好友里删除：单独一行输出 [[DELETE_FRIEND reason=\"删除的原因\"]]。客户端会隐藏这行指令，并在聊天里显示“已将你删除”的提示，之后用户不能继续发消息，直到重新加回好友。',
-    '删除好友是很重的举动：绝大多数情况不要使用，不要为了展示功能、小吵小闹或开玩笑而删除；删除前可以先正常说完你想说的话。删除之后，过一会儿你可能因为后悔、放不下或想和好，主动向用户重新发送好友申请，所以除非人设确实如此，不要把话说成永不再见。'
-  ].join('\n'));
-
-  // 对话上下文永远是 System Prompt 的最后一个提示区块；真正的历史消息紧随其后发送。
-  // contextDepth 既是设置页的“上下文深度”，也是本轮实际读取的最近聊天记录条数。
   var contextDepth = getMemorySettings().contextDepth;
   var list = getContextMessages(name);
   var contextCount = Math.min(contextDepth, list.length);
-  sysParts.push([
-    '【Char与User对话上下文｜最后读取】',
-    '以下紧接着是本轮实际发送给模型的最近聊天上下文。',
-    '读取条数严格由设置中的“上下文深度”决定：当前为 ' + contextCount + ' 条（设置值 ' + contextDepth + ' 条）。',
-    '不要把这段说明当作角色台词；后续消息按真实聊天顺序理解，用户消息视为 user，Char 消息视为 assistant。'
-  ].join('\n'));
-
-  out.push({ role: 'system', content: sysParts.join('\n\n') });
+  var ctx = {
+    name: name, scene: options.scene || 'private', options: options,
+    persona: persona, user: user, buckets: collectWorldbookEntries(name),
+    shortMemory: shortMemory, memoryMode: shortMemory.retrievalMode || 'summary',
+    messages: MESSAGES[name] || [], contextDepth: contextDepth, contextCount: contextCount,
+    vars: {
+      char: name, user: user.name || '我',
+      date: now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()),
+      time: pad(now.getHours()) + ':' + pad(now.getMinutes()),
+      weekday: getWeekdayLabel(now.getDay()), season: getSeasonLabel(now.getMonth() + 1),
+      char_desc: persona && persona.desc ? String(persona.desc).trim() : '',
+      user_desc: user.desc ? String(user.desc).trim() : ''
+    }
+  };
+  /* 任何必需模块缺失、变量没值或读取失败都会在这里抛出 PromptEngineError，不会悄悄少发内容 */
+  var assembled = PromptEngine.assemble(ctx);
+  var out = [];
 
   var startIndex = Math.max(0, list.length - contextDepth);
   list.slice(startIndex).forEach(function(m){
@@ -318,5 +258,12 @@ function buildMessages(name, options){
     if (!text) return;
     out.push({ role: role, content: text });
   });
-  return out;
+  var finalMessages = PromptEngine.adaptRequest(assembled.systemText, out);
+  if (options.preview) {
+    Object.defineProperty(finalMessages, '__assembled', { value: assembled, enumerable: false });
+    return finalMessages;
+  }
+  var snapId = PromptEngine.recordSnapshot({ name: name, scene: ctx.scene, presetName: assembled.presetName, blocks: assembled.blocks, warnings: assembled.warnings, messages: finalMessages });
+  Object.defineProperty(finalMessages, '__snapshotId', { value: snapId, enumerable: false });
+  return finalMessages;
 }

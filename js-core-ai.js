@@ -558,7 +558,15 @@ function callApiOnce(messages, overrideCfg, opts){
       throw err;
     });
   }
-  return run();
+  var snapId = messages && messages.__snapshotId;
+  if (snapId && typeof PromptEngine !== 'undefined') PromptEngine.markSent(snapId, messages);
+  return run().then(function(text){
+    if (snapId && typeof PromptEngine !== 'undefined') PromptEngine.markAccepted(snapId);
+    return text;
+  }, function(err){
+    if (snapId && typeof PromptEngine !== 'undefined') PromptEngine.markFailed(snapId, err);
+    throw err;
+  });
 }
 
 /* ───────────── 识图（独立 API：把表情包 / 图片转成文字描述） ───────────── */

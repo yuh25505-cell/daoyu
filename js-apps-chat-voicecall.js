@@ -469,9 +469,10 @@ function requestVoiceCallReply(name, sessionId){
   }
   return prepareMemoryForContext(name).then(function(){ return prepareVisionForContext(name); }).then(function(){
     var messages = buildMessages(name, {
+      scene: 'voice_call',
       excludeMessageId: getLatestUserMessageId(name)
     });
-    if (messages.length && messages[0] && messages[0].role === 'system') {
+    if (messages.length && messages[0] && (messages[0].role === 'system' || messages[0].role === 'developer')) {
       messages[0].content += '\n\n【语音通话回复格式】你现在正在进行实时语音通话。回复可以自然地拆成多条短气泡；需要拆分时，请用 <bubble>第一段</bubble><bubble>第二段</bubble> 的格式包住每一段。每段尽量短一些，像真实聊天中的连续说话，不要输出 JSON，不要输出“气泡1/气泡2”等说明文字。';
     }
     return callApiOnce(messages);

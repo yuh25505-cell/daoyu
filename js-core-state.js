@@ -694,6 +694,8 @@ function loadState(){
     normalizeHomeAppearance();
     normalizeMemorySettings();
     normalizeVectorMemorySettings();
+    PromptEngine.load(State.settings.promptEngine);
+    PromptEngine.setPersist(function(snapshot){ State.settings.promptEngine = snapshot; return saveSettings(); });
     getFontConfig();
 
     if (Array.isArray(data['island.chats'])) assignArray(CHATS, data['island.chats']);
