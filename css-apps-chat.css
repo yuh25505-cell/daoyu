@@ -2638,3 +2638,23 @@ html[data-theme="dark"] .pm-view.session-has-wallpaper .pm-location-card.chat-bu
 #favoritesList .list-item{ gap:12px; padding:8px 18px; -webkit-tap-highlight-color:transparent; }
 #favoritesList .list-item::before{ display:none; }
 #favoritesList .li-name{ font-size:calc(14.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); }
+
+/* 特别关心返回键：清透玻璃（与长按菜单同一套质感），阴影更淡 */
+#favoritesBack{
+  background:linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.12));
+  border:1px solid rgba(255,255,255,.55);
+  -webkit-backdrop-filter:blur(14px) saturate(170%); backdrop-filter:blur(14px) saturate(170%);
+  box-shadow:0 4px 12px rgba(0,0,0,.04), 0 0 0 1px rgba(16,16,16,.07), inset 0 1px 0 rgba(255,255,255,.85);
+}
+html[data-theme="dark"] #favoritesBack{
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05));
+  border-color:rgba(255,255,255,.2);
+  box-shadow:0 4px 12px rgba(0,0,0,.16), 0 0 0 1px rgba(255,255,255,.05), inset 0 1px 0 rgba(255,255,255,.25);
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]) #favoritesBack{
+    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05));
+    border-color:rgba(255,255,255,.2);
+    box-shadow:0 4px 12px rgba(0,0,0,.16), 0 0 0 1px rgba(255,255,255,.05), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+}

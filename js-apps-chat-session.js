@@ -332,7 +332,7 @@ function bindChatEvents(){
     chatApp.addEventListener('click', function(e){
       var item = e.target.closest('.list-item, .cl-fav');
       if (item && item.dataset.name) {
-        if (item.closest('#favoritesView') && typeof closeFavoritesView === 'function') closeFavoritesView();
+        if (item.closest('#contactList, #favoritesView')) return;   /* 联系人里的好友暂不进私聊 */
         openPM(item.dataset.name); return;
       }
 
