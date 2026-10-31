@@ -489,8 +489,10 @@ function compareContactNames(a, b){
 
 function renderContacts(){
   var box = $('contactList'); if (!box) return;
+  var countEl = $('contactsCount');
+  if (countEl) countEl.textContent = CONTACTS.length + ' FRIENDS';
   if (!CONTACTS.length) {
-    box.innerHTML = '<div class="empty-state">还没有联系人<br>点右上角 ＋ 添加人设</div>';
+    box.innerHTML = '<div class="empty-state">还没有联系人<br>点右上角编辑按钮添加人设</div>';
     if (typeof renderFriendBadges === 'function') renderFriendBadges();
     return;
   }
@@ -511,7 +513,9 @@ function renderContacts(){
       html += '<div class="list-item" data-name="' + escapeHTML(c.name) + '">' +
         avatarHTML(displayName, i + (letter.charCodeAt(0) || 0), displayAvatar) +
         '<div class="li-main"><div class="li-top"><span class="li-name">' + escapeHTML(displayName) + '</span></div>' +
-        '</div></div>';
+        '</div>' +
+        '<svg class="ct-chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>' +
+        '</div>';
     });
   });
   box.innerHTML = html;

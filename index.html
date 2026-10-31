@@ -251,34 +251,41 @@
 </div>
 </section>
 <section class="tab-panel" data-panel="contacts">
-<header class="panel-head">
-<button aria-label="返回桌面" class="ph-btn js-back" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
-<h1 class="ph-title">联系人</h1>
-<div class="ph-actions">
-<button aria-label="搜索" class="ph-btn js-search" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewbox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg>
-</button>
-<button aria-label="添加人设" class="ph-btn js-add" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8.4v7.2M8.4 12h7.2"></path></svg>
+<div class="panel-scroll cl-scroll">
+<header class="cl-head">
+<div class="cl-topline">
+<span class="cl-date">YOUR SOCIAL CIRCLE</span>
+<button aria-label="新建" class="cl-edit" id="contactsAddMenuBtn" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M11 4.5H7.5A3 3 0 0 0 4.5 7.5v9a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V13"></path><path d="M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7l-7.3 7.3-3.6.9.9-3.6z"></path></svg>
 </button>
 </div>
+<h1 class="cl-title ct-title">联系人</h1>
+<div class="cl-sub"><span>CONTACTS DIRECTORY</span><span id="contactsCount">0 FRIENDS</span></div>
 </header>
-<div class="search-head">
-<div class="search-field">
+<div class="cl-search">
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg>
-<input autocomplete="off" class="search-input" placeholder="搜索联系人" type="search"/>
+<input autocomplete="off" class="search-input" id="contactSearchInput" placeholder="搜索联系人" type="search"/>
 </div>
-<button class="search-cancel" type="button">取消</button>
-</div>
-<div class="panel-scroll">
-<button class="fr-entry" id="friendsEntry" type="button">
-<span aria-hidden="true" class="fr-entry-icon"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="10" cy="8.6" r="3.4"></circle><path d="M3.8 19.2a6.2 6.2 0 0 1 12.4 0"></path><path d="M19 7.2v5.6M16.2 10h5.6"></path></svg></span>
-<span class="fr-entry-name">新朋友</span>
-<span class="fr-badge" hidden="" id="friendsEntryBadge"></span>
-<svg class="chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+<div class="ct-cards">
+<button class="ct-card" id="friendsEntry" type="button">
+<span class="fr-badge ct-card-badge" hidden="" id="friendsEntryBadge"></span>
+<svg class="ct-card-ico" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="10" cy="8.6" r="3.4"></circle><path d="M3.8 19.2a6.2 6.2 0 0 1 12.4 0"></path><path d="M19 7.2v5.6M16.2 10h5.6"></path></svg>
+<span class="ct-card-cn">新的朋友</span>
+<span class="ct-card-en">NEW FRIENDS</span>
 </button>
+<button class="ct-card" id="contactsGroupsEntry" type="button">
+<svg class="ct-card-ico" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="9" cy="8.5" r="3.3"></circle><path d="M2.8 19c.5-3.2 3-5 6.2-5s5.7 1.8 6.2 5"></path><path d="M15.6 5.6a3 3 0 0 1 0 5.8"></path><path d="M17.2 14.4c1.9.6 3.4 2.2 3.8 4.6"></path></svg>
+<span class="ct-card-cn">群聊</span>
+<span class="ct-card-en">GROUPS</span>
+</button>
+<button class="ct-card" id="contactsFavEntry" type="button">
+<svg class="ct-card-ico" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M12 4.2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z"></path></svg>
+<span class="ct-card-cn">特别关心</span>
+<span class="ct-card-en">FAVORITES</span>
+</button>
+</div>
+<div class="ct-divider"></div>
+<div class="cl-sec-head ct-sec-head"><h2 class="cl-sec-title">我的好友</h2></div>
 <div id="contactList"></div>
 </div>
 </section>
