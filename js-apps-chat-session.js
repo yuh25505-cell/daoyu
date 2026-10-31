@@ -330,8 +330,18 @@ function bindChatEvents(){
 
   if (chatApp) {
     chatApp.addEventListener('click', function(e){
-      var item = e.target.closest('.list-item');
+      var item = e.target.closest('.list-item, .cl-fav');
       if (item && item.dataset.name) { openPM(item.dataset.name); return; }
+
+      var favsMore = e.target.closest('#chatFavsMore');
+      if (favsMore) { chatFavsExpanded = !chatFavsExpanded; renderChats(); return; }
+
+      var searchClear = e.target.closest('#chatSearchClear');
+      if (searchClear) {
+        var clearInput = $('chatSearchInput');
+        if (clearInput) { clearInput.value = ''; clearInput.dispatchEvent(new Event('input', { bubbles: true })); clearInput.focus(); }
+        return;
+      }
 
       var like = e.target.closest('.js-like');
       if (like) {
