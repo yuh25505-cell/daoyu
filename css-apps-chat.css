@@ -105,12 +105,12 @@
 /* ===== 底栏：Liquid Glass 悬浮胶囊（玻璃层与高亮层各自独立模糊，都是透明清透的） ===== */
 .chat-tabs{
   --tabs-r:34px; --tab-i:0;
-  --glass-bg:linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.07));
-  --glass-bd:rgba(255,255,255,.55); --glass-ring:rgba(16,16,16,.07);
-  --glass-hi:rgba(255,255,255,.85); --glass-shadow:rgba(0,0,0,.09);
-  --pill-bg:linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.06));
-  --pill-bd:rgba(255,255,255,.7); --pill-hi:rgba(255,255,255,.95); --pill-lo:rgba(255,255,255,.4); --pill-shadow:rgba(0,0,0,.10);
-  --pill-edge:rgba(16,16,16,.07);
+  --glass-bg:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.02));
+  --glass-bd:rgba(255,255,255,.45); --glass-ring:rgba(16,16,16,.06);
+  --glass-hi:rgba(255,255,255,.75); --glass-shadow:rgba(0,0,0,.07);
+  --pill-bg:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.01));
+  --pill-bd:rgba(255,255,255,.6); --pill-hi:rgba(255,255,255,.9); --pill-lo:rgba(255,255,255,.25); --pill-shadow:rgba(0,0,0,.07);
+  --pill-edge:rgba(16,16,16,.06);
   position:absolute; left:20px; right:20px; z-index:20;
   bottom:calc(env(safe-area-inset-bottom, 0px) + 10px + var(--island-bottom-lift,10px));
   display:grid; grid-template-columns: repeat(4, 1fr); gap:0;
@@ -121,25 +121,25 @@
 .chat-tabs::before{
   content:''; position:absolute; inset:0; z-index:-1; border-radius:inherit; pointer-events:none;
   background:var(--glass-bg); border:1px solid var(--glass-bd);
-  -webkit-backdrop-filter:blur(12px) saturate(190%); backdrop-filter:blur(12px) saturate(190%);
+  -webkit-backdrop-filter:blur(7px) saturate(170%); backdrop-filter:blur(7px) saturate(170%);
   box-shadow:0 0 0 1px var(--glass-ring), inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 rgba(255,255,255,.3);
 }
 
 html[data-theme="dark"] .chat-tabs{
-    --glass-bg:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.025));
+    --glass-bg:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01));
     --glass-bd:rgba(255,255,255,.16); --glass-ring:rgba(255,255,255,.04);
     --glass-hi:rgba(255,255,255,.22); --glass-shadow:rgba(0,0,0,.45);
-    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,.07));
-    --pill-bd:rgba(255,255,255,.30); --pill-hi:rgba(255,255,255,.55); --pill-lo:rgba(255,255,255,.14); --pill-shadow:rgba(0,0,0,.35);
+    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.02));
+    --pill-bd:rgba(255,255,255,.24); --pill-hi:rgba(255,255,255,.45); --pill-lo:rgba(255,255,255,.10); --pill-shadow:rgba(0,0,0,.35);
     --pill-edge:rgba(255,255,255,.05);
 }
 @media (prefers-color-scheme: dark){
   html:not([data-theme]) .chat-tabs{
-    --glass-bg:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.025));
+    --glass-bg:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01));
     --glass-bd:rgba(255,255,255,.16); --glass-ring:rgba(255,255,255,.04);
     --glass-hi:rgba(255,255,255,.22); --glass-shadow:rgba(0,0,0,.45);
-    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,.07));
-    --pill-bd:rgba(255,255,255,.30); --pill-hi:rgba(255,255,255,.55); --pill-lo:rgba(255,255,255,.14); --pill-shadow:rgba(0,0,0,.35);
+    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.02));
+    --pill-bd:rgba(255,255,255,.24); --pill-hi:rgba(255,255,255,.45); --pill-lo:rgba(255,255,255,.10); --pill-shadow:rgba(0,0,0,.35);
     --pill-edge:rgba(255,255,255,.05);
   }
 }
@@ -153,7 +153,7 @@ html[data-theme="dark"] .chat-tabs{
 .chat-tab-pill::before{
   content:''; position:absolute; inset:0; border-radius:calc(var(--tabs-r) - 6px);
   background:var(--pill-bg); border:1px solid var(--pill-bd);
-  -webkit-backdrop-filter:blur(3px) saturate(220%) brightness(1.04); backdrop-filter:blur(3px) saturate(220%) brightness(1.04);
+  -webkit-backdrop-filter:blur(2px) saturate(200%) brightness(1.02); backdrop-filter:blur(2px) saturate(200%) brightness(1.02);
   box-shadow:0 0 0 1px var(--pill-edge), 0 6px 16px var(--pill-shadow), inset 0 1.5px 1px var(--pill-hi), inset 0 -1.5px 1px var(--pill-lo), inset 0 0 14px var(--pill-lo);
 }
 .chat-tabs.is-no-anim .chat-tab-pill{ transition:none; }
@@ -176,16 +176,9 @@ html[data-theme="dark"] .chat-tabs{
 
 .chat-tab.is-active{ color: var(--fg); }
 
-/* 切换页面：旧页淡出滑走，新页淡入滑入 */
-.tab-panel.is-leaving{ display:flex; pointer-events:none; animation:chatTabOut .22s ease both; }
-.tab-panel.is-entering{ animation:chatTabIn .38s cubic-bezier(.22,.9,.3,1) both; }
-@keyframes chatTabOut{ from{ opacity:1; transform:translateX(0); } to{ opacity:0; transform:translateX(calc(var(--tab-dx, 24px) * -1)); } }
-@keyframes chatTabIn{ from{ opacity:0; transform:translateX(var(--tab-dx, 24px)); } to{ opacity:1; transform:translateX(0); } }
-
 @media (prefers-reduced-motion: reduce){
   .chat-tab-pill{ transition:none; }
   .chat-tabs.is-flow .chat-tab-pill::before{ animation:none; }
-  .tab-panel.is-leaving, .tab-panel.is-entering{ animation:none; }
 }
 
 /* 底栏悬浮在内容上方：各页滚动区域底部留出空位，内容可以从玻璃下方滑过 */

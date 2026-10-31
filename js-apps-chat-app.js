@@ -28,7 +28,6 @@ function closeChatApp(){
 }
 
 var CHAT_TAB_ORDER = ['chats', 'contacts', 'moments', 'me'];
-var chatTabCleanupTimer = 0;
 
 function setChatTabPill(index, instant){
   var nav = document.querySelector('.chat-tabs');
@@ -57,39 +56,15 @@ function switchTab(name, instant){
   if (typeof closeFriendsView === 'function') closeFriendsView();
   if (chatApp) chatApp.classList.toggle('is-chats-tab-active', name === 'chats');
 
-  var panels = $$('.tab-panel');
-  var prevPanel = null;
-  panels.forEach(function(p){ if (p.classList.contains('is-active')) prevPanel = p; });
-  var prevName = prevPanel ? prevPanel.dataset.panel : '';
-  var prevIdx = CHAT_TAB_ORDER.indexOf(prevName);
-  var nextIdx = CHAT_TAB_ORDER.indexOf(name);
-  var reduce = false;
-  try { reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
-  var animate = !instant && !reduce && prevPanel && prevName !== name && nextIdx >= 0 && prevIdx >= 0 && chatApp && chatApp.classList.contains('is-open');
-
-  clearTimeout(chatTabCleanupTimer);
-  panels.forEach(function(p){ p.classList.remove('is-leaving', 'is-entering'); });
-
-  panels.forEach(function(p){
-    var on = p.dataset.panel === name;
-    if (animate && !on && p === prevPanel) {
-      p.style.setProperty('--tab-dx', (nextIdx > prevIdx ? 1 : -1) * 26 + 'px');
-      p.classList.add('is-leaving');
-    }
-    if (animate && on) {
-      p.style.setProperty('--tab-dx', (nextIdx > prevIdx ? 1 : -1) * 26 + 'px');
-      p.classList.add('is-entering');
-    }
-    p.classList.toggle('is-active', on);
+  var prevName = '';
+  $$('.tab-panel').forEach(function(p){
+    if (p.classList.contains('is-active')) prevName = p.dataset.panel;
+    p.classList.toggle('is-active', p.dataset.panel === name);
   });
-  if (animate) {
-    chatTabCleanupTimer = setTimeout(function(){
-      $$('.tab-panel').forEach(function(p){ p.classList.remove('is-leaving', 'is-entering'); });
-    }, 420);
-  }
+  var nextIdx = CHAT_TAB_ORDER.indexOf(name);
 
   $$('.chat-tab').forEach(function(t){ t.classList.toggle('is-active', t.dataset.tab === name); });
-  if (nextIdx >= 0) setChatTabPill(nextIdx, !!instant || !animate && prevName === name);
+  if (nextIdx >= 0) setChatTabPill(nextIdx, !!instant || prevName === name);
   exitSearchAll();
 }
 
