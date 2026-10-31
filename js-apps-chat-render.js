@@ -328,8 +328,10 @@ function openChatListMenu(item, x, y){
   host.appendChild(el);
   chatListMenuEl = el;
   var box = el.querySelector('.chat-list-menu-box');
-  var vw = window.innerWidth, vh = window.innerHeight;
+  var origin = el.getBoundingClientRect();
+  var vw = origin.width, vh = origin.height;
   var bw = box.offsetWidth, bh = box.offsetHeight;
+  x -= origin.left; y -= origin.top;
   var left = Math.max(10, Math.min(x - bw / 2, vw - bw - 10));
   var top = y + 10;
   if (top + bh > vh - 10) top = Math.max(10, y - bh - 10);
@@ -370,15 +372,17 @@ function openChatAddMenu(btn){
   host.appendChild(el);
   chatListMenuEl = el;
   var box = el.querySelector('.chat-list-menu-box');
-  /* 固定在编辑按钮正下方：菜单右边缘对齐图标右边缘，从右上角弹开 */
+  /* 固定在编辑按钮正下方：菜单右边缘对齐图标右边缘，从右上角弹开。
+     坐标以菜单容器自身为准（iOS Safari 的顶部安全区会让容器与屏幕顶端错位），不再直接用屏幕坐标。 */
+  var origin = el.getBoundingClientRect();
   var r = btn.getBoundingClientRect();
-  var vw = window.innerWidth;
+  var vw = origin.width;
   var bw = box.offsetWidth;
-  var iconRight = r.left + r.width / 2 + 10.5;
+  var iconRight = r.left - origin.left + r.width / 2 + 10.5;
   var left = Math.max(10, Math.min(iconRight - bw, vw - bw - 10));
   box.style.left = left + 'px';
-  box.style.top = (r.bottom + 4) + 'px';
-  box.style.transformOrigin = Math.max(0, Math.min(bw, r.left + r.width / 2 - left)) + 'px 0px';
+  box.style.top = (r.bottom - origin.top + 4) + 'px';
+  box.style.transformOrigin = Math.max(0, Math.min(bw, r.left - origin.left + r.width / 2 - left)) + 'px 0px';
   el.addEventListener('click', function(e){
     var item = e.target.closest('[data-clm]');
     if (item) {
