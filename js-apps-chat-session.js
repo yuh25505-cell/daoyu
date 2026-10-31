@@ -330,8 +330,25 @@ function bindChatEvents(){
 
   if (chatApp) {
     chatApp.addEventListener('click', function(e){
-      var item = e.target.closest('.list-item');
+      var item = e.target.closest('.list-item, .cl-fav');
       if (item && item.dataset.name) { openPM(item.dataset.name); return; }
+
+      var favsMore = e.target.closest('#chatFavsMore');
+      if (favsMore) {
+        var favCount = document.querySelectorAll('#chatFavsRow .cl-fav').length;
+        if (favCount <= 4) { toast('特别关注已全部显示'); return; }
+        chatFavsExpanded = !chatFavsExpanded; renderChats(); return;
+      }
+
+      var locateBtn = e.target.closest('#chatLocateUnread');
+      if (locateBtn) { locateNextUnreadChat(); return; }
+
+      var searchClear = e.target.closest('#chatSearchClear');
+      if (searchClear) {
+        var clearInput = $('chatSearchInput');
+        if (clearInput) { clearInput.value = ''; clearInput.dispatchEvent(new Event('input', { bubbles: true })); clearInput.focus(); }
+        return;
+      }
 
       var like = e.target.closest('.js-like');
       if (like) {

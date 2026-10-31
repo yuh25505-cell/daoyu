@@ -104,33 +104,115 @@ function getSortedVisibleChats(){
   return rows;
 }
 
+function chatListBadgeHTML(c){
+  if (Number(c.unread) > 0) return '<span class="chat-unread-badge">' + (Number(c.unread) > 99 ? '99+' : Number(c.unread)) + '</span>';
+  if (c.markedUnread) return '<span class="chat-unread-badge">1</span>';
+  return '';
+}
+
+function chatListDisplay(c, i){
+  var displayName = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(c.name) : c.name) || c.name;
+  var sessionCharAvatar = c.sessionSettings && c.sessionSettings.charAvatar;
+  var displayAvatar = sessionCharAvatar || c.avatar || (typeof getAvatar === 'function' ? getAvatar(c.name) : null) || null;
+  return { name: displayName, avatar: avatarHTML(displayName, i, displayAvatar) };
+}
+
+/* 消息页顶部：英文日期 + 未读总数 */
+function updateChatListHead(){
+  var dateEl = $('clDate');
+  if (dateEl) {
+    var d = new Date();
+    var text = '';
+    try { text = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); } catch (e) {}
+    dateEl.textContent = text.toUpperCase();
+  }
+  var total = 0;
+  CHATS.forEach(function(c){
+    if (!c) return;
+    total += Number(c.unread) > 0 ? Number(c.unread) : (c.markedUnread ? 1 : 0);
+  });
+  var unreadEl = $('clUnread');
+  if (unreadEl) unreadEl.textContent = (total > 99 ? '99+' : pad2(total)) + ' UNREAD';
+}
+
+var chatFavsExpanded = false;
+var chatLocateIndex = -1;
+
+/* 漏斗：依次定位有未读消息的会话（特别关注 + 最近会话，按屏幕上从上到下的顺序） */
+function locateNextUnreadChat(){
+  var targets = [];
+  var panel = document.querySelector('.tab-panel[data-panel="chats"]');
+  if (!panel) return;
+  $$('#chatFavsRow .cl-fav, #chatList .list-item', panel).forEach(function(el){
+    var c = findChatByName(el.dataset.name);
+    if (c && (Number(c.unread) > 0 || c.markedUnread)) targets.push(el);
+  });
+  if (!targets.length) { toast('没有未读消息'); return; }
+  var favs = $('chatFavs');
+  var needExpand = false;
+  chatLocateIndex = (chatLocateIndex + 1) % targets.length;
+  var el = targets[chatLocateIndex];
+  if (favs && el.classList.contains('cl-fav') && !chatFavsExpanded) {
+    var idx = $$('.cl-fav', favs).indexOf(el);
+    if (idx >= 4) { chatFavsExpanded = true; renderChats(); needExpand = true; }
+  }
+  if (needExpand) el = document.querySelector('#chatFavsRow .cl-fav[data-name="' + (window.CSS && CSS.escape ? CSS.escape(el.dataset.name) : el.dataset.name.replace(/"/g, '\\"')) + '"]') || el;
+  try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { el.scrollIntoView(); }
+  el.classList.remove('is-locate');
+  void el.offsetWidth;
+  el.classList.add('is-locate');
+  setTimeout(function(){ el.classList.remove('is-locate'); }, 1600);
+}
+
 function renderChats(){
   var list = $('chatList'); if (!list) return;
   var rows = getSortedVisibleChats();
   var chatRoot = $('chatApp');
-  if (chatRoot) chatRoot.classList.toggle('has-pinned-chats', rows.some(function(row){ return !!(row.chat && row.chat.pinned); }));
-  if (!rows.length) { list.innerHTML = '<li class="empty-state">还没有会话<br>点右上角 ＋ 添加人设开始</li>'; updatePMBackBadge(); updateHomeChatBadge(); return; }
+  var pinnedRows = rows.filter(function(row){ return !!(row.chat && row.chat.pinned); });
+  var normalRows = rows.filter(function(row){ return !(row.chat && row.chat.pinned); });
+  if (chatRoot) chatRoot.classList.toggle('has-pinned-chats', pinnedRows.length > 0);
+  updateChatListHead();
+
+  var favs = $('chatFavs'), favsRow = $('chatFavsRow'), favsMore = $('chatFavsMore'), favsMoreText = $('chatFavsMoreText');
+  if (favs && favsRow) {
+    favs.hidden = !pinnedRows.length;
+    favs.style.display = '';
+    if (pinnedRows.length <= 4) chatFavsExpanded = false;
+    favs.classList.toggle('is-expanded', chatFavsExpanded);
+    if (favsMoreText) favsMoreText.textContent = chatFavsExpanded ? '收起' : '查看全部';
+    favsRow.innerHTML = pinnedRows.map(function(r, i){
+      var c = r.chat;
+      var disp = chatListDisplay(c, i);
+      return '<div class="cl-fav" data-name="' + escapeHTML(c.name) + '">' +
+        '<div class="cl-fav-avatar">' + disp.avatar + chatListBadgeHTML(c) + '</div>' +
+        '<span class="cl-fav-name">' + escapeHTML(disp.name) + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  var listHead = document.querySelector('.cl-sec-head--list');
+  if (listHead) listHead.style.display = '';
+  if (!rows.length) { list.innerHTML = '<li class="empty-state">还没有会话<br>点右上角编辑按钮添加人设开始</li>'; updatePMBackBadge(); updateHomeChatBadge(); return; }
   var now = Date.now();
-  list.innerHTML = rows.map(function(r, i){
+  list.innerHTML = normalRows.map(function(r, i){
     var c = r.chat;
-    var badge = '';
-    var displayName = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(c.name) : c.name) || c.name;
-    var sessionCharAvatar = c.sessionSettings && c.sessionSettings.charAvatar;
-    var displayAvatar = sessionCharAvatar || c.avatar || (typeof getAvatar === 'function' ? getAvatar(c.name) : null) || null;
-    if (Number(c.unread) > 0) badge = '<span class="chat-unread-badge">' + (Number(c.unread) > 99 ? '99+' : Number(c.unread)) + '</span>';
-    else if (c.markedUnread) badge = '<span class="chat-unread-badge is-dot" aria-label="未读"></span>';
-    return '<li class="list-item' + (c.pinned ? ' is-pinned' : '') + '" data-name="' + escapeHTML(c.name) + '">' +
-      '<div class="chat-avatar-wrap">' + avatarHTML(displayName, i, displayAvatar) + badge + '</div>' +
+    var disp = chatListDisplay(c, i + pinnedRows.length);
+    var badge = chatListBadgeHTML(c);
+    return '<li class="list-item" data-name="' + escapeHTML(c.name) + '">' +
+      '<div class="chat-avatar-wrap">' + disp.avatar + '</div>' +
       '<div class="li-main">' +
         '<div class="li-top">' +
-          '<span class="li-name">' + escapeHTML(displayName) + '</span>' +
+          '<span class="li-name">' + escapeHTML(disp.name) + '</span>' +
           '<span class="li-time">' + escapeHTML(formatChatListTime(r.ts, now)) + '</span>' +
         '</div>' +
         '<div class="li-bottom">' +
           '<span class="li-preview">' + escapeHTML(c.preview || '') + '</span>' +
+          badge +
         '</div>' +
       '</div></li>';
   }).join('');
+  var activeSearch = $('chatSearchInput');
+  if (activeSearch && activeSearch.value) { var chatPanel = activeSearch.closest('.tab-panel'); if (chatPanel) filterPanel(chatPanel, activeSearch.value); }
   updatePMBackBadge();
   updateHomeChatBadge();
 }
@@ -174,7 +256,7 @@ var chatListMenuEl = null, chatListMenuName = '';
 function closeChatListMenu(){
   if (chatListMenuEl) { chatListMenuEl.remove(); chatListMenuEl = null; }
   chatListMenuName = '';
-  var p = document.querySelector('#chatList .list-item.is-pressing');
+  var p = document.querySelector('#chatList .list-item.is-pressing, #chatFavsRow .cl-fav.is-pressing');
   if (p) p.classList.remove('is-pressing');
 }
 
@@ -251,47 +333,57 @@ function openChatListMenu(item, x, y){
 }
 
 function initChatListLongPress(){
-  var list = $('chatList');
-  if (!list || list.__longPressBound) return;
-  list.__longPressBound = true;
+  var ITEM_SEL = '.list-item, .cl-fav';
   var timer = 0, startX = 0, startY = 0, pressItem = null, suppressUntil = 0;
-
   function cancel(){ clearTimeout(timer); timer = 0; pressItem = null; }
 
-  list.addEventListener('pointerdown', function(e){
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    var item = e.target.closest('.list-item');
-    if (!item || !item.dataset.name) return;
-    cancel();
-    pressItem = item; startX = e.clientX; startY = e.clientY;
-    timer = setTimeout(function(){
-      var it = pressItem; timer = 0; pressItem = null;
-      if (!it) return;
-      suppressUntil = Date.now() + 700;
-      openChatListMenu(it, startX, startY);
-    }, 480);
-  });
-  list.addEventListener('pointermove', function(e){
-    if (!timer) return;
-    if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) cancel();
-  });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(t){ list.addEventListener(t, cancel); });
-  list.addEventListener('scroll', cancel, true);
+  function bindList(list){
+    if (!list || list.__longPressBound) return;
+    list.__longPressBound = true;
 
-  /* 长按抬手后的 click 不再进入聊天；桌面端右键也能唤出菜单。 */
-  list.addEventListener('click', function(e){
-    if (Date.now() < suppressUntil) { e.stopPropagation(); e.preventDefault(); }
-  }, true);
-  list.addEventListener('contextmenu', function(e){
-    var item = e.target.closest('.list-item');
-    if (!item || !item.dataset.name) return;
-    e.preventDefault();
-    if (chatListMenuEl) return;
-    cancel();
-    suppressUntil = Date.now() + 700;
-    openChatListMenu(item, e.clientX, e.clientY);
-  });
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeChatListMenu(); });
+    list.addEventListener('pointerdown', function(e){
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      var item = e.target.closest(ITEM_SEL);
+      if (!item || !item.dataset.name) return;
+      cancel();
+      pressItem = item; startX = e.clientX; startY = e.clientY;
+      timer = setTimeout(function(){
+        var it = pressItem; timer = 0; pressItem = null;
+        if (!it) return;
+        suppressUntil = Date.now() + 700;
+        openChatListMenu(it, startX, startY);
+      }, 480);
+    });
+    list.addEventListener('pointermove', function(e){
+      if (!timer) return;
+      if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) cancel();
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(t){ list.addEventListener(t, cancel); });
+    list.addEventListener('scroll', cancel, true);
+
+    /* 长按抬手后的 click 不再进入聊天；桌面端右键也能唤出菜单。 */
+    list.addEventListener('click', function(e){
+      if (Date.now() < suppressUntil) { e.stopPropagation(); e.preventDefault(); }
+    }, true);
+    list.addEventListener('contextmenu', function(e){
+      var item = e.target.closest(ITEM_SEL);
+      if (!item || !item.dataset.name) return;
+      e.preventDefault();
+      if (chatListMenuEl) return;
+      cancel();
+      suppressUntil = Date.now() + 700;
+      openChatListMenu(item, e.clientX, e.clientY);
+    });
+  }
+
+  bindList($('chatList'));
+  bindList($('chatFavsRow'));
+  var scroller = document.querySelector('.cl-scroll');
+  if (scroller && !scroller.__longPressCancelBound) { scroller.__longPressCancelBound = true; scroller.addEventListener('scroll', cancel, { passive: true }); }
+  if (!document.__chatListEscBound) {
+    document.__chatListEscBound = true;
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeChatListMenu(); });
+  }
 }
 
 initChatListLongPress();

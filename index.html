@@ -27,6 +27,7 @@
 <link href="./css-apps-chat-friends.css" rel="stylesheet"/>
 <link href="./css-apps-phone.css" rel="stylesheet"/>
 <link href="./css-apps-worldbook.css" rel="stylesheet"/>
+<link href="./css-apps-preset.css" rel="stylesheet"/>
 <link href="./css-apps-settings.css" rel="stylesheet"/>
 <link href="./css-apps-countdown.css" rel="stylesheet"/>
 <link href="./css-apps-calendar.css" rel="stylesheet"/>
@@ -225,28 +226,29 @@
 <div class="chat-shell">
 <div class="chat-body">
 <section class="tab-panel is-active" data-panel="chats">
-<header class="panel-head">
-<button aria-label="返回桌面" class="ph-btn js-back" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M15 5.5 8.5 12 15 18.5"></path></svg>
-</button>
-<h1 class="ph-title">消息</h1>
-<div class="ph-actions">
-<button aria-label="搜索" class="ph-btn js-search" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewbox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg>
-</button>
-<button aria-label="添加人设" class="ph-btn js-add" type="button">
-<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" viewbox="0 0 24 24"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8.4v7.2M8.4 12h7.2"></path></svg>
+<div class="panel-scroll cl-scroll">
+<header class="cl-head">
+<div class="cl-topline">
+<span class="cl-date" id="clDate"></span>
+<button aria-label="添加人设" class="cl-edit js-add" type="button">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M11 4.5H7.5A3 3 0 0 0 4.5 7.5v9a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V13"></path><path d="M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7l-7.3 7.3-3.6.9.9-3.6z"></path></svg>
 </button>
 </div>
+<button aria-label="返回桌面" class="cl-title js-back" type="button">消息</button>
+<div class="cl-sub"><span>MESSAGES &amp; CONVERSATIONS</span><span id="clUnread">00 UNREAD</span></div>
 </header>
-<div class="search-head">
-<div class="search-field">
+<div class="cl-search">
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg>
-<input autocomplete="off" class="search-input" placeholder="搜索会话" type="search"/>
+<input autocomplete="off" class="search-input" id="chatSearchInput" placeholder="搜索会话" type="search"/>
+<button aria-label="清除" class="cl-search-clear" hidden="" id="chatSearchClear" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewbox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"></path></svg></button>
 </div>
-<button class="search-cancel" type="button">取消</button>
+<section class="cl-favs" hidden="" id="chatFavs">
+<div class="cl-sec-head"><h2 class="cl-sec-title">特别关注</h2><button class="cl-sec-more" id="chatFavsMore" type="button"><span id="chatFavsMoreText">查看全部</span><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button></div>
+<div class="cl-favs-row" id="chatFavsRow"></div>
+</section>
+<div class="cl-sec-head cl-sec-head--list"><h2 class="cl-sec-title">最近会话</h2><button aria-label="定位未读会话" class="cl-filter" id="chatLocateUnread" type="button"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M4.5 5h15l-5.8 7v6.2l-3.4 1.8V12z"></path></svg></button></div>
+<ul class="list" id="chatList"></ul>
 </div>
-<div class="panel-scroll"><ul class="list" id="chatList"></ul></div>
 </section>
 <section class="tab-panel" data-panel="contacts">
 <header class="panel-head">
@@ -335,6 +337,7 @@
 </section>
 </div>
 <nav class="chat-tabs">
+<span aria-hidden="true" class="chat-tab-pill"></span>
 <button class="chat-tab is-active" data-tab="chats" type="button">
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M20 11.6c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L5 20l1-3.3C4.7 15.5 4 13.6 4 11.6 4 8 7.6 5.1 12 5.1s8 2.9 8 6.5z"></path></svg>
 <span>消息</span>
@@ -660,6 +663,17 @@
 <em>查看当前聊天需要长期保留的重要信息</em>
 </span>
 <span class="pm-memory-entry-meta" id="pmImportantMemoryCount">0 条记忆</span>
+<svg aria-hidden="true" class="pm-memory-entry-chevron" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
+</button>
+</div>
+<div class="pm-memory-section-title">结构化记忆</div>
+<div class="pm-memory-home-card">
+<button class="pm-memory-entry" id="pmFactsEntry" type="button">
+<span aria-hidden="true" class="pm-memory-entry-icon">
+<svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewbox="0 0 24 24"><path d="M5 5h14v14H5z"></path><path d="M8.5 9.5h7M8.5 12h7M8.5 14.5h4"></path></svg>
+</span>
+<span class="pm-memory-entry-copy"><strong>结构化记忆</strong></span>
+<span class="pm-memory-entry-meta" id="pmFactsCount">0 条</span>
 <svg aria-hidden="true" class="pm-memory-entry-chevron" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>
 </button>
 </div>
@@ -2347,6 +2361,8 @@
 <script defer="" src="./han-pinyin-initials.js"></script>
 <script defer="" src="./js-core-version.js"></script>
 <script defer="" src="./js-core-util.js"></script>
+<script defer="" src="./js-core-prompt-engine.js"></script>
+<script defer="" src="./js-core-memory-engine.js"></script>
 <script defer="" src="./js-core-storage.js"></script>
 <script defer="" src="./js-core-state.js"></script>
 <script defer="" src="./js-core-ui.js"></script>
@@ -2361,6 +2377,7 @@
 <script defer="" src="./js-apps-chat-language.js"></script>
 <script defer="" src="./js-apps-chat-extras.js"></script>
 <script defer="" src="./js-apps-chat-memory.js"></script>
+<script defer="" src="./js-apps-chat-facts.js"></script>
 <script defer="" src="./js-apps-chat-stickers.js"></script>
 <script defer="" src="./js-apps-chat-render.js"></script>
 <script defer="" src="./js-apps-chat-app.js"></script>
@@ -2377,6 +2394,7 @@
 <script defer="" src="./js-apps-chat-settings.js"></script>
 <script defer="" src="./js-apps-phone.js"></script>
 <script defer="" src="./js-apps-worldbook.js"></script>
+<script defer="" src="./js-apps-preset.js"></script>
 <script defer="" src="./js-apps-music.js"></script>
 <script defer="" src="./js-apps-polaroid.js"></script>
 <script defer="" src="./js-apps-home-page2.js"></script>

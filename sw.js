@@ -1,7 +1,7 @@
-const CACHE_VERSION = '1.100.0-4c6b6ba6';
+const CACHE_VERSION = '1.106.0-5172b54f';
 const CACHE_NAME = `island-${CACHE_VERSION}`;
 // 由 stamp-version.mjs 自动写入：每次发布内容变化，sw.js 的字节也跟着变，浏览器就能发现新版本。
-const BUILD_STAMP = '1.100.0-4c6b6ba6';
+const BUILD_STAMP = '1.106.0-5172b54f';
 const APP_SHELL = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const APP_SHELL = [
   './css-apps-chat-friends.css',
   './css-apps-phone.css',
   './css-apps-worldbook.css',
+  './css-apps-preset.css',
   './css-apps-settings.css',
   './css-apps-countdown.css',
   './css-apps-calendar.css',
@@ -28,6 +29,8 @@ const APP_SHELL = [
   './jszip.min.js',
   './js-core-version.js',
   './js-core-util.js',
+  './js-core-prompt-engine.js',
+  './js-core-memory-engine.js',
   './js-core-storage.js',
   './js-core-state.js',
   './js-core-ui.js',
@@ -42,6 +45,7 @@ const APP_SHELL = [
   './js-apps-chat-language.js',
   './js-apps-chat-extras.js',
   './js-apps-chat-memory.js',
+  './js-apps-chat-facts.js',
   './js-apps-chat-stickers.js',
   './js-apps-chat-render.js',
   './js-apps-chat-app.js',
@@ -58,6 +62,7 @@ const APP_SHELL = [
   './js-apps-chat-settings.js',
   './js-apps-phone.js',
   './js-apps-worldbook.js',
+  './js-apps-preset.js',
   './js-apps-music.js',
   './js-apps-polaroid.js',
   './js-apps-home-page2.js',
