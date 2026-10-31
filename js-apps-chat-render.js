@@ -136,6 +136,33 @@ function updateChatListHead(){
 }
 
 var chatFavsExpanded = false;
+var chatLocateIndex = -1;
+
+/* 漏斗：依次定位有未读消息的会话（特别关注 + 最近会话，按屏幕上从上到下的顺序） */
+function locateNextUnreadChat(){
+  var targets = [];
+  var panel = document.querySelector('.tab-panel[data-panel="chats"]');
+  if (!panel) return;
+  $$('#chatFavsRow .cl-fav, #chatList .list-item', panel).forEach(function(el){
+    var c = findChatByName(el.dataset.name);
+    if (c && (Number(c.unread) > 0 || c.markedUnread)) targets.push(el);
+  });
+  if (!targets.length) { toast('没有未读消息'); return; }
+  var favs = $('chatFavs');
+  var needExpand = false;
+  chatLocateIndex = (chatLocateIndex + 1) % targets.length;
+  var el = targets[chatLocateIndex];
+  if (favs && el.classList.contains('cl-fav') && !chatFavsExpanded) {
+    var idx = $$('.cl-fav', favs).indexOf(el);
+    if (idx >= 4) { chatFavsExpanded = true; renderChats(); needExpand = true; }
+  }
+  if (needExpand) el = document.querySelector('#chatFavsRow .cl-fav[data-name="' + (window.CSS && CSS.escape ? CSS.escape(el.dataset.name) : el.dataset.name.replace(/"/g, '\\"')) + '"]') || el;
+  try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { el.scrollIntoView(); }
+  el.classList.remove('is-locate');
+  void el.offsetWidth;
+  el.classList.add('is-locate');
+  setTimeout(function(){ el.classList.remove('is-locate'); }, 1600);
+}
 
 function renderChats(){
   var list = $('chatList'); if (!list) return;
@@ -152,7 +179,6 @@ function renderChats(){
     favs.style.display = '';
     if (pinnedRows.length <= 4) chatFavsExpanded = false;
     favs.classList.toggle('is-expanded', chatFavsExpanded);
-    if (favsMore) favsMore.hidden = pinnedRows.length <= 4;
     if (favsMoreText) favsMoreText.textContent = chatFavsExpanded ? '收起' : '查看全部';
     favsRow.innerHTML = pinnedRows.map(function(r, i){
       var c = r.chat;
@@ -165,7 +191,6 @@ function renderChats(){
   }
 
   var listHead = document.querySelector('.cl-sec-head--list');
-  if (listHead) listHead.hidden = !normalRows.length && pinnedRows.length > 0;
   if (listHead) listHead.style.display = '';
   if (!rows.length) { list.innerHTML = '<li class="empty-state">还没有会话<br>点右上角编辑按钮添加人设开始</li>'; updatePMBackBadge(); updateHomeChatBadge(); return; }
   var now = Date.now();
