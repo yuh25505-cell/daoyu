@@ -298,17 +298,32 @@ function openChatListMenu(item, x, y){
   chatListMenuName = name;
   item.classList.add('is-pressing');
   var isUnread = !!(c.unread || c.markedUnread);
-  var items = [
-    [isUnread ? 'read' : 'unread', isUnread ? '标为已读' : '标为未读'],
-    ['pin', c.pinned ? '取消置顶' : '置顶聊天'],
-    ['hide', '不显示该聊天'],
-    ['delete', '删除该聊天']
-  ];
+  var ICONS = {
+    unread: '<path d="M3.5 7.5a2.5 2.5 0 0 1 2.5-2.5h12a2.5 2.5 0 0 1 2.5 2.5v9a2.5 2.5 0 0 1-2.5 2.5H6a2.5 2.5 0 0 1-2.5-2.5z"></path><path d="M4 8l8 5.5L20 8"></path>',
+    read: '<path d="M3.5 10.2l8.5-6 8.5 6V17a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17z"></path><path d="M4 10.8l8 5.4 8-5.4"></path>',
+    pin: '<path d="M14.6 4.4l5 5-2.8 1.1-3.4 3.4.5 3.5-1.4 1.4-8-8 1.4-1.4 3.5.5 3.4-3.4z"></path><path d="M9 15l-5 5"></path>',
+    hide: '<path d="M3.5 3.5l17 17"></path><path d="M10.6 6.1A9.4 9.4 0 0 1 12 6c5 0 8.5 4.2 9.5 6-.4.8-1.4 2.2-2.9 3.5M6.6 7.6C4.6 8.9 3.2 10.7 2.5 12c1 1.8 4.5 6 9.5 6 1.4 0 2.7-.3 3.8-.8"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>',
+    delete: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h6.4a1.5 1.5 0 0 0 1.5-1.4l.8-12M10 11v6M14 11v6"></path>'
+  };
+  function menuItem(key, label){
+    return '<button type="button" role="menuitem" class="chat-list-menu-item' + (key === 'delete' ? ' is-danger' : '') + '" data-clm="' + key + '">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[key] + '</svg>' +
+      '<span>' + label + '</span></button>';
+  }
+  var title = chatListDisplay(c, 0).name;
   var el = document.createElement('div');
   el.className = 'chat-list-menu';
   el.setAttribute('role', 'menu');
   el.innerHTML = '<div class="chat-list-menu-mask" data-clm-close></div><div class="chat-list-menu-box">' +
-    items.map(function(it){ return '<button type="button" role="menuitem" class="chat-list-menu-item' + (it[0] === 'delete' ? ' is-danger' : '') + '" data-clm="' + it[0] + '">' + it[1] + '</button>'; }).join('') +
+    '<div class="chat-list-menu-title">' + escapeHTML(title) + '</div>' +
+    '<div class="chat-list-menu-line"></div>' +
+    '<div class="chat-list-menu-group">' +
+      menuItem(isUnread ? 'read' : 'unread', isUnread ? '标为已读' : '标为未读') +
+      menuItem('pin', c.pinned ? '取消置顶' : '置顶聊天') +
+      menuItem('hide', '不显示该聊天') +
+    '</div>' +
+    '<div class="chat-list-menu-line"></div>' +
+    '<div class="chat-list-menu-group">' + menuItem('delete', '删除该聊天') + '</div>' +
     '</div>';
   host.appendChild(el);
   chatListMenuEl = el;
@@ -320,6 +335,7 @@ function openChatListMenu(item, x, y){
   if (top + bh > vh - 10) top = Math.max(10, y - bh - 10);
   box.style.left = left + 'px';
   box.style.top = top + 'px';
+  box.style.transformOrigin = Math.max(0, Math.min(bw, x - left)) + 'px ' + Math.max(0, Math.min(bh, y - top)) + 'px';
   var openedAt = Date.now();
   el.addEventListener('click', function(e){
     if (Date.now() - openedAt < 450) return;   /* 抬手瞬间的残余点击不算 */
