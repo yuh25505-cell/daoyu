@@ -370,13 +370,14 @@ function openChatAddMenu(btn){
   host.appendChild(el);
   chatListMenuEl = el;
   var box = el.querySelector('.chat-list-menu-box');
+  /* 固定在编辑按钮正下方：菜单右边缘对齐图标右边缘，从右上角弹开 */
   var r = btn.getBoundingClientRect();
   var vw = window.innerWidth;
   var bw = box.offsetWidth;
-  var left = Math.max(10, Math.min(r.right - bw + 8, vw - bw - 10));
-  var top = r.bottom + 6;
+  var iconRight = r.left + r.width / 2 + 10.5;
+  var left = Math.max(10, Math.min(iconRight - bw, vw - bw - 10));
   box.style.left = left + 'px';
-  box.style.top = top + 'px';
+  box.style.top = (r.bottom + 4) + 'px';
   box.style.transformOrigin = Math.max(0, Math.min(bw, r.left + r.width / 2 - left)) + 'px 0px';
   el.addEventListener('click', function(e){
     var item = e.target.closest('[data-clm]');
