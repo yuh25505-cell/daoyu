@@ -348,6 +348,51 @@ function openChatListMenu(item, x, y){
   if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
 }
 
+/* 右上角编辑按钮：弹出「添加人设 / 创建群聊」菜单 */
+function openChatAddMenu(btn){
+  var host = $('chatApp');
+  if (!host || !btn) return;
+  if (chatListMenuEl) { closeChatListMenu(); return; }
+  var ICONS = {
+    persona: '<circle cx="10" cy="8.5" r="3.6"></circle><path d="M3.5 19.5c.6-3.4 3.2-5.4 6.5-5.4 1.2 0 2.3.3 3.2.8"></path><path d="M18 14v6M15 17h6"></path>',
+    group: '<circle cx="9" cy="8.5" r="3.3"></circle><path d="M2.8 19c.5-3.2 3-5 6.2-5 1 0 2 .2 2.8.6"></path><path d="M15.6 5.6a3 3 0 0 1 0 5.8"></path><path d="M18 14v6M15 17h6"></path>'
+  };
+  function menuItem(key, label){
+    return '<button type="button" role="menuitem" class="chat-list-menu-item" data-clm="' + key + '">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[key] + '</svg>' +
+      '<span>' + label + '</span></button>';
+  }
+  var el = document.createElement('div');
+  el.className = 'chat-list-menu';
+  el.setAttribute('role', 'menu');
+  el.innerHTML = '<div class="chat-list-menu-mask" data-clm-close></div><div class="chat-list-menu-box is-compact">' +
+    '<div class="chat-list-menu-group">' + menuItem('persona', '添加人设') + menuItem('group', '创建群聊') + '</div></div>';
+  host.appendChild(el);
+  chatListMenuEl = el;
+  var box = el.querySelector('.chat-list-menu-box');
+  var r = btn.getBoundingClientRect();
+  var vw = window.innerWidth;
+  var bw = box.offsetWidth;
+  var left = Math.max(10, Math.min(r.right - bw + 8, vw - bw - 10));
+  var top = r.bottom + 6;
+  box.style.left = left + 'px';
+  box.style.top = top + 'px';
+  box.style.transformOrigin = Math.max(0, Math.min(bw, r.left + r.width / 2 - left)) + 'px 0px';
+  el.addEventListener('click', function(e){
+    var item = e.target.closest('[data-clm]');
+    if (item) {
+      var key = item.dataset.clm;
+      closeChatListMenu();
+      if (key === 'persona') openSheet();
+      else if (key === 'group') toast('创建群聊功能开发中');
+      return;
+    }
+    if (e.target.closest('[data-clm-close]')) closeChatListMenu();
+  });
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+}
+
 function initChatListLongPress(){
   var ITEM_SEL = '.list-item, .cl-fav';
   var timer = 0, startX = 0, startY = 0, pressItem = null, suppressUntil = 0;

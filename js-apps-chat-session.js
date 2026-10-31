@@ -333,6 +333,9 @@ function bindChatEvents(){
       var item = e.target.closest('.list-item, .cl-fav');
       if (item && item.dataset.name) { openPM(item.dataset.name); return; }
 
+      var addMenuBtn = e.target.closest('#chatAddMenuBtn');
+      if (addMenuBtn) { openChatAddMenu(addMenuBtn); return; }
+
       var favsMore = e.target.closest('#chatFavsMore');
       if (favsMore) {
         var favCount = document.querySelectorAll('#chatFavsRow .cl-fav').length;
