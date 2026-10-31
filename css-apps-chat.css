@@ -2149,7 +2149,7 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 /* ===== 消息列表：圆角正方形头像 / 置顶底色 / 未读小点 / 长按菜单 ===== */
 #chatList .avatar,
 #chatFavsRow .avatar{ border-radius:50%; border:0; box-shadow:none; }
-#contactList .avatar{ border-radius:8px; border:0; box-shadow:none; }
+#contactList .avatar{ border-radius:50%; border:0; box-shadow:none; }
 #chatList .list-item{ -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 
 #chatList .list-item.is-pressing{ background:var(--track) !important; }
@@ -2610,3 +2610,24 @@ html[data-theme="dark"] .pm-view.session-has-wallpaper .pm-location-card.chat-bu
 .cl-fav.is-locate{ animation:chatLocateFav 1.6s ease; }
 @keyframes chatLocateRow{ 0%,100%{ background:transparent; } 15%,60%{ background:var(--bubble-bg); } }
 @keyframes chatLocateFav{ 0%,100%{ transform:scale(1); } 20%,45%{ transform:scale(1.12); } 70%{ transform:scale(1); } }
+
+/* ===== 联系人页新版：大标题头部 / 搜索框 / 三个入口卡片 / 我的好友 ===== */
+.ct-title{ cursor:default; }
+.ct-title:active{ opacity:1; }
+.ct-cards{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin:16px 18px 0; }
+.ct-card{ position:relative; display:flex; flex-direction:column; align-items:flex-start; min-width:0; padding:13px 12px 12px; border-radius:20px; background:var(--bubble-bg); color:var(--fg); text-align:left; -webkit-tap-highlight-color:transparent; transition:transform .15s ease, opacity .15s ease; }
+.ct-card:active{ transform:scale(.96); opacity:.7; }
+.ct-card-ico{ width:21px; height:21px; display:block; margin-bottom:14px; }
+.ct-card-cn{ max-width:100%; font-size:calc(12.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ct-card-en{ max-width:100%; margin-top:3px; font-size:calc(9.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.05em; color:var(--fg-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ct-card-badge{ position:absolute; top:10px; right:10px; }
+.ct-divider{ height:1px; margin:18px 18px 0; background:var(--track); }
+.ct-sec-head{ margin:16px 18px 2px; }
+#contactList .group-letter{ padding:12px 18px 4px; }
+#contactList .list-item{ gap:12px; padding:8px 18px; }
+#contactList .avatar{ width:46px; height:46px; font-size:calc(18px * var(--island-font-size-scale)); }
+#contactList .li-name{ font-size:calc(14.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); }
+.ct-chev{ flex:none; width:15px; height:15px; color:var(--fg-faint); }
+[data-panel="contacts"].is-filtering .ct-cards,
+[data-panel="contacts"].is-filtering .ct-divider,
+[data-panel="contacts"].is-filtering .ct-sec-head{ display:none; }

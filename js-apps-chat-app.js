@@ -79,6 +79,7 @@ function exitSearchAll(){
 
 function filterPanel(panel, q){
   var key = q.trim().toLowerCase();
+  panel.classList.toggle('is-filtering', !!key);
   $$('[data-name]', panel).forEach(function(el){
     var hit = !key || el.dataset.name.toLowerCase().indexOf(key) !== -1;
     el.style.display = hit ? '' : 'none';

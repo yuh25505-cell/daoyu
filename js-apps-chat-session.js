@@ -336,6 +336,12 @@ function bindChatEvents(){
       var addMenuBtn = e.target.closest('#chatAddMenuBtn');
       if (addMenuBtn) { openChatAddMenu(addMenuBtn); return; }
 
+      var contactsAddBtn = e.target.closest('#contactsAddMenuBtn');
+      if (contactsAddBtn) { openChatAddMenu(contactsAddBtn); return; }
+
+      if (e.target.closest('#contactsGroupsEntry')) { toast('群聊功能开发中'); return; }
+      if (e.target.closest('#contactsFavEntry')) { toast('特别关心功能开发中'); return; }
+
       var favsMore = e.target.closest('#chatFavsMore');
       if (favsMore) {
         var favCount = document.querySelectorAll('#chatFavsRow .cl-fav').length;
