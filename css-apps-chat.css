@@ -2530,9 +2530,9 @@ html[data-theme="dark"] .pm-view.session-has-wallpaper .pm-location-card.chat-bu
 .cl-edit{ flex:none; width:42px; height:42px; margin-right:-9px; display:grid; place-items:center; border-radius:50%; color:var(--fg); -webkit-tap-highlight-color:transparent; transition:transform .15s ease, background .15s ease; }
 .cl-edit svg{ width:25px; height:25px; display:block; }
 .cl-edit:active{ transform:scale(.92); background:var(--bubble-bg); }
-.cl-title{ display:block; margin:8px 0 0; padding:0; border:0; background:transparent; font:inherit; font-size:calc(36px * var(--island-font-size-scale)); font-weight:var(--island-fw-720); line-height:1.15; letter-spacing:.02em; text-align:left; color:var(--fg); -webkit-tap-highlight-color:transparent; transition:opacity .15s ease; }
+.cl-title{ display:block; margin:5px 0 0; padding:0; border:0; background:transparent; font:inherit; font-size:calc(36px * var(--island-font-size-scale)); font-weight:var(--island-fw-720); line-height:1.15; letter-spacing:.02em; text-align:left; color:var(--fg); -webkit-tap-highlight-color:transparent; transition:opacity .15s ease; }
 .cl-title:active{ opacity:.5; }
-.cl-sub{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; font-size:calc(12px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.07em; color:var(--fg-faint); white-space:nowrap; }
+.cl-sub{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:15px; font-size:calc(12px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); letter-spacing:.07em; color:var(--fg-faint); white-space:nowrap; }
 
 .cl-search{ flex:none; display:flex; align-items:center; gap:10px; height:48px; margin:20px 20px 0; padding:0 16px; border-radius:24px; background:var(--bubble-bg); }
 .cl-search > svg{ flex:none; width:19px; height:19px; color:var(--fg-faint); }

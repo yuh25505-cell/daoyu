@@ -106,7 +106,7 @@ function getSortedVisibleChats(){
 
 function chatListBadgeHTML(c){
   if (Number(c.unread) > 0) return '<span class="chat-unread-badge">' + (Number(c.unread) > 99 ? '99+' : Number(c.unread)) + '</span>';
-  if (c.markedUnread) return '<span class="chat-unread-badge is-dot" aria-label="未读"></span>';
+  if (c.markedUnread) return '<span class="chat-unread-badge">1</span>';
   return '';
 }
 
