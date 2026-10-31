@@ -1,4 +1,4 @@
 /* 岛屿 · 当前代码的构建号（由 stamp-version.mjs 自动生成，请勿手改） */
 'use strict';
-var ISLAND_VERSION = '1.107.0';
-var ISLAND_BUILD = '1.107.0-cea9b543';
+var ISLAND_VERSION = '1.108.0';
+var ISLAND_BUILD = '1.108.0-195c730f';

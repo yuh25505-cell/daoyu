@@ -129,8 +129,8 @@ html[data-theme="dark"] .chat-tabs{
     --glass-bg:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01));
     --glass-bd:rgba(255,255,255,.16); --glass-ring:rgba(255,255,255,.04);
     --glass-hi:rgba(255,255,255,.22); --glass-shadow:rgba(0,0,0,.45);
-    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.02));
-    --pill-bd:rgba(255,255,255,.24); --pill-hi:rgba(255,255,255,.45); --pill-lo:rgba(255,255,255,.10); --pill-shadow:rgba(0,0,0,.35);
+    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.01));
+    --pill-bd:rgba(255,255,255,.12); --pill-hi:rgba(255,255,255,.2); --pill-lo:rgba(255,255,255,.04); --pill-shadow:rgba(0,0,0,.35);
     --pill-edge:rgba(255,255,255,.05);
 }
 @media (prefers-color-scheme: dark){
@@ -138,8 +138,8 @@ html[data-theme="dark"] .chat-tabs{
     --glass-bg:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01));
     --glass-bd:rgba(255,255,255,.16); --glass-ring:rgba(255,255,255,.04);
     --glass-hi:rgba(255,255,255,.22); --glass-shadow:rgba(0,0,0,.45);
-    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.02));
-    --pill-bd:rgba(255,255,255,.24); --pill-hi:rgba(255,255,255,.45); --pill-lo:rgba(255,255,255,.10); --pill-shadow:rgba(0,0,0,.35);
+    --pill-bg:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.01));
+    --pill-bd:rgba(255,255,255,.12); --pill-hi:rgba(255,255,255,.2); --pill-lo:rgba(255,255,255,.04); --pill-shadow:rgba(0,0,0,.35);
     --pill-edge:rgba(255,255,255,.05);
   }
 }
