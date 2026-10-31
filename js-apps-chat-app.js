@@ -20,6 +20,7 @@ function closeChatApp(){
   releaseInputFocus();
   closePM(); closeUP(); closeChatAppearance();
   if (typeof closeFriendsView === 'function') closeFriendsView();
+  if (typeof closeFavoritesView === 'function') closeFavoritesView();
   chatApp.classList.remove('is-open');
   chatApp.setAttribute('aria-hidden', 'true');
   exitSearchAll();
@@ -54,6 +55,7 @@ function switchTab(name, instant){
   releaseInputFocus();
   closePM(); closeUP(); closeChatAppearance();
   if (typeof closeFriendsView === 'function') closeFriendsView();
+  if (typeof closeFavoritesView === 'function') closeFavoritesView();
   if (chatApp) chatApp.classList.toggle('is-chats-tab-active', name === 'chats');
 
   var prevName = '';

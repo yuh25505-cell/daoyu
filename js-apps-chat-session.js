@@ -331,7 +331,10 @@ function bindChatEvents(){
   if (chatApp) {
     chatApp.addEventListener('click', function(e){
       var item = e.target.closest('.list-item, .cl-fav');
-      if (item && item.dataset.name) { openPM(item.dataset.name); return; }
+      if (item && item.dataset.name) {
+        if (item.closest('#favoritesView') && typeof closeFavoritesView === 'function') closeFavoritesView();
+        openPM(item.dataset.name); return;
+      }
 
       var addMenuBtn = e.target.closest('#chatAddMenuBtn');
       if (addMenuBtn) { openChatAddMenu(addMenuBtn); return; }
@@ -340,7 +343,8 @@ function bindChatEvents(){
       if (contactsAddBtn) { openChatAddMenu(contactsAddBtn); return; }
 
       if (e.target.closest('#contactsGroupsEntry')) { toast('群聊功能开发中'); return; }
-      if (e.target.closest('#contactsFavEntry')) { toast('特别关心功能开发中'); return; }
+      if (e.target.closest('#contactsFavEntry')) { openFavoritesView(); return; }
+      if (e.target.closest('#favoritesBack')) { closeFavoritesView(); return; }
 
       var favsMore = e.target.closest('#chatFavsMore');
       if (favsMore) {

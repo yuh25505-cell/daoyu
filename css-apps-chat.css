@@ -2631,3 +2631,10 @@ html[data-theme="dark"] .pm-view.session-has-wallpaper .pm-location-card.chat-bu
 [data-panel="contacts"].is-filtering .ct-cards,
 [data-panel="contacts"].is-filtering .ct-divider,
 [data-panel="contacts"].is-filtering .ct-sec-head{ display:none; }
+
+/* ===== 特别关心子页面 ===== */
+.friends-scroll.fav-scroll{ padding:6px 0 calc(var(--island-sab) + 24px); }
+#favoritesList .avatar{ width:46px; height:46px; border-radius:50%; border:0; box-shadow:none; font-size:calc(18px * var(--island-font-size-scale)); }
+#favoritesList .list-item{ gap:12px; padding:8px 18px; -webkit-tap-highlight-color:transparent; }
+#favoritesList .list-item::before{ display:none; }
+#favoritesList .li-name{ font-size:calc(14.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); }
