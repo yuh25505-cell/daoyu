@@ -258,6 +258,8 @@ function buildMessages(name, options){
       var callTextForContext = String(m.text || '').trim();
       if (callTextForContext) {
         // 语音通话在实时对话上下文里只传正文，避免模型把“[语音通话记录｜文字输入]”之类的系统标记带进气泡。
+        // 旁白（动作、神态描写）保留标记，让模型知道哪些是说出口的话、哪些是旁白。
+        if (m.narration === true) callTextForContext = (role === 'user') ? '（' + callTextForContext + '）' : '<narration>' + callTextForContext + '</narration>';
         out.push({ role: role, content: callTextForContext });
       }
       return;

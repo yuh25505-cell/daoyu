@@ -429,6 +429,13 @@ function renderAutoRetryToggle(){
   if (h) h.textContent = on ? '已开启 · 遇到 429 / 502 / 503 / 504 或网络抖动时自动重发一次' : '关闭 · 请求失败时不会自动重发';
 }
 
+function renderHapticToggle(){
+  var on = isHapticOff();
+  var t = $('hapticOffToggle');
+  if (t) { t.classList.toggle('is-on', on); t.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  applyHapticSetting();
+}
+
 function fillApiForm(){
   var c = getApiConfig();
   var elUrl = $('apiBaseUrl'), elKey = $('apiKey'), elModel = $('apiModel');
@@ -1190,6 +1197,12 @@ function bindSettingsApiEvents(){
   if (autoRetryToggle) autoRetryToggle.addEventListener('click', function(){
     State.settings.autoRetry = !(State.settings.autoRetry === true);
     renderAutoRetryToggle();
+    saveSettings();
+  });
+  var hapticOffToggle = $('hapticOffToggle');
+  if (hapticOffToggle) hapticOffToggle.addEventListener('click', function(){
+    State.settings.hapticOff = !(State.settings.hapticOff === true);
+    renderHapticToggle();
     saveSettings();
   });
   enhanceSettingsSelects();

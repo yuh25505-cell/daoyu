@@ -111,7 +111,7 @@ function switchSettingsPanel(name){
   if (name === 'stt') refreshSttState();
   if (name === 'main' || name === 'minimaxVoice') refreshMinimaxVoiceState();
   if (name === 'vision') refreshVisionState();
-  if (name === 'main') renderAutoRetryToggle();
+  if (name === 'main') { renderAutoRetryToggle(); renderHapticToggle(); }
   if (name === 'about') refreshChangelog(true);
 }
 

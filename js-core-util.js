@@ -6,6 +6,22 @@ var $  = function(id){ return document.getElementById(id); };
 
 var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
+/* 震动反馈总开关：设置首页打开「关闭 iOS 震动反馈」后，岛屿自己发出的震动全部不再触发 */
+function isHapticOff(){ try { return !!(State && State.settings && State.settings.hapticOff === true); } catch(_){ return false; } }
+
+function applyHapticSetting(){
+  try { document.documentElement.toggleAttribute('data-no-haptic', isHapticOff()); } catch(_){}
+}
+
+(function(){
+  try {
+    if (!navigator.vibrate || navigator.__islandHapticWrapped) return;
+    var rawVibrate = navigator.vibrate.bind(navigator);
+    navigator.vibrate = function(){ return isHapticOff() ? false : rawVibrate.apply(null, arguments); };
+    navigator.__islandHapticWrapped = true;
+  } catch(_){}
+})();
+
 function releaseInputFocus(){
   var active = document.activeElement;
   if (active && typeof active.blur === 'function' && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName || '')) active.blur();
