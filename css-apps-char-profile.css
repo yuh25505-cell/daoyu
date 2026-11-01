@@ -1,0 +1,123 @@
+
+.char-profile-view{position:fixed;inset:0;z-index:95;display:none;background:#fff;color:#111;overflow:hidden}
+.char-profile-view.is-open{display:block}.cp-shell{height:100%;max-width:520px;margin:auto;overflow-y:auto;padding:calc(var(--island-sat,0px) + 26px) 20px calc(var(--island-sab,0px) + 28px);box-sizing:border-box;font-family:inherit}
+.cp-top{position:relative}.cp-eyebrow,.cp-rel-row,.cp-label,.cp-fields span{color:#aaa;font-size:11px;letter-spacing:.025em}.cp-edit-icon{position:absolute;right:0;top:0;width:38px;height:38px;background:none}.cp-edit-icon svg{width:30px;height:30px}
+.cp-top h1{font-size:34px;margin:25px 0 24px;font-weight:750}.cp-back-title{font-size:inherit;font-weight:inherit;background:none;color:#111}.cp-rel-row{display:flex;justify-content:space-between;margin-bottom:26px}.cp-rel-row b{font-weight:500;color:#aaa}.cp-tabs{display:flex;justify-content:space-around;border-bottom:1px solid #eee;margin:0 -2px 28px}.cp-tabs button{background:none;padding:12px 10px 16px;font-size:18px;color:#111;position:relative}.cp-tabs button.active:after{content:"";position:absolute;bottom:0;left:0;right:0;height:2px;background:#aaa}
+.cp-person{display:flex;align-items:center;gap:16px;padding:4px 0 22px;border-bottom:1px solid #e7e7e7}.cp-avatar{width:94px;height:94px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#eee;font-size:30px;flex:none}.cp-avatar img{width:100%;height:100%;object-fit:cover}.cp-person-main{min-width:0;flex:1}.cp-person-main h2{font-size:23px;margin:0 0 4px}.cp-social{color:#999;font-size:15px}.cp-likes{display:flex;align-items:center;gap:5px;margin-top:10px;color:#555;font-size:14px}.cp-likes svg{width:17px;height:17px;color:#111}.cp-arrow{background:none;color:#888}.cp-arrow svg{width:22px;height:22px}
+.cp-fields{display:grid;grid-template-columns:1fr 1fr;gap:23px 18px;padding:24px 0;border-bottom:1px solid #e7e7e7}.cp-fields div{min-width:0}.cp-fields span{display:block;margin-bottom:6px}.cp-fields b{font-size:16px;font-weight:500;overflow-wrap:anywhere}.cp-profile-edit{width:100%;display:flex;justify-content:space-between;align-items:center;background:none;padding:19px 0;border-bottom:1px solid #e7e7e7;text-align:left;color:#555;font-size:14px}.cp-profile-edit svg,.cp-moments h2 svg{width:20px;height:20px}
+.cp-card{background:#f6f6f6;border-radius:17px;padding:20px;margin:16px -2px}.cp-like-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}.cp-like-row strong{display:block;font-size:34px}.cp-like-row span{font-size:12px;color:#888}.cp-like-btn{border-radius:30px;background:#050505;color:#fff;padding:12px 24px;font-size:16px;display:flex;align-items:center;gap:8px}.cp-like-btn svg{width:20px;height:20px}.cp-like-btn.on{background:#444}.cp-likers{display:flex;align-items:center;justify-content:space-between;margin-top:28px;color:#777;font-size:13px}.cp-liker-dots{display:flex;gap:8px}.cp-liker-dots i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#ddd;color:#555;font-style:normal}
+.cp-book-card h2,.cp-moments h2{font-size:25px;margin:7px 0 2px}.cp-book-card p,.cp-moments p{color:#999;font-size:13px;margin:0 0 14px}.cp-import{background:none;border:1px solid #ddd;border-radius:12px;padding:11px 14px;width:100%;text-align:left;font-size:14px}.cp-book-summary{font-size:11px;color:#999;margin:12px 0}.cp-book-list{display:flex;flex-direction:column;gap:8px}.cp-book-row{border-top:1px solid #e5e5e5;padding:12px 0;display:flex;gap:10px;justify-content:space-between}.cp-book-info{min-width:0;display:flex;flex-direction:column;gap:5px}.cp-book-info b{font-size:13px}.cp-book-info small{font-size:10px;color:#999;overflow-wrap:anywhere}.cp-book-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:130px}.cp-book-actions button{font-size:10px;background:#fff;border:1px solid #ddd;border-radius:7px;padding:5px 7px}.cp-book-actions button:disabled{opacity:.3}.cp-empty{border-top:1px solid #e5e5e5;padding:20px 0 4px;color:#aaa;font-size:13px}.cp-rel-card{padding:30px 4px}.cp-rel-card h2{font-size:28px}
+.cp-edit-sheet{position:fixed;inset:0;z-index:2;background:#0006;display:flex;align-items:flex-end}.cp-edit-panel{width:calc(100% - 20px);max-width:500px;margin:0 auto calc(var(--island-sab,0px) + 10px);background:#fff;padding:25px 22px 24px;border-radius:22px;max-height:90%;overflow:auto}.cp-edit-panel h2{font-size:25px;margin:8px 0 20px}.cp-edit-panel label{display:block;font-size:11px;color:#999;margin:13px 0}.cp-edit-panel input{display:block;width:100%;box-sizing:border-box;border:0;border-bottom:1px solid #ddd;padding:10px 0;font-size:16px;color:#111;outline:none}.cp-edit-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.cp-edit-actions button{padding:11px 22px;border-radius:22px;background:#eee}.cp-edit-actions button:last-child{background:#111;color:#fff}
+
+
+/* Dedicated, beginner-friendly World Book injection settings */
+.cp-book-settings{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.cp-book-settings-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.cp-book-settings-panel{position:relative;width:min(100%,520px);max-height:min(88%,760px);overflow:auto;box-sizing:border-box;background:#fff;border-radius:24px 24px 0 0;padding:12px 22px calc(var(--island-sab,0px) + 22px);color:#111;box-shadow:0 -8px 36px rgba(0,0,0,.08);animation:cpSheetIn .2s ease-out}
+@keyframes cpSheetIn{from{transform:translateY(18px);opacity:.7}to{transform:translateY(0);opacity:1}}
+.cp-modal-grip{width:38px;height:4px;border-radius:4px;background:#ddd;margin:0 auto 22px}
+.cp-modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.cp-modal-head h2{font-size:25px;letter-spacing:-.5px;margin:7px 0 5px}
+.cp-modal-head p{font-size:13px;color:#999;margin:0}
+.cp-modal-close{width:32px;height:32px;border-radius:50%;background:#f2f2f2;color:#555;font-size:23px;line-height:1}
+.cp-mode-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cp-mode-option,.cp-position-option{position:relative;display:flex;align-items:center;text-align:left;background:#fafafa;border:1px solid #e8e8e8;border-radius:14px;padding:14px 12px;min-width:0;color:#111}
+.cp-mode-option{min-height:104px;align-items:flex-start;gap:10px}
+.cp-mode-option.selected,.cp-position-option.selected{background:#f2f2f2;border-color:#111}
+.cp-option-icon{width:28px;height:28px;flex:none;border-radius:9px;background:#e9e9e9;display:grid;place-items:center;font-size:18px}
+.cp-option-copy,.cp-position-option>span{display:flex;flex-direction:column;gap:6px;min-width:0;padding-right:14px}
+.cp-mode-option b,.cp-position-option b{font-size:13px;font-weight:650}
+.cp-mode-option small,.cp-position-option small{font-size:10px;line-height:1.5;color:#999}
+.cp-option-check{position:absolute;right:11px;top:12px;width:15px;height:15px;border:1px solid #ccc;border-radius:50%;box-sizing:border-box}
+.cp-mode-option.selected .cp-option-check,.cp-position-option.selected .cp-option-check{border:5px solid #111;background:#fff}
+.cp-position-wrap{margin-top:22px}
+.cp-position-wrap[hidden]{display:none}
+.cp-position-title{font-size:13px;font-weight:650;margin-bottom:10px}
+.cp-position-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cp-position-option{min-height:68px;padding:12px}
+.cp-settings-note{font-size:11px;color:#999;line-height:1.6;margin:18px 0 14px;padding:11px 12px;background:#f7f7f7;border-radius:10px}
+.cp-settings-actions{display:flex;gap:10px}
+.cp-settings-actions button{flex:1;padding:13px 16px;border-radius:24px;background:#f0f0f0;color:#222;font-size:14px}
+.cp-settings-actions button.primary{background:#111;color:#fff}
+@media(min-width:560px){.cp-book-settings{align-items:center}.cp-book-settings-panel{border-radius:24px;max-height:85vh}}
+@media(max-width:360px){.cp-book-settings-panel{padding-left:16px;padding-right:16px}.cp-mode-options,.cp-position-options{grid-template-columns:1fr}.cp-mode-option{min-height:74px}}
+
+
+/* World Book list: one clear entry point, management actions live in its sheet */
+.cp-book-actions{display:flex;align-items:center;max-width:none;flex:none}
+.cp-book-actions .cp-book-settings-trigger{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 11px;border:1px solid #dedede;border-radius:12px;background:#fff;color:#171717;font-size:12px;font-weight:600;white-space:nowrap}
+.cp-book-trigger-icon{display:grid;place-items:center;width:23px;height:23px;border-radius:8px;background:#f2f2f2;font-size:15px}
+.cp-book-trigger-arrow{font-size:19px;color:#999;margin-left:1px}
+.cp-book-settings-panel{padding-bottom:calc(var(--island-sab,0px) + 24px)}
+.cp-book-manage{margin-top:20px;padding:15px;background:#f7f7f7;border:1px solid #ededed;border-radius:16px}
+.cp-manage-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.cp-manage-heading b{font-size:13px}
+.cp-manage-heading small,.cp-enable-row small,.cp-order-row small,.cp-delete-book small{font-size:10px;line-height:1.5;color:#999}
+.cp-enable-row,.cp-order-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid #e7e7e7}
+.cp-enable-row>span,.cp-order-row>span{display:flex;flex-direction:column;gap:4px}
+.cp-enable-row b,.cp-order-row b{font-size:12px}
+.cp-enable-switch{position:relative;width:43px;height:25px;flex:none;border:0;border-radius:20px;background:#d7d7d7;padding:3px;transition:background .18s}
+.cp-enable-switch i{display:block;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0002;transition:transform .18s}
+.cp-enable-switch.on{background:#171717}
+.cp-enable-switch.on i{transform:translateX(18px)}
+.cp-order-buttons{display:flex;gap:7px}
+.cp-order-buttons button{width:34px;height:34px;border:1px solid #dedede;border-radius:10px;background:#fff;color:#111;font-size:18px}
+.cp-order-buttons button:disabled{opacity:.28}
+.cp-delete-book{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:5px;padding:12px 0 0;border:0;border-top:1px solid #e7e7e7;background:transparent;color:#222;text-align:left}
+.cp-delete-book span{font-size:12px;font-weight:650}
+.cp-delete-book small{color:#999}
+.cp-settings-actions button{min-height:46px;font-weight:600}
+.cp-settings-actions button.primary{background:#111;color:#fff}
+@media(max-width:380px){.cp-book-actions .cp-book-settings-trigger{padding:0 8px;gap:5px;font-size:11px}.cp-book-info{max-width:calc(100% - 112px)}}
+
+/* World Book content editor */
+.cp-book-actions{flex-direction:column;align-items:stretch;gap:6px}
+.cp-book-actions .cp-book-settings-trigger{justify-content:space-between}
+.cp-wb-panel{display:flex;flex-direction:column;height:min(88%,760px);overflow:hidden}
+.cp-wb-body{flex:1;min-height:0;overflow-y:auto;padding-bottom:6px}
+.cp-wb-input,.cp-wb-text{display:block;width:100%;box-sizing:border-box;border:1px solid #e4e4e4;border-radius:12px;background:#fafafa;color:#111;font-size:16px;font-family:inherit;outline:none;padding:11px 12px}
+.cp-wb-input:focus,.cp-wb-text:focus{border-color:#111;background:#fff}
+.cp-wb-bookname{font-weight:650;margin-bottom:14px}
+.cp-wb-list{display:flex;flex-direction:column;gap:12px}
+.cp-wb-entry{background:#f7f7f7;border:1px solid #ececec;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:9px}
+.cp-wb-entry-top{display:flex;align-items:center;gap:10px}
+.cp-wb-entry-no{flex:1;font-size:13px;font-weight:650;color:#111;letter-spacing:.04em}
+.cp-wb-del{height:30px;padding:0 12px;border:1px solid #dedede;border-radius:10px;background:#fff;color:#111;font-size:12px}
+.cp-wb-text{min-height:140px;line-height:1.6;resize:vertical}
+.cp-wb-empty{padding:26px 0;text-align:center;color:#aaa;font-size:14px}
+.cp-wb-add{width:100%;margin:14px 0 0;min-height:46px;border:1px dashed #cfcfcf;border-radius:14px;background:#fff;color:#111;font-size:14px;font-weight:600}
+.cp-wb-panel .cp-settings-actions{padding-top:14px;flex:none}
+
+/* Char 编辑弹窗：人设内容与导入文件 */
+.cp-edit-row{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;font-size:11px;color:#999}
+.cp-edit-import{height:30px;padding:0 14px;border:1px solid #dedede;border-radius:10px;background:#fff;color:#111;font-size:12px;font-weight:600}
+.cp-edit-panel textarea.cp-edit-text{display:block;width:100%;box-sizing:border-box;min-height:150px;border:1px solid #e4e4e4;border-radius:12px;background:#fafafa;color:#111;font-size:16px;font-family:inherit;line-height:1.6;outline:none;padding:11px 12px;resize:vertical}
+.cp-edit-panel textarea.cp-edit-text:focus{border-color:#111;background:#fff}
+.cp-wb-add-row{display:flex;gap:10px;margin-top:14px}
+.cp-wb-add-row .cp-wb-add{margin:0;flex:1}
+
+.cp-seg{display:flex;gap:8px;flex-wrap:wrap}
+.cp-seg button{flex:1;min-width:0;min-height:40px;padding:0 10px;border:1px solid #e4e4e4;border-radius:12px;background:#fafafa;color:#111;font-size:13px;white-space:nowrap}
+.cp-seg button.selected{background:#111;color:#fff;border-color:#111}
+.cp-receive-box[hidden]{display:none}
+.cp-verify-text{min-height:80px}
+
+/* 添加/编辑弹窗：内容自己滑动，取消和保存固定在底部 */
+.cp-edit-panel{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100% - var(--island-sat,0px) - var(--island-sab,0px) - 40px);padding-bottom:18px}
+.cp-edit-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.cp-edit-panel h2{margin:6px 0 10px}
+.cp-edit-panel label{margin:8px 0}
+.cp-edit-panel input{padding:7px 0}
+.cp-edit-actions{flex:none;margin-top:14px;padding-top:12px;border-top:1px solid #eee}
+.cp-edit-actions button{min-width:88px;min-height:44px}
+
+/* 去掉滚动竖条（仍可滑动） */
+.char-profile-view *{scrollbar-width:none;-ms-overflow-style:none}
+.char-profile-view *::-webkit-scrollbar{display:none;width:0;height:0}
+
+/* 头像导入 */
+.cp-av-row{display:flex;align-items:center;gap:14px;margin:8px 0 6px}
+.cp-av-preview{width:64px;height:64px;border-radius:50%;background:#eee;overflow:hidden;display:grid;place-items:center;font-size:22px;color:#111;flex:none}
+.cp-av-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.cp-av-btns{display:flex;flex-wrap:wrap;gap:8px}
+.cp-av-btns button{height:34px;padding:0 14px;border:1px solid #dedede;border-radius:12px;background:#fff;color:#111;font-size:13px;font-weight:600}

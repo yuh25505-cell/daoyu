@@ -356,7 +356,7 @@ function renderForwardList(){
   if (!pmForwardList) return;
   var names = [];
   CHATS.forEach(function(chat){ var name = chat && String(chat.name || '').trim(); if (name && names.indexOf(name) === -1) names.push(name); });
-  CONTACTS.forEach(function(contact){ var name = contact && String(contact.name || '').trim(); if (name && names.indexOf(name) === -1) names.push(name); });
+  CONTACTS.forEach(function(contact){ var name = contact && String(contact.name || '').trim(); var cpp = name ? findPersona(name) : null; if (cpp && cpp.friendPending) return; if (name && names.indexOf(name) === -1) names.push(name); });
   if (!names.length) { pmForwardList.innerHTML = '<div class="pm-forward-empty">暂无可转发的会话</div>'; return; }
   pmForwardList.innerHTML = names.map(function(name, i){
     var avatar = getAvatar(name);

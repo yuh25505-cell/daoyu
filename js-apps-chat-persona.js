@@ -315,6 +315,13 @@ function closeSheet(){
 }
 
 /* 把角色放进「消息」和「联系人」（直接添加 / 同意好友申请后都走这里） */
+function addPersonaToContacts(name, avatar){
+  var has = CONTACTS.some(function(c){ return c && c.name === name; });
+  if (!has) CONTACTS.push({ name: name, letter: getContactInitial(name), avatar: avatar || null });
+  CONTACTS.sort(function(a, b){ return compareContactNames(a && a.name, b && b.name); });
+  saveContacts();
+}
+
 function addPersonaToLists(name, avatar, preview){
   if (!findChatByName(name)) CHATS.unshift({ name: name, preview: preview || '你们还没有聊过天。', time: '刚刚', unread: 0, avatar: avatar || null });
   saveChats();
@@ -325,14 +332,17 @@ function addPersonaToLists(name, avatar, preview){
 }
 
 function finishCreatePersona(entry, mode, verifyText){
+  if (mode !== 'direct') entry.friendPending = true;
   State.personas.push(entry);
   savePersonas();
   if (mode === 'direct') {
     addPersonaToLists(entry.name, entry.avatar);
     MESSAGES[entry.name] = [];
     saveMessages(entry.name);
-  } else if (mode === 'receive') {
-    friendCreateIncomingRequest(entry, personaVia, verifyText);
+  } else {
+    addPersonaToContacts(entry.name, entry.avatar);
+    if (!Array.isArray(MESSAGES[entry.name])) MESSAGES[entry.name] = [];
+    if (mode === 'receive') friendCreateIncomingRequest(entry, personaVia, verifyText);
   }
   renderChats(); renderContacts();
   closeSheet();
