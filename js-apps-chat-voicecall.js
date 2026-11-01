@@ -42,6 +42,21 @@ function renderVoiceCallAvatar(){
 }
 
 
+/* 一条通话记录变成一行画面：对话是气泡，动作、神态、环境描写是居中的旁白（没有气泡） */
+function voiceCallTurnHTML(m){
+  var text = escapeHTML(String(m && m.text || ''));
+  if (m && m.narration === true) {
+    return '<div class="pm-voice-call-turn is-narration"><div class="pm-voice-call-narration">' + text + '</div></div>';
+  }
+  var isMe = m && m.from === 'me';
+  return '<div class="pm-voice-call-turn ' + (isMe ? 'is-me' : 'is-char') + '">' +
+    '<div class="pm-voice-call-turn-copy">' +
+      '<div class="pm-voice-call-turn-bubble">' + text + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+
 function renderVoiceCallTurns(){
   if (!pmVoiceCallTurns) return;
   var name = String(voiceCallState.name || currentName || '角色');
@@ -54,14 +69,7 @@ function renderVoiceCallTurns(){
     return;
   }
   var html = '';
-  turns.forEach(function(m){
-    var isMe = m.from === 'me';
-    html += '<div class="pm-voice-call-turn ' + (isMe ? 'is-me' : 'is-char') + '">' +
-      '<div class="pm-voice-call-turn-copy">' +
-        '<div class="pm-voice-call-turn-bubble">' + escapeHTML(String(m.text || '')) + '</div>' +
-      '</div>' +
-    '</div>';
-  });
+  turns.forEach(function(m){ html += voiceCallTurnHTML(m); });
   pmVoiceCallTurns.innerHTML = html;
   requestAnimationFrame(function(){
     if (pmVoiceCallTurns) pmVoiceCallTurns.scrollTo({ top:pmVoiceCallTurns.scrollHeight, behavior:'smooth' });
@@ -69,7 +77,7 @@ function renderVoiceCallTurns(){
 }
 
 
-function appendVoiceCallTurn(name, from, text, inputMode, sessionId){
+function appendVoiceCallTurn(name, from, text, inputMode, sessionId, isNarration){
   name = String(name || '');
   text = String(text || '').trim();
   if (!name || !text) return null;
@@ -84,13 +92,14 @@ function appendVoiceCallTurn(name, from, text, inputMode, sessionId){
     callSessionId:String(sessionId || voiceCallState.sessionId || genId('call_')),
     createdAt:Date.now()
   };
+  if (isNarration === true) msg.narration = true;
   MESSAGES[name].push(msg);
   saveMessages(name);
   var phoneRecord = phoneCallBySessionId(msg.callSessionId);
   if (!phoneRecord) phoneRecord = ensurePhoneCallRecord(name, msg.callSessionId, msg.createdAt);
   if (phoneRecord) {
     phoneRecord.messageCount = getVoiceCallMessages(name, msg.callSessionId).length;
-    phoneRecord.preview = text.slice(0, 100);
+    if (!msg.narration) phoneRecord.preview = text.slice(0, 100);
     phoneRecord.updatedAt = msg.createdAt;
     if (phoneRecord.status !== 'completed') {
       phoneRecord.status = 'ongoing';
@@ -441,6 +450,68 @@ function cleanVoiceCallReplyText(text){
 }
 
 
+/* 把一段话拆成「对话」和「动作旁白」两种：
+ * say = 角色真正说出口的话（走气泡）；act = 动作、神态、心理、环境描写（走旁白）。
+ * 认的写法：<narration>…</narration>、（…）、(…)、*…*。 */
+function splitVoiceCallSegments(raw){
+  var text = String(raw || '').replace(/\r/g, '');
+  var out = [];
+  var re = /<(?:narration|action)>([\s\S]*?)<\/(?:narration|action)>|（([^（）\n]+)）|\*([^*\n]+)\*|＊([^＊\n]+)＊|\(([^()\n]+)\)/gi;
+  var last = 0, m;
+  function pushSay(v){
+    v = cleanVoiceCallReplyText(v);
+    if (v) out.push({ kind:'say', text:v });
+  }
+  while ((m = re.exec(text))) {
+    var inner = m[1] != null ? m[1] : (m[2] != null ? m[2] : (m[3] != null ? m[3] : (m[4] != null ? m[4] : m[5])));
+    var isHalfParen = m[5] != null;
+    if (isHalfParen) {
+      /* 半角括号只在句首或标点后才当成动作，避免把 “北京(朝阳区)” 这种正文误判 */
+      var before = text.slice(Math.max(0, m.index - 1), m.index);
+      if (before && !/[\s。！？!?.，,、~～…—]/.test(before)) continue;
+    }
+    pushSay(text.slice(last, m.index));
+    inner = String(inner || '').replace(/\s+/g, ' ').trim();
+    if (inner) out.push({ kind:'act', text:inner });
+    last = m.index + m[0].length;
+  }
+  pushSay(text.slice(last));
+  return out;
+}
+
+
+/* 一次回复 → 按先后顺序排好的 [{kind:'say'|'act', text}]，对话和旁白穿插保持原顺序 */
+function parseVoiceCallReply(raw){
+  var text = String(raw || '').replace(/\r/g, '').trim();
+  if (!text) return [];
+  text = text.replace(/```(?:text|txt|bubble)?\s*/gi, '').replace(/```/g, '').trim();
+  var items = [];
+  var hasBubble = /<bubble>/i.test(text);
+  if (hasBubble) {
+    var re = /<bubble>([\s\S]*?)<\/bubble>|<(?:narration|action)>([\s\S]*?)<\/(?:narration|action)>/gi;
+    var m;
+    while ((m = re.exec(text))) {
+      if (m[1] != null) {
+        splitVoiceCallSegments(m[1]).forEach(function(seg){ items.push(seg); });
+      } else {
+        var act = String(m[2] || '').replace(/\s+/g, ' ').trim();
+        if (act) items.push({ kind:'act', text:act });
+      }
+    }
+    if (items.length) return items.slice(0, 12);
+  }
+  var parts = text.split(/\n\s*\n+/);
+  if (parts.length <= 1 && text.indexOf('\n') >= 0) {
+    var lines = text.split('\n').filter(function(v){ return v.trim(); });
+    if (lines.length >= 2 && lines.length <= 10 && lines.every(function(v){ return v.length <= 240; })) parts = lines;
+  }
+  parts.forEach(function(part){
+    splitVoiceCallSegments(part).forEach(function(seg){ items.push(seg); });
+  });
+  return items.slice(0, 12);
+}
+
+
 function splitVoiceCallReply(raw){
   var text = String(raw || '').replace(/\r/g, '').trim();
   if (!text) return [];
@@ -473,18 +544,24 @@ function requestVoiceCallReply(name, sessionId){
       excludeMessageId: getLatestUserMessageId(name)
     });
     if (messages.length && messages[0] && (messages[0].role === 'system' || messages[0].role === 'developer')) {
-      messages[0].content += '\n\n【语音通话回复格式】你现在正在进行实时语音通话。回复可以自然地拆成多条短气泡；需要拆分时，请用 <bubble>第一段</bubble><bubble>第二段</bubble> 的格式包住每一段。每段尽量短一些，像真实聊天中的连续说话，不要输出 JSON，不要输出“气泡1/气泡2”等说明文字。';
+      messages[0].content += '\n\n【语音通话回复格式】你现在正在进行实时语音通话。回复分两种内容，按真实发生的先后顺序排列：\n1. 你说出口的话：用 <bubble>这句话</bubble> 包住，每段尽量短，像真实通话里连续说话。气泡里只放说出口的话，不要在气泡里写动作、神态、心理或环境描写。\n2. 动作、神态、语气、环境等描写：用 <narration>这段描写</narration> 包住，写成简短的旁白，比如 <narration>他轻轻笑了一下，把手机贴近耳边。</narration>。旁白只在确实需要时才写，不要每句话都配旁白。\n不要输出 JSON，不要输出“气泡1/气泡2”等说明文字。';
     }
     return callApiOnce(messages);
   }).then(function(text){
     var reply = String(text || '').trim();
-    var parts = splitVoiceCallReply(reply);
-    if (!parts.length) throw new Error('AI 返回为空');
-    parts.forEach(function(part){
-      appendVoiceCallTurn(name, 'them', part, 'text', sessionId);
+    var items = parseVoiceCallReply(reply);
+    if (!items.length) throw new Error('AI 返回为空');
+    var spoken = [];
+    items.forEach(function(item){
+      if (item.kind === 'act') {
+        appendVoiceCallTurn(name, 'them', item.text, 'text', sessionId, true);
+      } else {
+        appendVoiceCallTurn(name, 'them', item.text, 'text', sessionId, false);
+        spoken.push(item.text);
+      }
     });
-    if (isCharVoiceActive(name)) speakCharTexts(parts, getCharVoiceSettings(name).voiceId);
-    return parts.join('\n');
+    if (spoken.length && isCharVoiceActive(name)) speakCharTexts(spoken, getCharVoiceSettings(name).voiceId);
+    return spoken.length ? spoken.join('\n') : items.map(function(item){ return item.text; }).join('\n');
   });
 }
 
@@ -498,7 +575,9 @@ function sendVoiceCallText(){
   }
   var name = voiceCallState.name;
   var sessionId = voiceCallState.sessionId;
-  appendVoiceCallTurn(name, 'me', input, 'text', sessionId);
+  var inputSegs = splitVoiceCallSegments(input);
+  if (!inputSegs.length) inputSegs = [{ kind:'say', text:input }];
+  inputSegs.forEach(function(seg){ appendVoiceCallTurn(name, 'me', seg.text, 'text', sessionId, seg.kind === 'act'); });
   if (pmVoiceCallInput) {
     pmVoiceCallInput.value = '';
     pmVoiceCallInput.style.height = 'auto';

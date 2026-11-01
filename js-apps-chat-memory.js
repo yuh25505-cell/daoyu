@@ -649,7 +649,7 @@ function memoryMessageText(msg){
   if (msg.recalled) return timePrefix + who + '：[撤回了一条消息]';
   if (msg.type === 'voice_call') {
     var callText = String(msg.text || '').trim();
-    var callMode = msg.inputMode === 'voice' ? '语音通话·语音' : '语音通话·文字';
+    var callMode = msg.narration === true ? '语音通话·旁白' : (msg.inputMode === 'voice' ? '语音通话·语音' : '语音通话·文字');
     return timePrefix + who + '：[' + callMode + '] ' + (callText || '[空白通话内容]');
   }
   if (msg.type === 'voice') {

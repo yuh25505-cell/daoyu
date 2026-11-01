@@ -335,6 +335,7 @@ function init(){
     refreshMinimaxVoiceState();
     refreshVisionState();
     renderAutoRetryToggle();
+    renderHapticToggle();
     renderNotificationSettings();
     return yieldToPaint();
   }).then(function(){
@@ -361,6 +362,7 @@ function init(){
     refreshMinimaxVoiceState();
     refreshVisionState();
     renderAutoRetryToggle();
+    renderHapticToggle();
   });
 }
 

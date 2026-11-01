@@ -53,7 +53,7 @@ var DEFAULT_HOME_APPEARANCE = {
 };
 
 var DEFAULT_SETTINGS = {
-  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), minimaxVoice: clone(DEFAULT_MINIMAX_VOICE), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, vision: clone(DEFAULT_VISION), activeVisionPresetId: '', activeVectorEmbeddingPresetId: '', activeVectorRerankPresetId: '', visionQuickKeys: {}, autoRetry: false, activeUserPersonaId: '',
+  theme: 'system', chatAppearance: 'mono', notifications: { enabled: false, minInterval: 60, maxInterval: 240, quietStart: '23:00', quietEnd: '08:00', lastProactiveAt: 0, nextProactiveAt: 0, running: false }, api: clone(DEFAULT_API), apiPresets: [], activeApiPresetId: '', apiQuickKeys: {}, secondaryApi: clone(DEFAULT_API), secondaryApiPresets: [], activeSecondaryApiPresetId: '', secondaryApiQuickKeys: {}, stt: clone(DEFAULT_STT), minimaxVoice: clone(DEFAULT_MINIMAX_VOICE), sttPresets: [], activeSttPresetId: '', sttQuickKeys: {}, vision: clone(DEFAULT_VISION), activeVisionPresetId: '', activeVectorEmbeddingPresetId: '', activeVectorRerankPresetId: '', visionQuickKeys: {}, autoRetry: false, hapticOff: false, activeUserPersonaId: '',
   homeAppearance: clone(DEFAULT_HOME_APPEARANCE),
   sounds: { volume: 80, message: null, call: null },
   memory: { contextDepth: 40, summaryThreshold: 20 },

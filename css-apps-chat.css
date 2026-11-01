@@ -2012,6 +2012,9 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 .pm-voice-call-turn.is-me + .pm-voice-call-turn.is-char,
 .pm-voice-call-turn.is-char + .pm-voice-call-turn.is-me{ margin-top:12px; }
 
+.pm-voice-call-turn.is-narration{ justify-content:center; margin:10px 0; }
+.pm-voice-call-narration{ max-width:88%; padding:0 6px; text-align:center; color:var(--fg-faint); font-size:calc(13px * var(--island-font-size-scale)); line-height:1.55; white-space:pre-wrap; word-break:break-word; }
+
 .pm-voice-call-turn-copy{ display:flex; max-width:78%; min-width:0; }
 .pm-voice-call-turn.is-me .pm-voice-call-turn-copy{ justify-content:flex-end; }
 
@@ -2640,3 +2643,6 @@ html[data-theme="dark"] .pm-view.session-has-wallpaper .pm-location-card.chat-bu
 #favoritesList .list-item::before{ display:none; }
 #favoritesList .li-name{ font-size:calc(14.5px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); }
 
+/* 语音通话页：不响应左右滑动，只保留上下滚动 */
+.pm-voice-call-view{ touch-action:pan-y; overscroll-behavior-x:none; }
+.pm-voice-call-turns{ overflow-x:hidden; overscroll-behavior-x:none; }

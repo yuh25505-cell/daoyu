@@ -113,7 +113,7 @@
     if (isOpen('#phoneApp')) {
       var panel = $q('#phoneApp [data-phone-panel].is-active');
       var name = panel ? panel.getAttribute('data-phone-panel') : 'recent';
-      if (name === 'call-detail')    return { el:panel, back:function(){ call('closePhoneDetail'); } };
+      if (name === 'call-detail')    return { el:panel, noSwipe:true, back:function(){ call('closePhoneDetail'); } };  /* 查看完整通话：不跟手滑动，只保留顶部返回键和系统返回键 */
       if (name === 'contact-detail') return { el:panel, back:function(){ call('closePhoneContactDetail'); } };
       return { el:$q('#phoneApp'), back:function(){ call('closePhoneApp'); } };
     }
@@ -168,7 +168,7 @@
       return;
     }
     var layer = getTopLayer();
-    if (!layer || layer.block || !layer.el) return;
+    if (!layer || layer.block || layer.noSwipe || !layer.el) return;
     var sign = fromRight ? -1 : 1;
     drag = { x0:t.clientX, y0:t.clientY, t0:Date.now(), layer:layer, el:layer.el, active:false, w:Math.max(window.innerWidth, 1), dx:0, sign:sign };
     /* 左右两侧都支持边缘滑动返回；方向由触点所在的屏幕边缘决定。 */

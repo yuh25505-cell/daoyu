@@ -228,7 +228,8 @@ function finalizePhoneCallRecord(sessionId, endedAt){
   record.status = 'completed';
   var rows = getVoiceCallMessages(record.name, sessionId);
   record.messageCount = rows.length;
-  record.preview = rows.length ? String(rows[rows.length - 1].text || '').slice(0, 100) : '';
+  var dialogueRows = rows.filter(function(r){ return !(r && r.narration === true); });
+  record.preview = dialogueRows.length ? String(dialogueRows[dialogueRows.length - 1].text || '').slice(0, 100) : '';
   record.updatedAt = end;
   if (typeof record.favorite !== 'boolean') record.favorite = false;
   savePhoneCalls();
@@ -272,7 +273,7 @@ function migratePhoneCallsFromMessages(){
       rec.updatedAt = Math.max(Number(rec.updatedAt || 0), Number(msg.createdAt || 0));
       if (!rec.startedAt || Number(msg.createdAt || 0) < Number(rec.startedAt)) rec.startedAt = Number(msg.createdAt || 0);
       rec.endedAt = Math.max(Number(rec.endedAt || 0), Number(msg.createdAt || 0));
-      rec.preview = String(msg.text || rec.preview || '').slice(0, 100);
+      if (msg.narration !== true) rec.preview = String(msg.text || rec.preview || '').slice(0, 100);
     });
   });
   var merged = Object.keys(bySession).map(function(k){ return bySession[k]; });
@@ -514,12 +515,7 @@ function phoneCallDetailHTML(record, rows){
     '<div class="phone-detail-name">' + escapeHTML(callName) + '</div>' +
     '<div class="phone-detail-meta">' + escapeHTML(metaParts.join('　')) + '</div>' +
   '</div>' + rows.map(function(msg){
-    var isMe = msg.from === 'me';
-    return '<div class="pm-voice-call-turn ' + (isMe ? 'is-me' : 'is-char') + '">' +
-      '<div class="pm-voice-call-turn-copy">' +
-        '<div class="pm-voice-call-turn-bubble">' + escapeHTML(String(msg.text || '')) + '</div>' +
-      '</div>' +
-    '</div>';
+    return voiceCallTurnHTML(msg);
   }).join('');
 }
 
