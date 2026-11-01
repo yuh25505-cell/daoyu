@@ -93,9 +93,18 @@ function registerChatPromptProviders(){
   P('schedule_today', function(){ return ''; });
   P('cross_app_state', function(){ return ''; });
   P('out_language', function(ctx){
-    var t = buildCharacterLanguageInstruction(ctx.persona) || '';
-    if (getCharSplitPromptEnabled(ctx.persona)) t += (t ? '\n\n' : '') + SPLIT_RULES;
+    var t = buildCharacterLanguageInstruction(ctx.persona, ctx.scene) || '';
+    /* 语音通话不带线上分条规则 */
+    if (ctx.scene !== 'voice_call' && getCharSplitPromptEnabled(ctx.persona)) t += (t ? '\n\n' : '') + SPLIT_RULES;
     return t;
+  });
+  /* 语音通话的动作旁白：开关在通话页右上角的设置里，每个角色各存一份 */
+  P('vc_narration', function(ctx){
+    if (ctx.options && ctx.options.voiceCallNarration === false) {
+      return '这通电话不写旁白：不要使用 <narration> 标签，也不要写动作、神态、环境描写，只用 <bubble> 说话。';
+    }
+    var who = String(ctx.name || '角色');
+    return '动作、神态、语气、周围环境等描写，用 <narration>这段描写</narration> 包住，写成一小句简短的第三人称旁白，例如 <narration>' + who + '轻轻笑了一下，把手机贴近耳边。</narration>。\n旁白可以放在气泡之前、之间或之后，只在确实需要时才写，不要每句话都配旁白，一次回复最多 2 条；旁白里不要放说出口的话。';
   });
   P('out_translation', function(ctx){ return buildCharacterAutoTranslationInstruction(ctx.persona) || ''; });
   P('proto_index', function(ctx){
@@ -132,7 +141,7 @@ function buildMessages(name, options){
   var contextCount = Math.min(contextDepth, list.length);
   var ctx = {
     name: name, scene: options.scene || 'private', options: options,
-    persona: persona, user: user, buckets: collectWorldbookEntries(name),
+    persona: persona, user: user, buckets: collectWorldbookEntries(name, options),
     shortMemory: shortMemory, memoryMode: shortMemory.retrievalMode || 'summary',
     messages: MESSAGES[name] || [], contextDepth: contextDepth, contextCount: contextCount,
     vars: {
@@ -260,6 +269,8 @@ function buildMessages(name, options){
         // 语音通话在实时对话上下文里只传正文，避免模型把“[语音通话记录｜文字输入]”之类的系统标记带进气泡。
         // 旁白（动作、神态描写）保留标记，让模型知道哪些是说出口的话、哪些是旁白。
         if (m.narration === true) callTextForContext = (role === 'user') ? '（' + callTextForContext + '）' : '<narration>' + callTextForContext + '</narration>';
+        /* 正在通话时，角色之前说的话也用 <bubble> 包起来，和要求的回复格式保持一致，模型不会学歪 */
+        else if (role === 'assistant' && ctx.scene === 'voice_call') callTextForContext = '<bubble>' + callTextForContext + '</bubble>';
         out.push({ role: role, content: callTextForContext });
       }
       return;

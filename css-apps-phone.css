@@ -16,6 +16,15 @@
   --ph-chip-active:rgba(120,120,128,.14);
   --ph-line:rgba(60,60,67,.16);
   --ph-av-a:#abbfe3; --ph-av-b:#7f87be;
+  /* Liquid Glass：几乎透明的玻璃，靠高光边、折射感和柔和阴影成形 */
+  --lg-fill:linear-gradient(145deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.05) 46%, rgba(255,255,255,.30) 100%), rgba(118,128,150,.07);
+  --lg-bd:rgba(255,255,255,.62);
+  --lg-gloss:rgba(255,255,255,.78);
+  --lg-shadow:0 10px 28px rgba(20,30,60,.13), 0 2px 6px rgba(20,30,60,.06), inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -1px 1px rgba(255,255,255,.40), inset 0 0 0 .5px rgba(0,0,0,.06);
+  --lg-blur:blur(10px) saturate(1.9) brightness(1.04);
+  --lg-blue:linear-gradient(145deg, rgba(150,198,255,.92) 0%, rgba(22,119,255,.58) 100%), rgba(22,119,255,.22);
+  --lg-red:linear-gradient(145deg, rgba(255,128,118,.92) 0%, rgba(255,59,48,.62) 100%), rgba(255,59,48,.22);
+  --lg-green:linear-gradient(145deg, rgba(140,232,164,.92) 0%, rgba(52,199,89,.62) 100%), rgba(52,199,89,.22);
 }
 html[data-theme="dark"] .phone-app,
 html[data-theme="dark"] .pm-voice-call-view{
@@ -31,6 +40,14 @@ html[data-theme="dark"] .pm-voice-call-view{
   --ph-chip-active:rgba(255,255,255,.14);
   --ph-line:rgba(255,255,255,.14);
   --ph-av-a:#6577a8; --ph-av-b:#434a7d;
+  --lg-fill:linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.02) 46%, rgba(255,255,255,.11) 100%), rgba(255,255,255,.04);
+  --lg-bd:rgba(255,255,255,.24);
+  --lg-gloss:rgba(255,255,255,.26);
+  --lg-shadow:0 12px 30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35), inset 0 1.5px 1px rgba(255,255,255,.32), inset 0 -1px 1px rgba(255,255,255,.08), inset 0 0 0 .5px rgba(255,255,255,.10);
+  --lg-blur:blur(12px) saturate(1.8) brightness(1.08);
+  --lg-blue:linear-gradient(145deg, rgba(120,180,255,.80) 0%, rgba(59,140,255,.50) 100%), rgba(59,140,255,.20);
+  --lg-red:linear-gradient(145deg, rgba(255,110,100,.82) 0%, rgba(255,59,48,.52) 100%), rgba(255,59,48,.20);
+  --lg-green:linear-gradient(145deg, rgba(120,224,150,.80) 0%, rgba(52,199,89,.52) 100%), rgba(52,199,89,.20);
 }
 @media (prefers-color-scheme: dark){
   html:not([data-theme]) .phone-app,
@@ -47,6 +64,14 @@ html[data-theme="dark"] .pm-voice-call-view{
     --ph-chip-active:rgba(255,255,255,.14);
     --ph-line:rgba(255,255,255,.14);
     --ph-av-a:#6577a8; --ph-av-b:#434a7d;
+    --lg-fill:linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.02) 46%, rgba(255,255,255,.11) 100%), rgba(255,255,255,.04);
+    --lg-bd:rgba(255,255,255,.24);
+    --lg-gloss:rgba(255,255,255,.26);
+    --lg-shadow:0 12px 30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35), inset 0 1.5px 1px rgba(255,255,255,.32), inset 0 -1px 1px rgba(255,255,255,.08), inset 0 0 0 .5px rgba(255,255,255,.10);
+    --lg-blur:blur(12px) saturate(1.8) brightness(1.08);
+    --lg-blue:linear-gradient(145deg, rgba(120,180,255,.80) 0%, rgba(59,140,255,.50) 100%), rgba(59,140,255,.20);
+    --lg-red:linear-gradient(145deg, rgba(255,110,100,.82) 0%, rgba(255,59,48,.52) 100%), rgba(255,59,48,.20);
+    --lg-green:linear-gradient(145deg, rgba(120,224,150,.80) 0%, rgba(52,199,89,.52) 100%), rgba(52,199,89,.20);
   }
 }
 
@@ -194,3 +219,67 @@ html[data-theme="dark"] .pm-voice-call-view{
 /* 查看完整通话页：不响应左右滑动，只保留上下滚动 */
 .phone-panel[data-phone-panel="call-detail"]{ touch-action:pan-y; overscroll-behavior-x:none; }
 .phone-detail-scroll{ overflow-x:hidden; overflow-y:auto; overscroll-behavior-x:none; }
+
+/* ===== Liquid Glass：语音通话页 + 查看完整通话记录页 =====
+ * 只作用在这两页的按钮、输入框、名字胶囊。颜色全部来自上面的 --lg-* 变量，日间 / 夜间 / 跟随系统自动切换。 */
+.pm-voice-call-view .pm-voice-call-head .ph-circle,
+.pm-voice-call-view .pm-voice-call-mic,
+.pm-voice-call-view .pm-voice-call-end,
+.pm-voice-call-view .pm-voice-call-profile-name,
+.pm-voice-call-view .pm-voice-call-textbox textarea,
+.pm-voice-call-view .pm-voice-call-incoming-actions button,
+.phone-panel[data-phone-panel="call-detail"] .ph-circle,
+.phone-panel[data-phone-panel="call-detail"] .phone-detail-name{
+  background:var(--lg-fill); border:1px solid var(--lg-bd); box-shadow:var(--lg-shadow);
+  -webkit-backdrop-filter:var(--lg-blur); backdrop-filter:var(--lg-blur);
+}
+
+/* 圆形按钮顶部的一抹高光，像玻璃表面的反光 */
+.pm-voice-call-view .pm-voice-call-head .ph-circle,
+.pm-voice-call-view .pm-voice-call-mic,
+.pm-voice-call-view .pm-voice-call-end,
+.phone-panel[data-phone-panel="call-detail"] .ph-circle{ position:relative; overflow:hidden; }
+.pm-voice-call-view .pm-voice-call-head .ph-circle::before,
+.pm-voice-call-view .pm-voice-call-mic::before,
+.pm-voice-call-view .pm-voice-call-end::before,
+.phone-panel[data-phone-panel="call-detail"] .ph-circle::before{
+  content:""; position:absolute; inset:1px; border-radius:inherit; pointer-events:none;
+  background:radial-gradient(120% 85% at 22% 0%, var(--lg-gloss), rgba(255,255,255,0) 58%);
+}
+.pm-voice-call-view .pm-voice-call-head .ph-circle svg,
+.pm-voice-call-view .pm-voice-call-mic svg,
+.pm-voice-call-view .pm-voice-call-end svg,
+.phone-panel[data-phone-panel="call-detail"] .ph-circle svg{ position:relative; z-index:1; }
+
+/* 输入框：玻璃底，文字和占位符保持清楚 */
+.pm-voice-call-view .pm-voice-call-textbox textarea{ color:var(--fg); }
+.pm-voice-call-view .pm-voice-call-textbox textarea:focus{ border-color:var(--lg-bd); box-shadow:var(--lg-shadow), 0 0 0 3px rgba(120,130,150,.16); }
+
+/* 有颜色的按钮：同样是玻璃，只是带一层淡淡的色 */
+.pm-voice-call-view .pm-voice-call-mic.is-listening{ background:var(--lg-blue); color:#fff; border-color:rgba(255,255,255,.38); }
+.pm-voice-call-view .pm-voice-call-mic.is-speaking{ box-shadow:var(--lg-shadow), 0 0 0 6px rgba(22,119,255,.22); }
+.pm-voice-call-view .pm-voice-call-end{ background:var(--lg-red); color:#fff; border-color:rgba(255,255,255,.38); box-shadow:var(--lg-shadow), 0 6px 18px rgba(255,59,48,.22); }
+.pm-voice-call-view .pm-voice-call-send{ background:var(--lg-blue); color:#fff; border:1px solid rgba(255,255,255,.38); box-shadow:inset 0 1px 1px rgba(255,255,255,.7), 0 3px 10px rgba(22,119,255,.22); }
+.pm-voice-call-view .pm-voice-call-incoming-actions button{ color:#fff; border-color:rgba(255,255,255,.38); }
+.pm-voice-call-view .pm-voice-call-incoming-decline{ background:var(--lg-red); }
+.pm-voice-call-view .pm-voice-call-incoming-accept{ background:var(--lg-green); }
+
+/* 收藏按钮选中后保持金色 */
+.phone-panel[data-phone-panel="call-detail"] .phone-detail-favorite.is-favorite{ color:#f5a623; }
+
+/* 查看完整通话记录：顶部按钮悬浮在内容上，记录从玻璃按钮下面滚过 */
+.phone-panel[data-phone-panel="call-detail"] .phone-head{ position:absolute; z-index:3; top:0; left:0; right:0; background:transparent; pointer-events:none; }
+.phone-panel[data-phone-panel="call-detail"] .phone-head .ph-circle{ pointer-events:auto; }
+.phone-panel[data-phone-panel="call-detail"] .phone-detail-scroll{ padding-top:calc(72px + var(--island-sat) + 6px); }
+
+/* 系统开了“降低透明度”时，退回比较实的底，保证看得清 */
+@media (prefers-reduced-transparency: reduce){
+  .pm-voice-call-view .pm-voice-call-head .ph-circle,
+  .pm-voice-call-view .pm-voice-call-mic:not(.is-listening),
+  .pm-voice-call-view .pm-voice-call-profile-name,
+  .pm-voice-call-view .pm-voice-call-textbox textarea,
+  .phone-panel[data-phone-panel="call-detail"] .ph-circle,
+  .phone-panel[data-phone-panel="call-detail"] .phone-detail-name{
+    background:var(--ph-glass); -webkit-backdrop-filter:none; backdrop-filter:none;
+  }
+}

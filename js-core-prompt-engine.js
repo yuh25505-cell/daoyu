@@ -80,24 +80,32 @@ var PromptEngine = (function(){
   def({ id:'wb_back', name:'世界书·低', cat:'base', anchor:'worldbook_low', kind:'data', provider:'wb_back', template:'{{content}}' });
 
   def({ id:'out_language', name:'语言与分句', cat:'output', anchor:'output_protocol', kind:'data', provider:'out_language', template:'{{content}}' });
-  def({ id:'out_translation', name:'同步翻译协议', cat:'output', anchor:'output_protocol', kind:'data', provider:'out_translation', template:'{{content}}' });
+  def({ id:'out_translation', name:'同步翻译协议', cat:'output', anchor:'output_protocol', kind:'data', provider:'out_translation', scenes:['private','proactive'], template:'{{content}}' });
+
+  /* 语音通话专用：只在语音通话里注入。通话的说话方式、旁白、格式各一个模块，可以在预设里单独改。 */
+  def({ id:'vc_scene', name:'语音通话·场景与说话方式', cat:'scene', anchor:'output_protocol', kind:'rule', scenes:['voice_call'],
+    template:'【语音通话】\n你和「{{user}}」正在打一通实时语音电话，不是在发文字消息。对方听到的是你的声音，看不到屏幕、图片和表情包。\n说话方式：\n1. 像真人在电话里说话：短句、口语、有停顿和语气词，想到哪说到哪。一次通常说 1 到 4 句，对方问得简单就简单答，不要长篇大论，不要一口气把话说完。\n2. 对方的话是语音转成的文字，可能有错字、漏字或断句不对。按上下文理解大意；实在听不清，就像打电话那样自然地让对方再说一遍，不要照着错字回答。\n3. 保持「{{char}}」平时的性格、称呼、口头禅，以及和「{{user}}」现在的关系。通话不会让你变得更热情，也不会更听话。\n4. 你现在在哪、在做什么、什么时间，要和聊天记录、记忆保持一致，不要凭空编出已经发生的事。\n5. 电话里发不了图片、表情包、转账、位置，也不能引用、撤回、拍一拍，更不要再发起一通新的通话；做不到的事，用说话表达。\n6. 说出口的话里不要用 Markdown、编号、括号注释、颜文字和 emoji；数字、时间按人说话的方式说。\n7. 想结束通话时，像真人那样道别，比如“那先这样吧”，不要输出任何指令。' });
+  def({ id:'vc_narration', name:'语音通话·动作旁白', cat:'scene', anchor:'output_protocol', kind:'data', provider:'vc_narration', scenes:['voice_call'], template:'【语音通话·动作旁白】\n{{content}}' });
   def({ id:'out_style', name:'普通消息格式', cat:'output', anchor:'output_protocol', kind:'rule', scenes:['private','proactive'],
     template:'【回复格式】\n用自然、口语化、符合「{{char}}」性格的方式回复。一次回复可以拆成多条短消息，按真实聊天的先后顺序表达；不要写旁白式的长段文字，不要用 Markdown 标题和列表。' });
-  def({ id:'proto_index', name:'最近消息索引', cat:'output', anchor:'output_protocol', kind:'data', provider:'proto_index', template:'{{content}}' });
-  def({ id:'proto_poke', name:'拍一拍协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true,
+  def({ id:'proto_index', name:'最近消息索引', cat:'output', anchor:'output_protocol', kind:'data', provider:'proto_index', scenes:['private','proactive'], template:'{{content}}' });
+  def({ id:'proto_poke', name:'拍一拍协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true, scenes:['private','proactive'],
     template:'【拍一拍】\n需要时单独一行输出 [[POKE target="user"]]（拍一拍用户）或 [[POKE target="self"]]（拍一拍自己）。这是客户端指令，会被隐藏并变成聊天里的系统提示；不要把它写进普通文字，不要滥用。' });
-  def({ id:'proto_media', name:'图片 / 语音 / 位置 / 通话协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true,
+  def({ id:'proto_media', name:'图片 / 语音 / 位置 / 通话协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true, scenes:['private','proactive'],
     template:'【聊天媒体】以下指令各占单独一行，客户端会把它们变成真正的聊天卡片：\n图片：[[IMAGE description="图片内容描述"]]。目前只渲染成文字图，不要编造图片链接。\n语音消息：[[VOICE_MESSAGE duration="秒数" text="语音内容"]]。不要伪造音频地址。\n位置：[[LOCATION label="位置名称" lat="纬度" lng="经度" source="virtual"]]。必须同时给出有效的经纬度，一律显示为虚拟位置。\n语音通话：[[VOICE_CALL text="可选的来电开场白"]]。用户点击接听后才进入通话。\n只在情境真的需要时使用，不要为了展示功能而滥用。' });
-  def({ id:'proto_transfer', name:'转账协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true,
+  def({ id:'proto_transfer', name:'转账协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true, scenes:['private','proactive'],
     template:'【转账】这是聊天内的虚拟互动，不是真实支付。\n发起：[[TRANSFER amount="金额" note="备注"]]，amount 必须是正数且最多两位小数。\n接受或拒绝用户发来的待收款转账：[[TRANSFER_STATUS id="转账消息ID" status="received"]] 或 [[TRANSFER_STATUS id="转账消息ID" status="declined"]]。不要编造不存在的消息 ID。' });
-  def({ id:'proto_quote', name:'引用与聊天记录协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true,
+  def({ id:'proto_quote', name:'引用与聊天记录协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true, scenes:['private','proactive'],
     template:'【引用与转发】\n引用：单独一行 [[QUOTE id="消息ID"]] 或 [[QUOTE index="消息索引"]]，下一条文字消息会带引用框；也可 [[QUOTE author="昵称" text="被引用文字"]]。引用图片或表情包时优先用 id / index。\n转发聊天记录：[[CHAT_RECORD title="标题" ids="ID1,ID2"]]、[[CHAT_RECORD title="标题" indexes="1,2"]]，或 [[CHAT_RECORD title="标题" messages="我：你好||角色：你好呀"]]。\n这些都是会被隐藏的客户端指令，只在真的需要时使用。' });
-  def({ id:'proto_recall', name:'撤回协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true,
+  def({ id:'proto_recall', name:'撤回协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true, scenes:['private','proactive'],
     template:'【撤回】\n偶尔说错话、说得太直白或临时反悔时可以撤回。撤回刚说出口的话：正式回复之前单独一行 [[RECALL text="被撤回的原话"]]，随后正常说改口后的话。撤回之前发出的自己的消息：[[RECALL id="消息ID"]] 或 [[RECALL index="消息索引"]]。\n用户撤回消息时你只会看到撤回事件，看不到内容，不要猜测或编造。大多数回复不需要撤回。' });
-  def({ id:'proto_delete_friend', name:'删除好友协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true,
+  def({ id:'proto_delete_friend', name:'删除好友协议', cat:'output', anchor:'output_protocol', kind:'rule', required:true, scenes:['private','proactive'],
     template:'【删除好友】\n只有在被严重冒犯、彻底决裂、长期被冷落或有强烈的角色内理由时，才可以单独一行输出 [[DELETE_FRIEND reason="原因"]]。这是很重的举动：小吵小闹、开玩笑、展示功能都不要用，也不要把话说成永不再见（过一阵你也可能后悔并重新申请加好友）。' });
-  def({ id:'proto_validate', name:'输出自检', cat:'output', anchor:'output_protocol', kind:'rule',
+  def({ id:'proto_validate', name:'输出自检', cat:'output', anchor:'output_protocol', kind:'rule', scenes:['private','proactive'],
     template:'【输出要求】\n指令必须严格使用上面给出的格式，属性名和引号不要改动；拿不准格式时直接用普通文字表达。不要输出推理过程，直接给出最终回复。' });
+
+  def({ id:'vc_format', name:'语音通话·回复格式', cat:'scene', anchor:'output_protocol', kind:'rule', required:true, scenes:['voice_call'],
+    template:'【语音通话·回复格式】\n每次回复由若干段组成，按真实发生的先后顺序排列。\n说出口的话：用 <bubble>这句话</bubble> 包住。每个气泡只放一小句，像电话里连着说几句；气泡里只写说出口的话，不夹动作、神态、心理或环境描写。\n只输出标签和标签里的内容，标签外不要写任何文字；不要输出 JSON，不要写“气泡1”之类的编号，不要复述这段说明，不要输出推理过程。\n示例：\n<bubble>喂？到家了吗。</bubble><bubble>今天累不累？</bubble>' });
 
   def({ id:'ctx_header', name:'对话上下文说明', cat:'scene', anchor:'conversation_context', kind:'data', provider:'ctx_header', required:true, pinned:'last', template:'{{content}}' });
 
