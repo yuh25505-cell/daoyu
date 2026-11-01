@@ -115,6 +115,7 @@ function appendVoiceCallTurn(name, from, text, inputMode, sessionId, isNarration
 
 function updateVoiceCallControls(){
   if (pmVoiceCallView) pmVoiceCallView.classList.toggle('is-processing', !!voiceCallState.processing);
+  if (pmVoiceCallView) pmVoiceCallView.classList.toggle('has-pending', !!voiceCallState.pendingReply);
   if (pmVoiceCallMicBtn) {
     pmVoiceCallMicBtn.classList.toggle('is-off', !voiceCallState.micOn);
     pmVoiceCallMicBtn.classList.toggle('is-listening', !!voiceCallState.micOn && !voiceCallState.processing);
@@ -426,6 +427,7 @@ function processVoiceCallAudio(blob, duration){
     text = String(text || '').trim();
     if (!text) throw new Error('语音转写结果为空');
     appendVoiceCallTurn(name, 'me', text, 'voice', sessionId);
+    voiceCallState.pendingReply = false;
     return requestVoiceCallReply(name, sessionId);
   }).catch(function(err){
     console.error('[岛屿] 语音通话转写失败：', err);
@@ -692,19 +694,27 @@ bindVoiceCallSettings();
 function sendVoiceCallText(){
   if (!voiceCallState.active || !voiceCallState.name || voiceCallState.processing) return false;
   var input = String(pmVoiceCallInput ? pmVoiceCallInput.value : '').trim();
-  if (!input) {
+  var name = voiceCallState.name;
+  var sessionId = voiceCallState.sessionId;
+  if (input) {
+    /* 第一次点发送：只把话发出去，不会马上让对方回复 */
+    var inputSegs = splitVoiceCallSegments(input);
+    if (!inputSegs.length) inputSegs = [{ kind:'say', text:input }];
+    inputSegs.forEach(function(seg){ appendVoiceCallTurn(name, 'me', seg.text, 'text', sessionId, seg.kind === 'act'); });
+    if (pmVoiceCallInput) {
+      pmVoiceCallInput.value = '';
+      pmVoiceCallInput.style.height = 'auto';
+    }
+    voiceCallState.pendingReply = true;
+    updateVoiceCallControls();
+    return true;
+  }
+  if (!voiceCallState.pendingReply) {
     if (pmVoiceCallInput) pmVoiceCallInput.focus();
     return false;
   }
-  var name = voiceCallState.name;
-  var sessionId = voiceCallState.sessionId;
-  var inputSegs = splitVoiceCallSegments(input);
-  if (!inputSegs.length) inputSegs = [{ kind:'say', text:input }];
-  inputSegs.forEach(function(seg){ appendVoiceCallTurn(name, 'me', seg.text, 'text', sessionId, seg.kind === 'act'); });
-  if (pmVoiceCallInput) {
-    pmVoiceCallInput.value = '';
-    pmVoiceCallInput.style.height = 'auto';
-  }
+  /* 输入框是空的、又有话还没得到回复：再点一下发送，才让对方回复 */
+  voiceCallState.pendingReply = false;
   voiceCallState.processing = true;
   updateVoiceCallControls();
   setVoiceCallStatus('对方正在回复…');
@@ -712,6 +722,7 @@ function sendVoiceCallText(){
     console.error('[岛屿] 语音通话 AI 回复失败：', err);
     toast('AI 调用失败：' + String(err && err.message || '未知错误').slice(0, 60));
     setVoiceCallStatus('回复失败，请重试');
+    voiceCallState.pendingReply = true;
   }).then(function(){
     voiceCallState.processing = false;
     if (voiceCallState.active && voiceCallState.name === name) {
@@ -829,6 +840,7 @@ function openVoiceCallView(){
   voiceCallState.textMode = false;
   voiceCallState.resumeMicAfterText = false;
   voiceCallState.replyBusy = false;
+  voiceCallState.pendingReply = false;
   renderVoiceCallAvatar();
   renderVoiceCallTurns();
   setVoiceCallStatus('点击左侧麦克风开始自动听说');
@@ -867,8 +879,9 @@ function closeVoiceCallView(options){
   voiceCallState.textMode = false;
   voiceCallState.resumeMicAfterText = false;
   voiceCallState.replyBusy = false;
+  voiceCallState.pendingReply = false;
   if (pmVoiceCallView) {
-    pmVoiceCallView.classList.remove('is-open','is-processing');
+    pmVoiceCallView.classList.remove('is-open','is-processing','has-pending');
     pmVoiceCallView.setAttribute('aria-hidden','true');
   }
   document.documentElement.classList.remove('pm-voice-call-open');

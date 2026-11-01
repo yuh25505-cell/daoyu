@@ -22,9 +22,9 @@
   --lg-gloss:rgba(255,255,255,.36);
   --lg-shadow:0 8px 24px rgba(20,30,60,.10), 0 2px 5px rgba(20,30,60,.05), inset 0 1px 1px rgba(255,255,255,.55), inset 0 -1px 1px rgba(255,255,255,.18), inset 0 0 0 .5px rgba(0,0,0,.05);
   --lg-blur:blur(10px) saturate(1.9) brightness(1.04);
-  --lg-blue:linear-gradient(145deg, rgba(150,198,255,.74) 0%, rgba(22,119,255,.52) 100%), rgba(22,119,255,.22);
-  --lg-red:linear-gradient(145deg, rgba(255,128,118,.76) 0%, rgba(255,59,48,.56) 100%), rgba(255,59,48,.22);
-  --lg-green:linear-gradient(145deg, rgba(140,232,164,.76) 0%, rgba(52,199,89,.56) 100%), rgba(52,199,89,.22);
+  --lg-blue:linear-gradient(145deg, rgba(90,160,255,.74) 0%, rgba(22,119,255,.62) 100%), rgba(22,119,255,.20);
+  --lg-red:linear-gradient(145deg, rgba(255,96,86,.76) 0%, rgba(255,59,48,.64) 100%), rgba(255,59,48,.20);
+  --lg-green:linear-gradient(145deg, rgba(92,214,128,.76) 0%, rgba(52,199,89,.64) 100%), rgba(52,199,89,.20);
 }
 html[data-theme="dark"] .phone-app,
 html[data-theme="dark"] .pm-voice-call-view{
@@ -258,8 +258,10 @@ html[data-theme="dark"] .pm-voice-call-view{
 /* 有颜色的按钮：同样是玻璃，只是带一层淡淡的色 */
 .pm-voice-call-view .pm-voice-call-mic.is-listening{ background:var(--lg-blue); color:#fff; border-color:rgba(255,255,255,.26); }
 .pm-voice-call-view .pm-voice-call-mic.is-speaking{ box-shadow:var(--lg-shadow), 0 0 0 6px rgba(22,119,255,.22); }
-.pm-voice-call-view .pm-voice-call-end{ background:var(--lg-red); color:#fff; border-color:rgba(255,255,255,.26); box-shadow:var(--lg-shadow), 0 6px 18px rgba(255,59,48,.22); }
-.pm-voice-call-view .pm-voice-call-send{ background:var(--lg-blue); color:#fff; border:1px solid rgba(255,255,255,.26); box-shadow:inset 0 1px 1px rgba(255,255,255,.4), 0 3px 10px rgba(22,119,255,.22); }
+.pm-voice-call-view .pm-voice-call-end{ background:var(--lg-red); color:#fff; border-color:rgba(255,255,255,.18); box-shadow:0 8px 20px rgba(255,59,48,.20), inset 0 1px 1px rgba(255,255,255,.16), inset 0 0 0 .5px rgba(0,0,0,.05); }
+.pm-voice-call-view .pm-voice-call-end::before,
+.pm-voice-call-view .pm-voice-call-mic.is-listening::before{ opacity:.22; }
+.pm-voice-call-view .pm-voice-call-send{ background:var(--lg-blue); color:#fff; border:1px solid rgba(255,255,255,.18); box-shadow:inset 0 1px 1px rgba(255,255,255,.14), 0 3px 10px rgba(22,119,255,.20); }
 .pm-voice-call-view .pm-voice-call-incoming-actions button{ color:#fff; border-color:rgba(255,255,255,.26); }
 .pm-voice-call-view .pm-voice-call-incoming-decline{ background:var(--lg-red); }
 .pm-voice-call-view .pm-voice-call-incoming-accept{ background:var(--lg-green); }

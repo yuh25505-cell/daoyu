@@ -93,7 +93,7 @@ var voiceCallState = {
   micOn:false, micWanted:false, processing:false, textMode:false, resumeMicAfterText:false,
   stream:null, audioContext:null, analyser:null, analyserSource:null, vadFrame:0,
   recorder:null, chunks:[], recording:false, speechCandidateAt:0, speechStartedAt:0, lastSpeechAt:0, noiseFloor:.012,
-  replyBusy:false
+  replyBusy:false, pendingReply:false
 };
 
 var voiceMessageActionIndex = -1;

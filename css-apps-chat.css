@@ -2063,6 +2063,7 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 }
 .pm-voice-call-send svg{ width:18px; height:18px; }
 .pm-voice-call-textbox textarea:placeholder-shown ~ .pm-voice-call-send{ opacity:.3; }
+.pm-voice-call-view.has-pending .pm-voice-call-textbox textarea:placeholder-shown ~ .pm-voice-call-send{ opacity:1; }
 
 .pm-voice-call-mic,.pm-voice-call-end{
   width:44px; min-width:44px; height:44px; border-radius:50%; display:grid; place-items:center; flex:none; padding:0;
@@ -2113,12 +2114,15 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 /* ===== 语音通话设置弹窗（挂世界书 / 动作旁白）：日间纯白、夜间纯黑，和聊天里的其他弹窗同一套 ===== */
 .vc-set-modal{ position:absolute; inset:0; z-index:8; display:none; }
 .vc-set-modal.is-open{ display:block; }
-.vc-set-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.34); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+.vc-set-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.10); }
 .vc-set-dialog{
-  position:absolute; left:12px; right:12px; bottom:calc(10px + var(--island-sab)); max-width:520px; margin:0 auto; padding:16px 16px 14px; box-sizing:border-box;
-  display:flex; flex-direction:column; max-height:calc(100% - var(--island-sat) - 48px);
-  border-radius:20px; background:var(--pop-bg, var(--bg)); color:var(--fg); border:1px solid var(--card-bd); box-shadow:0 16px 48px rgba(0,0,0,.22);
+  position:absolute; top:calc(var(--island-sat) + 66px); right:16px; width:min(320px, calc(100% - 32px)); padding:14px 16px 12px; box-sizing:border-box;
+  display:flex; flex-direction:column; max-height:calc(100% - var(--island-sat) - 66px - 24px - var(--island-sab));
+  border-radius:20px; background:var(--pop-bg, var(--bg)); color:var(--fg); border:1px solid var(--card-bd); box-shadow:0 14px 40px rgba(0,0,0,.20);
+  transform-origin:calc(100% - 22px) -8px;
 }
+.vc-set-modal.is-open .vc-set-dialog{ animation:vcSetPop .2s cubic-bezier(.2,.8,.3,1); }
+@keyframes vcSetPop{ from{ opacity:0; transform:scale(.88) translateY(-6px); } to{ opacity:1; transform:none; } }
 .vc-set-head{ flex:none; display:flex; align-items:center; gap:12px; margin-bottom:6px; }
 .vc-set-title{ font-size:calc(17px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); }
 .vc-set-close{ flex:none; margin-left:auto; width:30px; height:30px; border-radius:50%; font-size:23px; line-height:1; color:var(--fg-faint); }
