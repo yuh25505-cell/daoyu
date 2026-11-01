@@ -8,3 +8,36 @@
 .cp-card{background:#f6f6f6;border-radius:17px;padding:20px;margin:16px -2px}.cp-like-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}.cp-like-row strong{display:block;font-size:34px}.cp-like-row span{font-size:12px;color:#888}.cp-like-btn{border-radius:30px;background:#050505;color:#fff;padding:12px 24px;font-size:16px;display:flex;align-items:center;gap:8px}.cp-like-btn svg{width:20px;height:20px}.cp-like-btn.on{background:#444}.cp-likers{display:flex;align-items:center;justify-content:space-between;margin-top:28px;color:#777;font-size:13px}.cp-liker-dots{display:flex;gap:8px}.cp-liker-dots i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#ddd;color:#555;font-style:normal}
 .cp-book-card h2,.cp-moments h2{font-size:25px;margin:7px 0 2px}.cp-book-card p,.cp-moments p{color:#999;font-size:13px;margin:0 0 14px}.cp-import{background:none;border:1px solid #ddd;border-radius:12px;padding:11px 14px;width:100%;text-align:left;font-size:14px}.cp-book-summary{font-size:11px;color:#999;margin:12px 0}.cp-book-list{display:flex;flex-direction:column;gap:8px}.cp-book-row{border-top:1px solid #e5e5e5;padding:12px 0;display:flex;gap:10px;justify-content:space-between}.cp-book-info{min-width:0;display:flex;flex-direction:column;gap:5px}.cp-book-info b{font-size:13px}.cp-book-info small{font-size:10px;color:#999;overflow-wrap:anywhere}.cp-book-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:130px}.cp-book-actions button{font-size:10px;background:#fff;border:1px solid #ddd;border-radius:7px;padding:5px 7px}.cp-book-actions button:disabled{opacity:.3}.cp-empty{border-top:1px solid #e5e5e5;padding:20px 0 4px;color:#aaa;font-size:13px}.cp-rel-card{padding:30px 4px}.cp-rel-card h2{font-size:28px}
 .cp-edit-sheet{position:fixed;inset:0;z-index:2;background:#0006;display:flex;align-items:flex-end}.cp-edit-panel{width:100%;max-width:520px;margin:auto;background:#fff;padding:25px 22px calc(var(--island-sab,0px) + 24px);border-radius:22px 22px 0 0;max-height:90%;overflow:auto}.cp-edit-panel h2{font-size:25px;margin:8px 0 20px}.cp-edit-panel label{display:block;font-size:11px;color:#999;margin:13px 0}.cp-edit-panel input{display:block;width:100%;box-sizing:border-box;border:0;border-bottom:1px solid #ddd;padding:10px 0;font-size:16px;color:#111;outline:none}.cp-edit-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.cp-edit-actions button{padding:11px 22px;border-radius:22px;background:#eee}.cp-edit-actions button:last-child{background:#111;color:#fff}
+
+
+/* Dedicated, beginner-friendly World Book injection settings */
+.cp-book-settings{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.cp-book-settings-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.cp-book-settings-panel{position:relative;width:min(100%,520px);max-height:min(88%,760px);overflow:auto;box-sizing:border-box;background:#fff;border-radius:24px 24px 0 0;padding:12px 22px calc(var(--island-sab,0px) + 22px);color:#111;box-shadow:0 -8px 36px rgba(0,0,0,.08);animation:cpSheetIn .2s ease-out}
+@keyframes cpSheetIn{from{transform:translateY(18px);opacity:.7}to{transform:translateY(0);opacity:1}}
+.cp-modal-grip{width:38px;height:4px;border-radius:4px;background:#ddd;margin:0 auto 22px}
+.cp-modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.cp-modal-head h2{font-size:25px;letter-spacing:-.5px;margin:7px 0 5px}
+.cp-modal-head p{font-size:13px;color:#999;margin:0}
+.cp-modal-close{width:32px;height:32px;border-radius:50%;background:#f2f2f2;color:#555;font-size:23px;line-height:1}
+.cp-mode-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cp-mode-option,.cp-position-option{position:relative;display:flex;align-items:center;text-align:left;background:#fafafa;border:1px solid #e8e8e8;border-radius:14px;padding:14px 12px;min-width:0;color:#111}
+.cp-mode-option{min-height:104px;align-items:flex-start;gap:10px}
+.cp-mode-option.selected,.cp-position-option.selected{background:#f2f2f2;border-color:#111}
+.cp-option-icon{width:28px;height:28px;flex:none;border-radius:9px;background:#e9e9e9;display:grid;place-items:center;font-size:18px}
+.cp-option-copy,.cp-position-option>span{display:flex;flex-direction:column;gap:6px;min-width:0;padding-right:14px}
+.cp-mode-option b,.cp-position-option b{font-size:13px;font-weight:650}
+.cp-mode-option small,.cp-position-option small{font-size:10px;line-height:1.5;color:#999}
+.cp-option-check{position:absolute;right:11px;top:12px;width:15px;height:15px;border:1px solid #ccc;border-radius:50%;box-sizing:border-box}
+.cp-mode-option.selected .cp-option-check,.cp-position-option.selected .cp-option-check{border:5px solid #111;background:#fff}
+.cp-position-wrap{margin-top:22px}
+.cp-position-wrap[hidden]{display:none}
+.cp-position-title{font-size:13px;font-weight:650;margin-bottom:10px}
+.cp-position-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cp-position-option{min-height:68px;padding:12px}
+.cp-settings-note{font-size:11px;color:#999;line-height:1.6;margin:18px 0 14px;padding:11px 12px;background:#f7f7f7;border-radius:10px}
+.cp-settings-actions{display:flex;gap:10px}
+.cp-settings-actions button{flex:1;padding:13px 16px;border-radius:24px;background:#f0f0f0;color:#222;font-size:14px}
+.cp-settings-actions button.primary{background:#111;color:#fff}
+@media(min-width:560px){.cp-book-settings{align-items:center}.cp-book-settings-panel{border-radius:24px;max-height:85vh}}
+@media(max-width:360px){.cp-book-settings-panel{padding-left:16px;padding-right:16px}.cp-mode-options,.cp-position-options{grid-template-columns:1fr}.cp-mode-option{min-height:74px}}

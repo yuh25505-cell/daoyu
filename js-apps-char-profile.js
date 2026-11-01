@@ -2,6 +2,7 @@
 'use strict';
 var charProfileName = '';
 var charProfileTab = 'home';
+var cpBookDraft = null;
 function cpEsc(v){ return typeof escapeHTML === 'function' ? escapeHTML(String(v == null ? '' : v)) : String(v || '').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function cpPersona(){ return charProfileName && typeof findPersona === 'function' ? findPersona(charProfileName) : null; }
 function cpSave(p){ if (typeof savePersonas === 'function') savePersonas(); }
@@ -29,10 +30,33 @@ function cpRender(){
  '<section class="cp-fields">'+cpField('WECHAT ID',p.wechatId||'—','wechatId')+cpField('PHONE NUMBER',p.phone||'—','phone')+cpField('BIRTHDAY',p.birthday||'—')+cpField('LOCATION',p.location||'—')+'</section>'+
  '<button class="cp-profile-edit" data-cp="edit">PERSONAL PROFILE '+cpSvg('chev')+'</button>'+
  '<section class="cp-card cp-social-card"><div class="cp-label">SOCIAL INTERACTION</div><div class="cp-like-row"><div><strong>'+likes.toLocaleString()+'</strong><span>TOTAL LIKES</span></div><button class="cp-like-btn '+(p.profileLiked?'on':'')+'" data-cp="like">'+cpSvg('heart')+' '+(p.profileLiked?'Liked':'Like')+'</button></div><div class="cp-likers"><button class="cp-likers-open" data-cp="likers">People who liked this Char</button><div class="cp-liker-dots">'+(p.profileLikers||[]).slice(0,3).map(function(x){return '<i>'+cpEsc(x.slice(0,1))+'</i>';}).join('')+'</div></div></section>'+
- '<section class="cp-card cp-book-card"><div class="cp-label">CHARACTER LIBRARY</div><h2>World Book</h2><p>Character\'s world, memories and settings.</p><button class="cp-import" data-cp="import">＋ Import Character World Book</button><div class="cp-book-summary">'+books.length+' 本世界书 · '+books.filter(function(b){return b.enabled!==false;}).length+' 本已启用</div><div class="cp-book-list">'+books.map(function(b,i){return '<div class="cp-book-row"><div class="cp-book-info"><b>'+cpEsc(b.name)+'</b><small>'+cpEsc(b.fileName||'本地导入')+' · '+(b.enabled===false?'已禁用':'已启用')+'</small><small>注入：'+(b.followPersona?'Char 人设后':'自定义优先级')+' · '+(b.position||'worldbook_middle')+'</small></div><div class="cp-book-actions"><button data-cp="toggle-book" data-id="'+cpEsc(b.id)+'">'+(b.enabled===false?'启用':'停用')+'</button><button data-cp="up-book" data-id="'+cpEsc(b.id)+'" '+(i===0?'disabled':'')+'>↑</button><button data-cp="down-book" data-id="'+cpEsc(b.id)+'" '+(i===books.length-1?'disabled':'')+'>↓</button><button data-cp="config-book" data-id="'+cpEsc(b.id)+'">设置</button><button data-cp="delete-book" data-id="'+cpEsc(b.id)+'">删除</button></div></div>';}).join('')+'</div></section>'+
+ '<section class="cp-card cp-book-card"><div class="cp-label">CHARACTER LIBRARY</div><h2>World Book</h2><p>Character\'s world, memories and settings.</p><button class="cp-import" data-cp="import">＋ Import Character World Book</button><div class="cp-book-summary">'+books.length+' 本世界书 · '+books.filter(function(b){return b.enabled!==false;}).length+' 本已启用</div><div class="cp-book-list">'+books.map(function(b,i){return '<div class="cp-book-row"><div class="cp-book-info"><b>'+cpEsc(b.name)+'</b><small>'+cpEsc(b.fileName||'本地导入')+' · '+(b.enabled===false?'已禁用':'已启用')+'</small><small>注入：'+cpBookPlacementLabel(b)+'</small></div><div class="cp-book-actions"><button data-cp="toggle-book" data-id="'+cpEsc(b.id)+'">'+(b.enabled===false?'启用':'停用')+'</button><button data-cp="up-book" data-id="'+cpEsc(b.id)+'" '+(i===0?'disabled':'')+'>↑</button><button data-cp="down-book" data-id="'+cpEsc(b.id)+'" '+(i===books.length-1?'disabled':'')+'>↓</button><button data-cp="config-book" data-id="'+cpEsc(b.id)+'">设置</button><button data-cp="delete-book" data-id="'+cpEsc(b.id)+'">删除</button></div></div>';}).join('')+'</div></section>'+
  '<section class="cp-card cp-moments" data-cp="moments"><div class="cp-label">SOCIAL SPACE</div><h2>Moments '+cpSvg('chev')+'</h2><p>Personal timeline &amp; memories.</p><div class="cp-empty">暂无朋友圈</div></section>';
 }
 function cpField(label,value,key){var privacy=key==='phone'||key==='wechatId';var raw=String(value||'—');var masked=privacy&&raw!=='—'?raw.replace(/.(?=.{4})/g,'•'):raw;return '<div><span>'+label+'</span><b '+(privacy?'data-cp-private="'+key+'" data-hidden="1"':'')+'>'+cpEsc(privacy?masked:raw)+'</b></div>'; }
+
+function cpBookPlacementLabel(book){
+ if(book.followPersona) return '跟随 Char 人设';
+ var labels={worldbook_top:'最高优先级',worldbook_front:'人设之前',worldbook_middle:'对话中段',worldbook_low:'人设之后'};
+ return labels[book.position||'worldbook_middle']||'对话中段';
+}
+function cpOpenBookSettings(book){
+ cpBookDraft={id:book.id,followPersona:!!book.followPersona,position:book.position||'worldbook_middle'};
+ var old=document.querySelector('.cp-book-settings');if(old)old.remove();
+ var modal=document.createElement('div');modal.className='cp-book-settings';
+ var choices=[
+  {mode:'follow',title:'跟随 Char 人设',desc:'紧接在 Char 的人设内容后注入',icon:'↳'},
+  {mode:'custom',title:'自定义注入位置',desc:'选择世界书在角色提示词中的位置',icon:'☷'}
+ ];
+ var positions=[
+  {value:'worldbook_top',title:'最高优先级',desc:'优先注入，适合最重要的规则'},
+  {value:'worldbook_front',title:'人设之前',desc:'放在角色人设内容之前'},
+  {value:'worldbook_middle',title:'对话中段',desc:'放在提示词内容的中间位置'},
+  {value:'worldbook_low',title:'人设之后',desc:'放在角色人设内容之后'}
+ ];
+ modal.innerHTML='<div class="cp-book-settings-backdrop" data-cp="close-book-settings"></div><section class="cp-book-settings-panel" role="dialog" aria-modal="true" aria-label="世界书注入设置"><div class="cp-modal-grip"></div><div class="cp-modal-head"><div><span class="cp-label">WORLD BOOK SETTINGS</span><h2>注入位置</h2><p>选择这本世界书加入角色设定的方式</p></div><button class="cp-modal-close" data-cp="close-book-settings" aria-label="关闭">×</button></div><div class="cp-mode-options">'+choices.map(function(c){return '<button class="cp-mode-option '+((c.mode==='follow'&&book.followPersona)||(c.mode==='custom'&&!book.followPersona)?'selected':'')+'" data-cp="set-book-mode" data-mode="'+c.mode+'"><span class="cp-option-icon">'+c.icon+'</span><span class="cp-option-copy"><b>'+c.title+'</b><small>'+c.desc+'</small></span><i class="cp-option-check"></i></button>';}).join('')+'</div><div class="cp-position-wrap" '+(book.followPersona?'hidden':'')+'><div class="cp-position-title">选择具体位置</div><div class="cp-position-options">'+positions.map(function(c){return '<button class="cp-position-option '+((book.position||'worldbook_middle')===c.value?'selected':'')+'" data-cp="set-book-position" data-position="'+c.value+'"><span><b>'+c.title+'</b><small>'+c.desc+'</small></span><i class="cp-option-check"></i></button>';}).join('')+'</div></div><div class="cp-settings-note">设置仅作用于当前 Char，不会影响其他角色。</div><div class="cp-settings-actions"><button data-cp="close-book-settings">取消</button><button class="primary" data-cp="save-book-settings">保存设置</button></div></section>';
+ document.getElementById('charProfileView').appendChild(modal);
+}
 function cpEdit(){
  var p=cpPersona();if(!p)return;
  var vals=[['Char Name','profileName'],['Social ID','socialId'],['WeChat ID','wechatId'],['Phone Number','phone'],['Birthday','birthday'],['Location','location']];
@@ -55,13 +79,18 @@ function cpClick(e){
  if(act==='likers'){var liked=(p.profileLikers||[]);if(typeof islandAlert==='function')islandAlert(liked.length?liked.join('\\n'):'暂无用户点赞',{title:'People who liked this Char'});else alert(liked.length?liked.join('\\n'):'暂无用户点赞');return;}
  if(act==='like'){p.profileLiked=!p.profileLiked;p.profileLikes=Math.max(0,(Number(p.profileLikes)||0)+(p.profileLiked?1:-1));if(!Array.isArray(p.profileLikers))p.profileLikers=[];var up=getActiveUserPersona(),who=String(up&&(up.socialId||up.name)||'我');if(p.profileLiked){if(p.profileLikers.indexOf(who)<0)p.profileLikers.push(who);}else{p.profileLikers=p.profileLikers.filter(function(x){return x!==who;});}cpSave(p);cpRender();return;}
  if(act==='import'){document.getElementById('cpBookFile').click();return;}
- var id=b.dataset.id,books=cpBooks(p),idx=books.findIndex(function(x){return x.id===id;});
+ var books=cpBooks(p);
+ if(act==='close-book-settings'){var modal=b.closest('.cp-book-settings');if(modal)modal.remove();cpBookDraft=null;return;}
+ if(act==='set-book-mode'&&cpBookDraft){cpBookDraft.followPersona=b.dataset.mode==='follow';var panel=b.closest('.cp-book-settings-panel');panel.querySelectorAll('.cp-mode-option').forEach(function(x){x.classList.toggle('selected',x.dataset.mode===b.dataset.mode);});panel.querySelector('.cp-position-wrap').hidden=cpBookDraft.followPersona;return;}
+ if(act==='set-book-position'&&cpBookDraft){cpBookDraft.position=b.dataset.position;var panel=b.closest('.cp-book-settings-panel');panel.querySelectorAll('.cp-position-option').forEach(function(x){x.classList.toggle('selected',x.dataset.position===b.dataset.position);});return;}
+ if(act==='save-book-settings'&&cpBookDraft){var target=books.find(function(x){return x.id===cpBookDraft.id;});if(target){target.followPersona=cpBookDraft.followPersona;target.position=cpBookDraft.position;cpSave(p);}var modal=b.closest('.cp-book-settings');if(modal)modal.remove();cpBookDraft=null;cpRender();return;}
+ var id=b.dataset.id,idx=books.findIndex(function(x){return x.id===id;});
  if(idx<0)return;
  if(act==='toggle-book'){books[idx].enabled=books[idx].enabled===false;cpSave(p);cpRender();}
  if(act==='delete-book'){books.splice(idx,1);cpSave(p);cpRender();}
  if(act==='up-book'&&idx>0){var x=books.splice(idx,1)[0];books.splice(idx-1,0,x);cpSave(p);cpRender();}
  if(act==='down-book'&&idx<books.length-1){var y=books.splice(idx,1)[0];books.splice(idx+1,0,y);cpSave(p);cpRender();}
- if(act==='config-book'){var bk=books[idx],mode=prompt('输入注入模式：follow（紧跟 Char 人设）或 custom（自定义位置）',bk.followPersona?'follow':'custom');if(mode===null)return;bk.followPersona=mode.toLowerCase()==='follow';if(!bk.followPersona){var pos=prompt('输入注入位置：worldbook_top / worldbook_front / worldbook_middle / worldbook_low',bk.position||'worldbook_middle');if(pos)bk.position=pos;}cpSave(p);cpRender();}
+ if(act==='config-book'){cpOpenBookSettings(books[idx]);return;}
 }
 document.addEventListener('change',function(e){
  if(e.target.id!=='cpBookFile')return;var files=Array.from(e.target.files||[]),p=cpPersona();if(!p)return;
