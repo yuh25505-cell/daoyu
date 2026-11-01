@@ -110,3 +110,7 @@
 .cp-edit-panel input{padding:7px 0}
 .cp-edit-actions{flex:none;margin-top:14px;padding-top:12px;border-top:1px solid #eee}
 .cp-edit-actions button{min-width:88px;min-height:44px}
+
+/* 去掉滚动竖条（仍可滑动） */
+.char-profile-view *{scrollbar-width:none;-ms-overflow-style:none}
+.char-profile-view *::-webkit-scrollbar{display:none;width:0;height:0}

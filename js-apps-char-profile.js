@@ -11,6 +11,7 @@ function cpPersona(){ if(charProfileName) return typeof findPersona === 'functio
 function cpAvatarOf(p){ return (charProfileName&&typeof getSessionCharAvatar==='function'&&getSessionCharAvatar(charProfileName))||p.avatar||''; }
 function cpSave(p){ if (typeof savePersonas === 'function') savePersonas(); }
 function cpBooks(p){ if (!Array.isArray(p.profileWorldbooks)) p.profileWorldbooks=[]; return p.profileWorldbooks; }
+function cpWarn(msg,title){ if(typeof islandAlert==='function')islandAlert(msg,{title:title||'提示'}); else alert(msg); }
 function cpSvg(name){ return name==='edit' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>' : name==='heart' ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'; }
 function cpEnsure(){
  if(document.getElementById('charProfileView')) return;
@@ -85,8 +86,8 @@ function cpSaveEdit(sheet,p){
  sheet.querySelectorAll('[data-cp-field]').forEach(function(i){vals[i.dataset.cpField]=i.value.trim();});
  if(isNew){
   var nm=vals.name||'';
-  if(!nm){if(typeof toast==='function')toast('先给 TA 起个名字');return;}
-  if(typeof findPersona==='function'&&findPersona(nm)){if(typeof toast==='function')toast('已经有叫这个名字的角色了');return;}
+  if(!nm){cpWarn('先给 TA 起个名字，名字是必填的。','还不能保存');return;}
+  if(typeof findPersona==='function'&&findPersona(nm)){cpWarn('已经有一个叫「'+nm+'」的角色了，换一个名字吧。','还不能保存');return;}
   var ph=vals.phone||'',wx=vals.wechatId||'';
   if(typeof cleanPhoneText==='function')ph=cleanPhoneText(ph);
   if(typeof cleanWechatText==='function')wx=cleanWechatText(wx);
@@ -292,7 +293,7 @@ document.addEventListener('change',async function(e){
   }catch(_){failed++;}
  }
  if(added){cpSave(p);cpRender();}
- if(typeof toast==='function')toast(added?('已导入 '+added+' 本世界书'+(failed?'，'+failed+' 个文件没读到内容':'')):'没有读到可导入的内容');
+ if(added){if(typeof toast==='function')toast('已导入 '+added+' 本世界书'+(failed?'，'+failed+' 个文件没读到内容':''));}else cpWarn('没有读到可导入的内容','导入失败');
 });
 
 /* ---------- 角色自带世界书：内容编辑 ---------- */
@@ -380,7 +381,7 @@ document.addEventListener('change',async function(e){
   var list=document.querySelector('.cp-wb-list');if(list)list.scrollTop=list.scrollHeight;
   var rows=document.querySelectorAll('.cp-wb-entry'),last=rows[rows.length-1];if(last)last.scrollIntoView({block:'nearest'});
  }
- if(typeof toast==='function')toast(got.length?('已导入 '+got.length+' 个条目'+(failed?'，'+failed+' 个文件没读到内容':'')):'没有读到可导入的内容');
+ if(got.length){if(typeof toast==='function')toast('已导入 '+got.length+' 个条目'+(failed?'，'+failed+' 个文件没读到内容':''));}else cpWarn('没有读到可导入的内容','导入失败');
 });
 
 /* ---------- Char 人设内容：导入文件 ---------- */
@@ -389,7 +390,7 @@ document.addEventListener('change',async function(e){
  var file=e.target.files&&e.target.files[0];
  e.target.value='';
  if(!file)return;
- if(file.size>512*1024){if(typeof toast==='function')toast('文件过大，请小于 512KB');return;}
+ if(file.size>512*1024){cpWarn('文件太大了，请选小于 512KB 的文件。','导入失败');return;}
  var box=document.querySelector('#charProfileView .cp-edit-sheet [data-cp-field="desc"]');
  if(!box)return;
  try{
@@ -399,7 +400,7 @@ document.addEventListener('change',async function(e){
    text=await extractDocxText(file);
   }else text=cpDecodeBytes(new Uint8Array(await file.arrayBuffer()));
   text=String(text||'').replace(/^\uFEFF/,'').trim();
-  if(!text){if(typeof toast==='function')toast('文件内容为空');return;}
+  if(!text){cpWarn('这个文件里没有内容。','导入失败');return;}
   box.value=text;
   var nameBox=document.querySelector('#charProfileView .cp-edit-sheet [data-cp-field="name"]');
   if(nameBox&&!nameBox.value.trim()){
@@ -407,5 +408,5 @@ document.addEventListener('change',async function(e){
    if(first&&first.length<=12)nameBox.value=first;
   }
   if(typeof toast==='function')toast('已导入 '+file.name);
- }catch(_){if(typeof toast==='function')toast('文件读取失败');}
+ }catch(_){cpWarn('文件读取失败，换一个文件试试。','导入失败');}
 });
