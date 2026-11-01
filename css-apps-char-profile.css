@@ -101,3 +101,12 @@
 .cp-seg button.selected{background:#111;color:#fff;border-color:#111}
 .cp-receive-box[hidden]{display:none}
 .cp-verify-text{min-height:80px}
+
+/* 添加/编辑弹窗：内容自己滑动，取消和保存固定在底部 */
+.cp-edit-panel{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100% - var(--island-sat,0px) - var(--island-sab,0px) - 40px);padding-bottom:18px}
+.cp-edit-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.cp-edit-panel h2{margin:6px 0 10px}
+.cp-edit-panel label{margin:8px 0}
+.cp-edit-panel input{padding:7px 0}
+.cp-edit-actions{flex:none;margin-top:14px;padding-top:12px;border-top:1px solid #eee}
+.cp-edit-actions button{min-width:88px;min-height:44px}
