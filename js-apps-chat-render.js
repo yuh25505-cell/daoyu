@@ -280,6 +280,7 @@ function chatListMenuAction(action, name){
         resetChatMessageCacheState(name, [], {hasMore:false,hasNewer:false,count:0,globalNewestSeq:0});
         try { saveChats(); } catch (e) {}
         renderChats();
+        if (typeof renderContacts === 'function') renderContacts();
         toast('已删除该聊天');
       }).catch(function(err){ toast('删除聊天失败：' + ((err && err.message) || '本机存储错误')); });
     });
@@ -287,6 +288,7 @@ function chatListMenuAction(action, name){
   }
   try { saveChats(); } catch (e) {}
   renderChats();
+  if (typeof renderContacts === 'function') renderContacts();
 }
 
 function openChatListMenu(item, x, y){
@@ -487,39 +489,90 @@ function compareContactNames(a, b){
 }
 
 
+/* 好友是否被置顶（置顶的好友归到“特别关心”，不再出现在“我的好友”里） */
+function isContactPinned(name){
+  var c = typeof findChatByName === 'function' ? findChatByName(name) : null;
+  return !!(c && c.pinned);
+}
+
+/* 联系人 / 特别关心 共用的一行好友 */
+function contactRowHTML(c, avatarIndex){
+  var sessionChat = typeof findChatByName === 'function' ? findChatByName(c.name) : null;
+  var sessionSettings = sessionChat && sessionChat.sessionSettings && typeof sessionChat.sessionSettings === 'object' ? sessionChat.sessionSettings : null;
+  var displayName = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(c.name) : c.name) || c.name;
+  var displayAvatar = (sessionSettings && sessionSettings.charAvatar) || c.avatar || null;
+  return '<div class="list-item" data-name="' + escapeHTML(c.name) + '">' +
+    avatarHTML(displayName, avatarIndex, displayAvatar) +
+    '<div class="li-main"><div class="li-top"><span class="li-name">' + escapeHTML(displayName) + '</span></div>' +
+    '</div>' +
+    '<svg class="ct-chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>' +
+    '</div>';
+}
+
 function renderContacts(){
   var box = $('contactList'); if (!box) return;
   var countEl = $('contactsCount');
   if (countEl) countEl.textContent = CONTACTS.length + ' FRIENDS';
+  renderFavorites();
   if (!CONTACTS.length) {
     box.innerHTML = '<div class="empty-state">还没有联系人<br>点右上角编辑按钮添加人设</div>';
     if (typeof renderFriendBadges === 'function') renderFriendBadges();
     return;
   }
   var groups = {};
+  var shown = 0;
   CONTACTS.forEach(function(c){
+    if (isContactPinned(c && c.name)) return;
     var letter = getContactInitial(c && c.name);
     (groups[letter] = groups[letter] || []).push(c);
+    shown++;
   });
+  if (!shown) {
+    box.innerHTML = '<div class="empty-state">好友都在特别关心里</div>';
+    if (typeof renderFriendBadges === 'function') renderFriendBadges();
+    return;
+  }
   var html = '';
   Object.keys(groups).sort(function(a,b){ return contactInitialRank(a) - contactInitialRank(b); }).forEach(function(letter){
     groups[letter].sort(function(a,b){ return compareContactNames(a && a.name, b && b.name); });
     html += '<div class="group-letter">' + escapeHTML(letter) + '</div>';
     groups[letter].forEach(function(c, i){
-      var sessionChat = typeof findChatByName === 'function' ? findChatByName(c.name) : null;
-      var sessionSettings = sessionChat && sessionChat.sessionSettings && typeof sessionChat.sessionSettings === 'object' ? sessionChat.sessionSettings : null;
-      var displayName = (typeof getSessionCharDisplayName === 'function' ? getSessionCharDisplayName(c.name) : c.name) || c.name;
-      var displayAvatar = (sessionSettings && sessionSettings.charAvatar) || c.avatar || null;
-      html += '<div class="list-item" data-name="' + escapeHTML(c.name) + '">' +
-        avatarHTML(displayName, i + (letter.charCodeAt(0) || 0), displayAvatar) +
-        '<div class="li-main"><div class="li-top"><span class="li-name">' + escapeHTML(displayName) + '</span></div>' +
-        '</div>' +
-        '<svg class="ct-chev" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"></path></svg>' +
-        '</div>';
+      html += contactRowHTML(c, i + (letter.charCodeAt(0) || 0));
     });
   });
   box.innerHTML = html;
   if (typeof renderFriendBadges === 'function') renderFriendBadges();
+}
+
+
+/* ---------- 特别关心：被置顶的好友单独列在这里 ---------- */
+function renderFavorites(){
+  var box = $('favoritesList'); if (!box) return;
+  var rows = [];
+  CONTACTS.forEach(function(c, idx){
+    if (!c || !isContactPinned(c.name)) return;
+    rows.push({ c: c, ts: chatListLastTs(findChatByName(c.name)), idx: idx });
+  });
+  rows.sort(function(a, b){
+    if (a.ts !== b.ts) return b.ts - a.ts;
+    return a.idx - b.idx;
+  });
+  if (!rows.length) { box.innerHTML = '<div class="fr-empty">还没有特别关心的好友</div>'; return; }
+  box.innerHTML = rows.map(function(r, i){ return contactRowHTML(r.c, i); }).join('');
+}
+
+function openFavoritesView(){
+  var v = $('favoritesView'); if (!v) return;
+  releaseInputFocus();
+  renderFavorites();
+  v.classList.add('is-open');
+  v.setAttribute('aria-hidden', 'false');
+}
+
+function closeFavoritesView(){
+  var v = $('favoritesView'); if (!v) return;
+  v.classList.remove('is-open');
+  v.setAttribute('aria-hidden', 'true');
 }
 
 
