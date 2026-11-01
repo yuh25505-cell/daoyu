@@ -557,6 +557,7 @@ function renderFavorites(){
     if (a.ts !== b.ts) return b.ts - a.ts;
     return a.idx - b.idx;
   });
+  var favCount = $('favoritesCount'); if (favCount) favCount.textContent = rows.length + ' FRIENDS';
   if (!rows.length) { box.innerHTML = '<div class="fr-empty">还没有特别关心的好友</div>'; return; }
   box.innerHTML = rows.map(function(r, i){ return contactRowHTML(r.c, i); }).join('');
 }
