@@ -64,7 +64,8 @@ function friendIsActive(name){
 }
 
 function friendIsContact(name){
-  return friendIsActive(name) && CONTACTS.some(function(c){ return c && c.name === name; });
+  var fp = findPersona(name);
+  return friendIsActive(name) && !(fp && fp.friendPending) && CONTACTS.some(function(c){ return c && c.name === name; });
 }
 
 function friendDisplayName(name){
@@ -422,6 +423,7 @@ function friendFinalizeAccepted(req){
     persona.readdDueAt = null;
     savePersonas();
   }
+  if (persona.friendPending) { persona.friendPending = false; savePersonas(); }
   req.status = 'accepted';
   req.handledAt = Date.now();
   req.updatedAt = Date.now();
