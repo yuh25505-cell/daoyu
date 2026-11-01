@@ -512,27 +512,6 @@ function parseVoiceCallReply(raw){
 }
 
 
-function splitVoiceCallReply(raw){
-  var text = String(raw || '').replace(/\r/g, '').trim();
-  if (!text) return [];
-  var tagged = [];
-  var re = /<bubble>([\s\S]*?)<\/bubble>/gi;
-  var match;
-  while ((match = re.exec(text))) {
-    var piece = cleanVoiceCallReplyText(match[1]);
-    if (piece) tagged.push(piece);
-  }
-  if (tagged.length) return tagged.slice(0, 8);
-  text = text.replace(/```(?:text|txt|bubble)?\s*/gi, '').replace(/```/g, '').trim();
-  var parts = text.split(/\n\s*\n+/).map(function(v){ return cleanVoiceCallReplyText(v); }).filter(Boolean);
-  if (parts.length <= 1 && text.indexOf('\n') >= 0) {
-    var lines = text.split('\n').map(function(v){ return cleanVoiceCallReplyText(v); }).filter(Boolean);
-    if (lines.length >= 2 && lines.length <= 8 && lines.every(function(v){ return v.length <= 240; })) parts = lines;
-  }
-  return parts.slice(0, 8);
-}
-
-
 function requestVoiceCallReply(name, sessionId){
   name = String(name || '');
   if (!name || !isApiReady()) {

@@ -133,3 +133,4 @@
 .char-profile-view.cp-card-only .cp-shell{visibility:hidden}
 .char-profile-view.cp-card-only .cp-edit-sheet{pointer-events:auto}
 @keyframes cpPopIn{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.cp-like-btn.full{opacity:.45;pointer-events:none}
