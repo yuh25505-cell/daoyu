@@ -114,3 +114,10 @@
 /* 去掉滚动竖条（仍可滑动） */
 .char-profile-view *{scrollbar-width:none;-ms-overflow-style:none}
 .char-profile-view *::-webkit-scrollbar{display:none;width:0;height:0}
+
+/* 头像导入 */
+.cp-av-row{display:flex;align-items:center;gap:14px;margin:8px 0 6px}
+.cp-av-preview{width:64px;height:64px;border-radius:50%;background:#eee;overflow:hidden;display:grid;place-items:center;font-size:22px;color:#111;flex:none}
+.cp-av-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.cp-av-btns{display:flex;flex-wrap:wrap;gap:8px}
+.cp-av-btns button{height:34px;padding:0 14px;border:1px solid #dedede;border-radius:12px;background:#fff;color:#111;font-size:13px;font-weight:600}
