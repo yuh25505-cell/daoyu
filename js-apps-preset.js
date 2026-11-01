@@ -6,6 +6,7 @@
   var drag = null;
   var editing = { id:'', mode:'edit' };
   var previewName = '';
+  var previewScene = 'private';
 
   var STATUS_TEXT = { injected:'已注入', off:'已关闭', scene_skip:'本场景不用', no_data:'暂无内容', empty_template:'正文为空', error:'出错' };
   var SNAP_TEXT = { assembled:'已组装', sent:'已发送', accepted:'服务端已接受', failed:'失败' };
@@ -84,7 +85,7 @@
         html += '<div class="preset-row' + (m.enabled ? '' : ' is-off') + '" data-mid="' + h(m.id) + '">' +
           (m.pinned ? '<span class="preset-grip is-fixed">固定</span>' : '<span class="preset-grip" data-grip>≡</span>') +
           '<button class="preset-row-main" data-act="edit" type="button"><strong>' + h(m.name) + '</strong>' +
-            (m.custom ? '<em>自定义</em>' : '') + (m.edited ? '<em>已修改</em>' : '') + '</button>' +
+            (m.custom ? '<em>自定义</em>' : '') + (m.scenes && m.scenes.length === 1 && m.scenes[0] === 'voice_call' ? '<em>语音通话</em>' : '') + (m.edited ? '<em>已修改</em>' : '') + '</button>' +
           (m.required ? '<span class="preset-need">必需</span>' :
             '<button class="preset-switch' + (m.enabled ? ' is-on' : '') + '" data-act="toggle" aria-label="开关" type="button"><i></i></button>') +
           '</div>';
@@ -335,13 +336,16 @@
       return '<div class="preset-diag is-' + h(b.status) + '"><span>' + h(b.name) + '</span><em>' + h(STATUS_TEXT[b.status] || b.status) + (tail ? ' · ' + tail : '') + '</em>' + prob + '</div>';
     }).join('');
   }
-  function openPreview(name){
+  function openPreview(name, scene){
+    if (scene === 'voice_call' || scene === 'private') previewScene = scene;
     var names = (State.personas || []).map(function(p){ return p && p.name; }).filter(Boolean);
     if (!names.length) { toast('还没有角色，先去聊天里创建一个'); return; }
     previewName = (name && names.indexOf(name) >= 0) ? name : (names.indexOf(previewName) >= 0 ? previewName : names[0]);
     var body = '', fail = '';
     try {
-      var msgs = buildMessages(previewName, { preview:true });
+      var msgOptions = (previewScene === 'voice_call' && typeof getVoiceCallPromptOptions === 'function') ? getVoiceCallPromptOptions(previewName) : {};
+      msgOptions.preview = true;
+      var msgs = buildMessages(previewName, msgOptions);
       var snap = msgs.__assembled;
       var sys = msgs[0].content;
       body = '<div class="preset-diag-list">' + (snap && snap.blocks ? blockRows(snap.blocks) : '') + '</div>' +
@@ -352,9 +356,15 @@
       fail = '<div class="preset-warn is-error">' + h(e && e.message ? e.message : '组装失败') + '</div>' + (d && d.blocks ? '<div class="preset-diag-list">' + blockRows(d.blocks) + '</div>' : '');
     }
     var sel = '<select id="presetPvName" class="preset-select">' + names.map(function(n){ return '<option' + (n === previewName ? ' selected' : '') + '>' + h(n) + '</option>'; }).join('') + '</select>';
-    var sheet = openSheet(sheetHead('最终提示词') + sel + (fail || body));
+    var sceneSeg = '<div class="preset-seg" id="presetPvScene">' +
+      '<button data-scene="private" type="button" class="' + (previewScene === 'private' ? 'is-active' : '') + '">聊天</button>' +
+      '<button data-scene="voice_call" type="button" class="' + (previewScene === 'voice_call' ? 'is-active' : '') + '">语音通话</button></div>';
+    var sheet = openSheet(sheetHead('最终提示词') + sel + sceneSeg + (fail || body));
     bindClose(sheet);
     sheet.querySelector('#presetPvName').addEventListener('change', function(e){ openPreview(e.target.value); });
+    Array.prototype.forEach.call(sheet.querySelectorAll('[data-scene]'), function(b){
+      b.addEventListener('click', function(){ openPreview(previewName, b.dataset.scene); });
+    });
   }
 
   /* ───────── 请求记录 ───────── */

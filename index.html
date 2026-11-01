@@ -554,6 +554,7 @@
 <div class="pm-voice-call-label">语音通话</div>
 <div class="pm-voice-call-name" id="pmVoiceCallName">角色</div>
 </div>
+<button aria-label="通话设置" class="ph-circle pm-voice-call-settings-btn" id="pmVoiceCallSettingsBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17.5 7H20M4 17h2.5M11 17h9"></path><circle cx="15.2" cy="7" r="2.2"></circle><circle cx="8.8" cy="17" r="2.2"></circle></svg></button>
 </header>
 <div class="pm-voice-call-body">
 <div class="pm-voice-call-profile">
@@ -584,6 +585,19 @@
 </button>
 </div>
 </div>
+</div>
+<div aria-hidden="true" class="vc-set-modal" id="pmVoiceCallSettingsModal">
+<div class="vc-set-backdrop" data-vc-set-close=""></div>
+<section aria-labelledby="pmVoiceCallSettingsTitle" aria-modal="true" class="vc-set-dialog" role="dialog">
+<div class="vc-set-head">
+<div class="vc-set-title" id="pmVoiceCallSettingsTitle">通话设置</div>
+<button aria-label="关闭" class="vc-set-close" data-vc-set-close="" type="button">×</button>
+</div>
+<div class="vc-set-body" id="pmVoiceCallSettingsBody"></div>
+<div class="vc-set-foot">
+<button class="vc-set-done" data-vc-set-close="" type="button">完成</button>
+</div>
+</section>
 </div>
 </section>
 <section aria-hidden="true" class="pm-location-map-view" id="pmLocationMapView">

@@ -94,4 +94,34 @@ t('语音通话场景不带私聊专属格式', () => {
   const s = buildMessages('阿屿', { scene:'voice_call' })[0].content;
   assert.ok(!s.includes('【回复格式】'));
 });
+t('语音通话：带语音通话专用模块，不带聊天专用的图片 / 转账 / 引用 / 拍一拍协议', () => {
+  const s = buildMessages('阿屿', { scene:'voice_call' })[0].content;
+  ['【语音通话】', '【语音通话·动作旁白】', '【语音通话·回复格式】', '【角色人设】', '【用户人设】', '【重要记忆】', '【世界书·前】'].forEach(k => assert.ok(s.includes(k), '缺少 ' + k));
+  ['【拍一拍】', '【转账】', '【聊天媒体】', '【引用与转发】', '【撤回】', '【删除好友】', '【回复格式】'].forEach(k => assert.ok(!s.includes(k), '不应带有 ' + k));
+  const chat = buildMessages('阿屿')[0].content;
+  ['【拍一拍】', '【转账】', '【聊天媒体】'].forEach(k => assert.ok(chat.includes(k), '私聊应保留 ' + k));
+  ['【语音通话】', '【语音通话·回复格式】'].forEach(k => assert.ok(!chat.includes(k), '私聊不应带有 ' + k));
+});
+t('语音通话：动作旁白开关决定提示词怎么写', () => {
+  const on = buildMessages('阿屿', { scene:'voice_call' })[0].content;
+  assert.ok(on.includes('<narration>阿屿'));
+  const off = buildMessages('阿屿', { scene:'voice_call', voiceCallNarration:false })[0].content;
+  assert.ok(off.includes('这通电话不写旁白')); assert.ok(!off.includes('<narration>阿屿'));
+});
+t('语音通话：预设里的语音通话格式模块是必需的，关不掉', () => {
+  assert.throws(() => E.setEnabled('vc_format', false), e => /必需/.test(e.message));
+  E.setEnabled('vc_scene', false);
+  assert.ok(!buildMessages('阿屿', { scene:'voice_call' })[0].content.includes('【语音通话】\n'));
+  E.setEnabled('vc_scene', true);
+});
+t('语音通话：通话里角色之前说的话用 <bubble> 带进上下文，旁白保持 <narration>', () => {
+  sandbox.MESSAGES['阿屿'] = [
+    { id:'c1', from:'me', type:'voice_call', text:'喂', createdAt:1 },
+    { id:'c2', from:'them', type:'voice_call', text:'在呢', createdAt:2 },
+    { id:'c3', from:'them', type:'voice_call', narration:true, text:'阿屿笑了一下', createdAt:3 }];
+  const call = buildMessages('阿屿', { scene:'voice_call' });
+  assert.equal(call[1].content, '<bubble>在呢</bubble>'); assert.equal(call[2].content, '<narration>阿屿笑了一下</narration>');
+  const chat = buildMessages('阿屿');
+  assert.equal(chat[1].content, '在呢');
+});
 console.log('\n共通过 ' + ok + ' 项');

@@ -135,12 +135,14 @@ function processAutoTranslationItems(name, items){
 }
 
 
-function buildCharacterLanguageInstruction(persona){
+function buildCharacterLanguageInstruction(persona, scene){
   var lang = getCharLanguage(persona);
   var text = '【角色回复语言】\n请主要使用' + lang.name + '（' + lang.native + '）回复用户。角色名、人设、世界书、记忆等资料仅作为语义与行为参考，不要因为这些资料使用中文就自动切换回复语言。';
   if (!lang.chinese) {
     text += '\n当前不是中文语言模式。请避免使用中文作为默认回复语言；除非用户明确要求，否则保持' + lang.name + '为主要输出语言。';
   }
+  /* 语音通话是说话，不是发文字消息，不带“每条≤15字”这类线上分条规则 */
+  if (scene === 'voice_call') return text;
   text += getCharSplitPromptEnabled(persona)
     ? '\n中文断句拆分提示词：已开启。请在输出时严格执行系统提供的中文断句拆分规则。'
     : '\n中文断句拆分提示词：已关闭。不要套用“每条≤15字、空格即拆、标点即拆”等中文专用输出规则。';

@@ -517,19 +517,21 @@ function requestVoiceCallReply(name, sessionId){
   if (!name || !isApiReady()) {
     return Promise.reject(new Error('请先在设置中配置 AI 接口'));
   }
+  var callOptions = getVoiceCallPromptOptions(name);
   return prepareMemoryForContext(name).then(function(){ return prepareVisionForContext(name); }).then(function(){
-    var messages = buildMessages(name, {
-      scene: 'voice_call',
-      excludeMessageId: getLatestUserMessageId(name)
-    });
-    if (messages.length && messages[0] && (messages[0].role === 'system' || messages[0].role === 'developer')) {
-      messages[0].content += '\n\n【语音通话回复格式】你现在正在进行实时语音通话。回复分两种内容，按真实发生的先后顺序排列：\n1. 你说出口的话：用 <bubble>这句话</bubble> 包住，每段尽量短，像真实通话里连续说话。气泡里只放说出口的话，不要在气泡里写动作、神态、心理或环境描写。\n2. 动作、神态、语气、环境等描写：用 <narration>这段描写</narration> 包住，写成简短的旁白，比如 <narration>他轻轻笑了一下，把手机贴近耳边。</narration>。旁白只在确实需要时才写，不要每句话都配旁白。\n不要输出 JSON，不要输出“气泡1/气泡2”等说明文字。';
-    }
+    /* 人设、用户人设、世界书、记忆、上下文和预设提示词都走这一条，语音通话专用的说话方式和格式在预设的“语音通话”模块里 */
+    callOptions.excludeMessageId = getLatestUserMessageId(name);
+    var messages = buildMessages(name, callOptions);
     return callApiOnce(messages);
   }).then(function(text){
     var reply = String(text || '').trim();
     var items = parseVoiceCallReply(reply);
     if (!items.length) throw new Error('AI 返回为空');
+    /* 动作旁白关掉时，只留说出口的话；如果整段回复全是旁白，就保留原样，避免一句话都没有 */
+    if (callOptions.voiceCallNarration === false) {
+      var onlySay = items.filter(function(item){ return item.kind !== 'act'; });
+      if (onlySay.length) items = onlySay;
+    }
     var spoken = [];
     items.forEach(function(item){
       if (item.kind === 'act') {
@@ -543,6 +545,148 @@ function requestVoiceCallReply(name, sessionId){
     return spoken.length ? spoken.join('\n') : items.map(function(item){ return item.text; }).join('\n');
   });
 }
+
+
+/* ───────── 通话设置：挂哪些世界书、动作旁白开关（每个角色各存一份，存在该角色的会话设置里） ───────── */
+function getVoiceCallSettings(name){
+  name = String(name || voiceCallState.name || currentName || '');
+  var s = getSessionChatSettings(name, false) || {};
+  var custom = s.voiceCallWorldbookMode === 'custom';
+  var ids = Array.isArray(s.voiceCallWorldbookIds) ? s.voiceCallWorldbookIds.map(String) : [];
+  return { custom:custom, worldbookIds:ids, narration:s.voiceCallNarration !== false };
+}
+
+function saveVoiceCallSettings(name, patch){
+  name = String(name || voiceCallState.name || currentName || '');
+  if (!name) return;
+  var s = getSessionChatSettings(name, true);
+  Object.keys(patch || {}).forEach(function(key){
+    if (typeof patch[key] === 'undefined') delete s[key]; else s[key] = patch[key];
+  });
+  persistSessionChat(name, false);
+}
+
+/* 给 buildMessages 用：场景固定为语音通话；自选世界书时只带选中的那几本，已被删除的世界书自动忽略 */
+function getVoiceCallPromptOptions(name){
+  var cfg = getVoiceCallSettings(name);
+  var opts = { scene:'voice_call', voiceCallNarration:cfg.narration };
+  if (cfg.custom) {
+    var alive = Object.create(null);
+    (Array.isArray(State.worldbooks) ? State.worldbooks : []).forEach(function(book){ if (book && book.id) alive[String(book.id)] = true; });
+    opts.worldbookIds = cfg.worldbookIds.filter(function(id){ return alive[id]; });
+  }
+  return opts;
+}
+
+function voiceCallFollowedWorldbookIds(name){
+  return (typeof getWorldbookEntriesForChat === 'function' ? getWorldbookEntriesForChat(name) : []).map(function(book){ return String(book.id); });
+}
+
+function renderVoiceCallSettings(){
+  if (!pmVoiceCallSettingsBody) return;
+  var name = String(voiceCallState.name || currentName || '');
+  var cfg = getVoiceCallSettings(name);
+  var books = (Array.isArray(State.worldbooks) ? State.worldbooks : []).filter(function(book){ return book && book.id; });
+  var checked = Object.create(null);
+  (cfg.custom ? cfg.worldbookIds : voiceCallFollowedWorldbookIds(name)).forEach(function(id){ checked[String(id)] = true; });
+  var count = books.filter(function(book){ return checked[String(book.id)]; }).length;
+  var rows = books.map(function(book){
+    var on = !!checked[String(book.id)];
+    return '<button class="vc-set-book' + (on ? ' is-checked' : '') + '" type="button" role="checkbox" aria-checked="' + (on ? 'true' : 'false') + '" data-vc-book="' + escapeHTML(String(book.id)) + '">' +
+      '<span class="vc-set-book-name">' + escapeHTML(String(book.name || '未命名世界')) + '</span>' +
+      '<span class="vc-set-check" aria-hidden="true"></span></button>';
+  }).join('');
+  if (!rows) rows = '<div class="vc-set-empty">还没有世界书</div>';
+  pmVoiceCallSettingsBody.innerHTML =
+    '<div class="vc-set-section">' +
+      '<div class="vc-set-label"><span>世界书</span><em>' + count + ' / ' + books.length + '</em></div>' +
+      '<div class="vc-set-seg" role="tablist">' +
+        '<button type="button" role="tab" aria-selected="' + (cfg.custom ? 'false' : 'true') + '" class="' + (cfg.custom ? '' : 'selected') + '" data-vc-wb-mode="follow">跟随聊天</button>' +
+        '<button type="button" role="tab" aria-selected="' + (cfg.custom ? 'true' : 'false') + '" class="' + (cfg.custom ? 'selected' : '') + '" data-vc-wb-mode="custom">自选</button>' +
+      '</div>' +
+      '<div class="vc-set-books">' + rows + '</div>' +
+      (books.length && cfg.custom ? '<div class="vc-set-tools"><button type="button" data-vc-wb-all>全选</button><button type="button" data-vc-wb-none>清空</button></div>' : '') +
+    '</div>' +
+    '<div class="vc-set-section">' +
+      '<div class="vc-set-row"><span>动作旁白</span>' +
+        '<button class="vc-set-switch" id="pmVoiceCallNarrationSwitch" role="switch" type="button" aria-checked="' + (cfg.narration ? 'true' : 'false') + '" aria-label="动作旁白" data-vc-narration><span></span></button>' +
+      '</div>' +
+    '</div>';
+}
+
+function openVoiceCallSettings(){
+  if (!pmVoiceCallSettingsModal || !voiceCallState.active) return;
+  releaseInputFocus();
+  renderVoiceCallSettings();
+  pmVoiceCallSettingsModal.classList.add('is-open');
+  pmVoiceCallSettingsModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeVoiceCallSettings(){
+  if (!pmVoiceCallSettingsModal) return;
+  pmVoiceCallSettingsModal.classList.remove('is-open');
+  pmVoiceCallSettingsModal.setAttribute('aria-hidden', 'true');
+}
+
+function onVoiceCallSettingsClick(e){
+  var target = e.target;
+  if (!target || !target.closest) return;
+  if (target.closest('[data-vc-set-close]')) { closeVoiceCallSettings(); return; }
+  var name = String(voiceCallState.name || currentName || '');
+  if (!name) return;
+  var cfg = getVoiceCallSettings(name);
+  var modeBtn = target.closest('[data-vc-wb-mode]');
+  if (modeBtn) {
+    if (modeBtn.dataset.vcWbMode === 'follow') {
+      saveVoiceCallSettings(name, { voiceCallWorldbookMode:undefined, voiceCallWorldbookIds:undefined });
+    } else if (!cfg.custom) {
+      saveVoiceCallSettings(name, { voiceCallWorldbookMode:'custom', voiceCallWorldbookIds:voiceCallFollowedWorldbookIds(name) });
+    }
+    renderVoiceCallSettings();
+    return;
+  }
+  var bookBtn = target.closest('[data-vc-book]');
+  if (bookBtn) {
+    var id = String(bookBtn.dataset.vcBook || '');
+    var current = cfg.custom ? cfg.worldbookIds.slice() : voiceCallFollowedWorldbookIds(name);
+    var at = current.indexOf(id);
+    if (at >= 0) current.splice(at, 1); else current.push(id);
+    saveVoiceCallSettings(name, { voiceCallWorldbookMode:'custom', voiceCallWorldbookIds:current });
+    renderVoiceCallSettings();
+    return;
+  }
+  if (target.closest('[data-vc-wb-all]')) {
+    saveVoiceCallSettings(name, { voiceCallWorldbookMode:'custom', voiceCallWorldbookIds:(Array.isArray(State.worldbooks) ? State.worldbooks : []).filter(function(b){ return b && b.id; }).map(function(b){ return String(b.id); }) });
+    renderVoiceCallSettings();
+    return;
+  }
+  if (target.closest('[data-vc-wb-none]')) {
+    saveVoiceCallSettings(name, { voiceCallWorldbookMode:'custom', voiceCallWorldbookIds:[] });
+    renderVoiceCallSettings();
+    return;
+  }
+  if (target.closest('[data-vc-narration]')) {
+    saveVoiceCallSettings(name, { voiceCallNarration:cfg.narration ? false : true });
+    renderVoiceCallSettings();
+  }
+}
+
+/* 底部玻璃输入栏浮在聊天内容上面，高度会随输入变化；这里把高度告诉列表，让最后一条消息不被盖住 */
+function syncVoiceCallComposerSpace(){
+  if (!pmVoiceCallView || !pmVoiceCallComposer) return;
+  var h = Math.ceil(pmVoiceCallComposer.getBoundingClientRect().height || 0);
+  if (h > 0) pmVoiceCallView.style.setProperty('--vc-composer-h', h + 'px');
+}
+
+function bindVoiceCallSettings(){
+  if (pmVoiceCallSettingsBtn) pmVoiceCallSettingsBtn.addEventListener('click', openVoiceCallSettings);
+  if (pmVoiceCallSettingsModal) pmVoiceCallSettingsModal.addEventListener('click', onVoiceCallSettingsClick);
+  if (pmVoiceCallComposer && typeof ResizeObserver === 'function') {
+    try { new ResizeObserver(syncVoiceCallComposerSpace).observe(pmVoiceCallComposer); } catch(e) {}
+  }
+  window.addEventListener('resize', syncVoiceCallComposerSpace);
+}
+bindVoiceCallSettings();
 
 
 function sendVoiceCallText(){
@@ -657,7 +801,7 @@ function acceptIncomingVoiceCall(){
   /* 聊天页没打开时（例如已经退回桌面、或从系统通知的「接听」进来），要先把该聊天打开，通话界面才看得见。
    * 光判断 currentName 不够：退出聊天后 currentName 还保留着，通话界面会被塞进一个已关闭的聊天页里。 */
   if (currentName !== name || !(pmView && pmView.classList.contains('is-open'))) openPM(name);
-  voiceCallState.incoming=false;voiceCallState.active=true;voiceCallState.sessionId=sid;voiceCallState.startedAt=Date.now();voiceCallState.incomingEventId='';voiceCallState.incomingGreeting='';voiceCallState.micOn=false;voiceCallState.micWanted=false;voiceCallState.processing=false;voiceCallState.textMode=false;voiceCallState.resumeMicAfterText=false;voiceCallState.replyBusy=false;var _inRec=ensurePhoneCallRecord(name,sid,voiceCallState.startedAt);if(_inRec)_inRec.direction='in';if(greeting)appendVoiceCallTurn(name,'them',greeting,'text',sid);renderVoiceCallAvatar();renderVoiceCallTurns();setVoiceCallStatus('已接听，点击麦克风开始说话');if(pmVoiceCallDuration)pmVoiceCallDuration.textContent='00:00';if(pmVoiceCallInput){pmVoiceCallInput.value='';pmVoiceCallInput.style.height='auto';}if(pmVoiceCallComposer)pmVoiceCallComposer.classList.remove('is-incoming');var acts=$('pmVoiceCallIncomingActions');if(acts)acts.hidden=true;pmVoiceCallView.classList.remove('is-incoming');pmVoiceCallView.classList.add('is-open');pmVoiceCallView.setAttribute('aria-hidden','false');document.documentElement.classList.add('pm-voice-call-open');if(voiceCallState.durationTimer)clearInterval(voiceCallState.durationTimer);voiceCallState.durationTimer=setInterval(function(){if(!voiceCallState.active)return;if(pmVoiceCallDuration)pmVoiceCallDuration.textContent=formatVoiceCallDuration(Date.now()-voiceCallState.startedAt);},1000);saveMessages(name);savePhoneCalls();return true;
+  voiceCallState.incoming=false;voiceCallState.active=true;voiceCallState.sessionId=sid;voiceCallState.startedAt=Date.now();voiceCallState.incomingEventId='';voiceCallState.incomingGreeting='';voiceCallState.micOn=false;voiceCallState.micWanted=false;voiceCallState.processing=false;voiceCallState.textMode=false;voiceCallState.resumeMicAfterText=false;voiceCallState.replyBusy=false;var _inRec=ensurePhoneCallRecord(name,sid,voiceCallState.startedAt);if(_inRec)_inRec.direction='in';if(greeting)appendVoiceCallTurn(name,'them',greeting,'text',sid);renderVoiceCallAvatar();renderVoiceCallTurns();setVoiceCallStatus('已接听，点击麦克风开始说话');if(pmVoiceCallDuration)pmVoiceCallDuration.textContent='00:00';if(pmVoiceCallInput){pmVoiceCallInput.value='';pmVoiceCallInput.style.height='auto';}if(pmVoiceCallComposer)pmVoiceCallComposer.classList.remove('is-incoming');var acts=$('pmVoiceCallIncomingActions');if(acts)acts.hidden=true;pmVoiceCallView.classList.remove('is-incoming');closeVoiceCallSettings();pmVoiceCallView.classList.add('is-open');pmVoiceCallView.setAttribute('aria-hidden','false');document.documentElement.classList.add('pm-voice-call-open');syncVoiceCallComposerSpace();if(voiceCallState.durationTimer)clearInterval(voiceCallState.durationTimer);voiceCallState.durationTimer=setInterval(function(){if(!voiceCallState.active)return;if(pmVoiceCallDuration)pmVoiceCallDuration.textContent=formatVoiceCallDuration(Date.now()-voiceCallState.startedAt);},1000);saveMessages(name);savePhoneCalls();return true;
 }
 
 function rejectIncomingVoiceCall(){return closeIncomingVoiceCall('declined');}
@@ -691,9 +835,11 @@ function openVoiceCallView(){
   if (pmVoiceCallDuration) pmVoiceCallDuration.textContent = '00:00';
   if (pmVoiceCallInput) { pmVoiceCallInput.value = ''; pmVoiceCallInput.style.height = 'auto'; }
   updateVoiceCallControls();
+  closeVoiceCallSettings();
   pmVoiceCallView.classList.add('is-open');
   pmVoiceCallView.setAttribute('aria-hidden','false');
   document.documentElement.classList.add('pm-voice-call-open');
+  syncVoiceCallComposerSpace();
   if (voiceCallState.durationTimer) clearInterval(voiceCallState.durationTimer);
   voiceCallState.durationTimer = setInterval(function(){
     if (!voiceCallState.active) return;
@@ -708,6 +854,7 @@ function closeVoiceCallView(options){
   if (!voiceCallState.active && !(pmVoiceCallView && pmVoiceCallView.classList.contains('is-open'))) return;
   var closingSessionId = voiceCallState.sessionId;
   var closingEndedAt = Date.now();
+  closeVoiceCallSettings();
   stopVoiceCallAudio();
   stopCharVoice();
   if (closingSessionId) finalizePhoneCallRecord(closingSessionId, closingEndedAt);

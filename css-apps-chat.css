@@ -1966,10 +1966,11 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 
 .pm-voice-call-head{
   position:absolute; z-index:3; top:0; left:0; right:0; height:calc(72px + var(--island-sat));
-  padding:var(--island-sat) 16px 0; display:flex; align-items:center; pointer-events:none;
+  padding:var(--island-sat) 16px 0; display:flex; align-items:center; justify-content:space-between; pointer-events:none;
   background:transparent; border:0;
 }
 .pm-voice-call-head .ph-circle{ pointer-events:auto; }
+.pm-voice-call-view.is-incoming .pm-voice-call-settings-btn{ display:none; }
 .pm-voice-call-head-center{ display:none; }
 
 .pm-voice-call-body{ flex:1 1 auto; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
@@ -2001,7 +2002,7 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 .pm-voice-call-duration{ margin-top:2px; color:var(--fg-soft); font-size:calc(13px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; }
 
 .pm-voice-call-turns{
-  flex:1 1 auto; min-height:0; overflow-y:auto; padding:10px 18px 16px;
+  flex:1 1 auto; min-height:0; overflow-y:auto; padding:10px 18px calc(var(--vc-composer-h, 84px) + 14px);
   scrollbar-width:none; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
 }
 
@@ -2039,7 +2040,8 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 
 /* 底部输入栏：说话圆钮 + 胶囊输入框 + 挂断圆钮 */
 .pm-voice-call-composer{
-  flex:none; padding:8px 14px calc(10px + env(safe-area-inset-bottom,0px) + var(--island-bottom-lift,10px)); background:var(--bg); border:0;
+  position:absolute; left:0; right:0; bottom:0; z-index:3;
+  padding:8px 14px calc(10px + env(safe-area-inset-bottom,0px) + var(--island-bottom-lift,10px)); background:transparent; border:0;
 }
 
 .pm-voice-call-input-row{ display:flex; align-items:center; gap:10px; min-width:0; }
@@ -2107,6 +2109,48 @@ html[data-theme="dark"] .sticker-group-tab.is-active,html[data-theme="dark"] .st
 .pm-voice-call-incoming-actions button:active{ transform:scale(.97); }
 
 .pm-voice-call-composer.is-incoming{ display:none; }
+
+/* ===== 语音通话设置弹窗（挂世界书 / 动作旁白）：日间纯白、夜间纯黑，和聊天里的其他弹窗同一套 ===== */
+.vc-set-modal{ position:absolute; inset:0; z-index:8; display:none; }
+.vc-set-modal.is-open{ display:block; }
+.vc-set-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.34); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+.vc-set-dialog{
+  position:absolute; left:12px; right:12px; bottom:calc(10px + var(--island-sab)); max-width:520px; margin:0 auto; padding:16px 16px 14px; box-sizing:border-box;
+  display:flex; flex-direction:column; max-height:calc(100% - var(--island-sat) - 48px);
+  border-radius:20px; background:var(--pop-bg, var(--bg)); color:var(--fg); border:1px solid var(--card-bd); box-shadow:0 16px 48px rgba(0,0,0,.22);
+}
+.vc-set-head{ flex:none; display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+.vc-set-title{ font-size:calc(17px * var(--island-font-size-scale)); font-weight:var(--island-fw-700); }
+.vc-set-close{ flex:none; margin-left:auto; width:30px; height:30px; border-radius:50%; font-size:23px; line-height:1; color:var(--fg-faint); }
+.vc-set-body{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+.vc-set-body::-webkit-scrollbar{ display:none; }
+.vc-set-section{ padding:12px 0 4px; }
+.vc-set-section + .vc-set-section{ margin-top:6px; border-top:1px solid var(--card-bd); }
+.vc-set-label{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2px; font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); }
+.vc-set-label em{ font-style:normal; color:var(--fg-faint); font-size:calc(13px * var(--island-font-size-scale)); font-variant-numeric:tabular-nums; font-weight:var(--island-fw-500, 500); }
+.vc-set-seg{ display:flex; gap:2px 22px; border-bottom:1px solid var(--card-bd); }
+.vc-set-seg button{ position:relative; flex:none; min-height:40px; padding:0; border:0; border-radius:0; background:transparent; color:var(--fg-faint); font-size:calc(14px * var(--island-font-size-scale)); line-height:1.25; white-space:nowrap; transition:color .15s; }
+.vc-set-seg button::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; border-radius:2px; background:var(--fg); transform:scaleX(0); transition:transform .18s; }
+.vc-set-seg button.selected{ color:var(--fg); font-weight:var(--island-fw-650); }
+.vc-set-seg button.selected::after{ transform:scaleX(1); }
+.vc-set-books{ max-height:min(260px, 36vh); overflow-y:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; margin-top:4px; }
+.vc-set-books::-webkit-scrollbar{ display:none; }
+.vc-set-book{ width:100%; display:flex; align-items:center; gap:12px; min-height:46px; padding:8px 2px; text-align:left; color:var(--fg); border-bottom:1px solid var(--card-bd); -webkit-tap-highlight-color:transparent; }
+.vc-set-book:last-child{ border-bottom:0; }
+.vc-set-book-name{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(15px * var(--island-font-size-scale)); }
+.vc-set-check{ flex:none; width:20px; height:20px; border-radius:50%; border:1.5px solid var(--fg-faint); box-sizing:border-box; display:grid; place-items:center; }
+.vc-set-book.is-checked .vc-set-check{ border-color:var(--fg); background:var(--fg); }
+.vc-set-book.is-checked .vc-set-check::after{ content:""; width:6px; height:10px; margin-top:-2px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg); }
+.vc-set-empty{ padding:18px 2px; color:var(--fg-faint); font-size:calc(14px * var(--island-font-size-scale)); }
+.vc-set-tools{ display:flex; justify-content:flex-end; gap:18px; padding:6px 2px 2px; }
+.vc-set-tools button{ min-height:32px; color:var(--fg-soft); font-size:calc(14px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); }
+.vc-set-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:46px; font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); }
+.vc-set-switch{ width:46px; height:28px; padding:2px; border-radius:999px; background:var(--track); flex:none; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.vc-set-switch span{ display:block; width:24px; height:24px; border-radius:50%; background:var(--bg); box-shadow:0 1px 4px rgba(0,0,0,.18); transform:translateX(0); will-change:transform; transition:transform .2s cubic-bezier(.3,.8,.3,1); }
+.vc-set-switch[aria-checked="true"]{ background:var(--fg); }
+.vc-set-switch[aria-checked="true"] span{ transform:translateX(18px); }
+.vc-set-foot{ flex:none; margin-top:12px; }
+.vc-set-done{ width:100%; min-height:42px; padding:8px 12px; border-radius:12px; background:var(--fg); color:var(--bg); font-size:calc(15px * var(--island-font-size-scale)); font-weight:var(--island-fw-650); }
 
 /* ===== 日间纯白：消息 / 联系人 / 朋友圈 / 我 四个 Tab 页，以及「外观」「我的角色」子界面 =====
  * 只改这几块的底色；私聊页（.pm-view）、记忆页等保持原样，避免白色气泡与白底融在一起。

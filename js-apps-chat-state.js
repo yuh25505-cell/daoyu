@@ -28,6 +28,8 @@ var pmVoiceCallIncomingActions = $('pmVoiceCallIncomingActions'), pmVoiceCallInc
 
 var pmVoiceCallInput = $('pmVoiceCallInput'), pmVoiceCallSend = $('pmVoiceCallSend'), pmVoiceCallMicBtn = $('pmVoiceCallMicBtn'), pmVoiceCallHint = $('pmVoiceCallHint');
 
+var pmVoiceCallSettingsBtn = $('pmVoiceCallSettingsBtn'), pmVoiceCallSettingsModal = $('pmVoiceCallSettingsModal'), pmVoiceCallSettingsBody = $('pmVoiceCallSettingsBody');
+
 var pmLocationModal = $('pmLocationModal'), pmLocationCustomModal = $('pmLocationCustomModal');
 
 var pmTransferModal = $('pmTransferModal'), pmTransferRecipient = $('pmTransferRecipient'), pmTransferAmount = $('pmTransferAmount'), pmTransferNote = $('pmTransferNote'), pmTransferHint = $('pmTransferHint'), pmTransferSend = $('pmTransferSend');

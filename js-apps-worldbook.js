@@ -855,8 +855,16 @@ function worldbookEntryTriggered(entry, triggerContext){
 }
 
 
-function collectWorldbookEntries(name){
-  var books = getWorldbookEntriesForChat(name);
+function collectWorldbookEntries(name, options){
+  /* options.worldbookIds 是数组时（语音通话自选世界书），只用选中的那几本；否则按全局 / 局部挂载来 */
+  var books;
+  if (options && Array.isArray(options.worldbookIds)) {
+    var want = Object.create(null);
+    options.worldbookIds.forEach(function(id){ want[String(id)] = true; });
+    books = (Array.isArray(State.worldbooks) ? State.worldbooks : []).filter(function(book){ return book && want[String(book.id)]; });
+  } else {
+    books = getWorldbookEntriesForChat(name);
+  }
   var triggerContext = getWorldbookTriggerContext(name);
   var buckets = { highest:[], front:[], middle:[], back:[] };
   books.forEach(function(book){

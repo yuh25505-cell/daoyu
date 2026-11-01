@@ -22,6 +22,7 @@
   /* ---------- 弹窗 / 面板：手势不穿透，系统返回键先关它们 ---------- */
   var MODALS = [
     { sel:'.island-dialog.is-open', close:function(){ return true; }, raw:true },   /* 确认框：永远在最上层，只拦截，不替用户选择 */
+    { sel:'#pmVoiceCallSettingsModal', close:function(){ return click('#pmVoiceCallSettingsModal [data-vc-set-close]'); } },
     { sel:'#pmMediaViewModal',      close:function(){ return click('#pmMediaViewModal [data-media-view-close]'); } },
     { sel:'#pmFileViewModal',       close:function(){ return click('#pmFileViewModal [data-file-view-close]'); } },
     { sel:'#pmImageTextModal',      close:function(){ return click('#pmImageTextModal [data-image-text-close]'); } },

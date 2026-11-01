@@ -114,3 +114,4 @@
 .facts-time{font-size:calc(11px * var(--island-font-size-scale));color:var(--fg-faint);}
 .facts-text{margin-bottom:10px;}
 .facts-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+#presetPvScene{margin-bottom:12px;}
