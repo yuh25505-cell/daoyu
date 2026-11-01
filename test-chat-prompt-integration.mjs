@@ -68,6 +68,23 @@ t('预览模式不产生请求记录', () => {
 t('developer 角色生效', () => {
   E.setSystemRole('developer'); assert.equal(buildMessages('阿屿')[0].role, 'developer'); E.setSystemRole('system');
 });
+t('角色的生日和地区会写进提示词；没填就不出现', () => {
+  const p = sandbox.State.personas[0];
+  let s = buildMessages('阿屿')[0].content;
+  assert.ok(!s.includes('【角色生日与地区】'));
+  p.birthday = '3月14日'; p.location = '杭州';
+  s = buildMessages('阿屿')[0].content;
+  assert.ok(s.includes('【角色生日与地区】\n生日：3月14日\n所在地区：杭州'));
+  delete p.birthday; delete p.location;
+});
+t('角色自带世界书跟随人设时，换行是真换行，不是 \\n 文字', () => {
+  const p = sandbox.State.personas[0];
+  p.profileWorldbooks = [{ enabled:true, followPersona:true, name:'书', entries:[{ name:'条目', content:'第一行\n第二行' }] }];
+  const s = buildMessages('阿屿')[0].content;
+  assert.ok(s.includes('【世界书：条目】\n第一行'));
+  assert.ok(!s.includes('【世界书：条目】\\n'));
+  p.profileWorldbooks = [];
+});
 t('必需模块被破坏时 buildMessages 直接抛错而不是少发', () => {
   E.load({ presets:[{ id:'preset_default', mods:{ mem_rules:{ enabled:false } } }], activePresetId:'preset_default' });
   assert.throws(() => buildMessages('阿屿'), e => e.name === 'PromptEngineError' && /记忆使用规则/.test(e.message));

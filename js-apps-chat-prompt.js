@@ -39,7 +39,7 @@ function registerChatPromptProviders(){
     attached.forEach(function(book){
       if (!book || book.enabled === false || !book.followPersona) return;
       (Array.isArray(book.entries) ? book.entries : []).forEach(function(entry){
-        if (entry && entry.enabled !== false && String(entry.content || '').trim()) text += (text ? '\\n\\n' : '') + '【世界书：' + String(entry.name || book.name || '未命名') + '】\\n' + String(entry.content).trim();
+        if (entry && entry.enabled !== false && String(entry.content || '').trim()) text += (text ? '\n\n' : '') + '【世界书：' + String(entry.name || book.name || '未命名') + '】\n' + String(entry.content).trim();
       });
     });
     return text;
@@ -49,6 +49,14 @@ function registerChatPromptProviders(){
     if (p && p.socialId) rows.push('社交软件网名：' + p.socialId);
     if (p && p.phone) rows.push('手机号：' + p.phone);
     if (p && p.wechatId) rows.push('微信号：' + p.wechatId);
+    return rows.join('\n');
+  });
+  P('char_profile_info', function(ctx){
+    var p = ctx.persona, rows = [];
+    var birthday = p && p.birthday ? String(p.birthday).trim() : '';
+    var area = p && p.location ? String(p.location).trim() : '';
+    if (birthday && birthday !== '—') rows.push('生日：' + birthday);
+    if (area && area !== '—') rows.push('所在地区：' + area);
     return rows.join('\n');
   });
   P('relation_network', function(){ return ''; });

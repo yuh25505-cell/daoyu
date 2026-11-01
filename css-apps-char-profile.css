@@ -69,3 +69,21 @@
 .cp-settings-actions button{min-height:46px;font-weight:600}
 .cp-settings-actions button.primary{background:#111;color:#fff}
 @media(max-width:380px){.cp-book-actions .cp-book-settings-trigger{padding:0 8px;gap:5px;font-size:11px}.cp-book-info{max-width:calc(100% - 112px)}}
+
+/* World Book content editor */
+.cp-book-actions{flex-direction:column;align-items:stretch;gap:6px}
+.cp-book-actions .cp-book-settings-trigger{justify-content:space-between}
+.cp-wb-panel{display:flex;flex-direction:column;height:min(88%,760px);overflow:hidden}
+.cp-wb-body{flex:1;min-height:0;overflow-y:auto;padding-bottom:6px}
+.cp-wb-input,.cp-wb-text{display:block;width:100%;box-sizing:border-box;border:1px solid #e4e4e4;border-radius:12px;background:#fafafa;color:#111;font-size:16px;font-family:inherit;outline:none;padding:11px 12px}
+.cp-wb-input:focus,.cp-wb-text:focus{border-color:#111;background:#fff}
+.cp-wb-bookname{font-weight:650;margin-bottom:14px}
+.cp-wb-list{display:flex;flex-direction:column;gap:12px}
+.cp-wb-entry{background:#f7f7f7;border:1px solid #ececec;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:9px}
+.cp-wb-entry-top{display:flex;align-items:center;gap:10px}
+.cp-wb-entry-no{flex:1;font-size:13px;font-weight:650;color:#111;letter-spacing:.04em}
+.cp-wb-del{height:30px;padding:0 12px;border:1px solid #dedede;border-radius:10px;background:#fff;color:#111;font-size:12px}
+.cp-wb-text{min-height:140px;line-height:1.6;resize:vertical}
+.cp-wb-empty{padding:26px 0;text-align:center;color:#aaa;font-size:14px}
+.cp-wb-add{width:100%;margin:14px 0 0;min-height:46px;border:1px dashed #cfcfcf;border-radius:14px;background:#fff;color:#111;font-size:14px;font-weight:600}
+.cp-wb-panel .cp-settings-actions{padding-top:14px;flex:none}

@@ -51,6 +51,7 @@ var PromptEngine = (function(){
   def({ id:'char_gender',  name:'角色性别', cat:'base', anchor:'character_core', kind:'data', provider:'char_gender', template:'【角色性别】\n{{content}}' });
   def({ id:'char_persona', name:'角色人设', cat:'base', anchor:'character_core', kind:'data', provider:'char_persona', required:true, template:'【角色人设】\n{{content}}' });
   def({ id:'char_accounts', name:'角色账号信息', cat:'base', anchor:'character_core', kind:'data', provider:'char_accounts', template:'【角色账号信息】\n{{content}}\n这些是你自己的账号信息，只有对方问起或剧情需要时才用，不要主动报出来。' });
+  def({ id:'char_profile_info', name:'角色生日与地区', cat:'base', anchor:'character_core', kind:'data', provider:'char_profile_info', template:'【角色生日与地区】\n{{content}}\n这是你自己的资料，只有对方问起或剧情需要时才自然提起，不要主动报出来。' });
   def({ id:'persona_understanding', name:'人设深度理解', cat:'base', anchor:'character_core', kind:'rule',
     template:'【理解人设】\n先弄清「{{char}}」是什么样的人：说话习惯、价值观、在意的和回避的事、对不同人的态度。人设里写明的是底线，没写明的地方按这个人的逻辑自然延伸，但不要延伸出与已写明内容矛盾的新设定。' });
   def({ id:'motive_consistency', name:'行为动机与人格一致', cat:'base', anchor:'character_core', kind:'rule',
