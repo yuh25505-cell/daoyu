@@ -867,6 +867,16 @@ function collectWorldbookEntries(name){
       buckets[position].push({ entry:entry, book:book });
     });
   });
+  var owner = typeof findPersona === 'function' ? findPersona(name) : null;
+  (owner && Array.isArray(owner.profileWorldbooks) ? owner.profileWorldbooks : []).forEach(function(book, bookIndex){
+    if (!book || book.enabled === false || book.followPersona) return;
+    var pos = String(book.position || 'worldbook_middle');
+    var position = pos === 'worldbook_top' ? 'highest' : pos === 'worldbook_front' ? 'front' : pos === 'worldbook_low' ? 'back' : 'middle';
+    (Array.isArray(book.entries) ? book.entries : []).forEach(function(entry){
+      if (!entry || entry.enabled === false || !String(entry.content || '').trim()) return;
+      buckets[position].push({entry:{name:entry.name || book.name,content:entry.content,priority:Number(book.priority)||0,updatedAt:Number(book.createdAt)||0},book:book});
+    });
+  });
   Object.keys(buckets).forEach(function(key){
     buckets[key].sort(function(a,b){
       return Number(b.entry.priority) - Number(a.entry.priority) || Number(b.entry.updatedAt) - Number(a.entry.updatedAt);
