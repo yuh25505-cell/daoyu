@@ -17,14 +17,14 @@
   --ph-line:rgba(60,60,67,.16);
   --ph-av-a:#abbfe3; --ph-av-b:#7f87be;
   /* Liquid Glass：几乎透明的玻璃，靠高光边、折射感和柔和阴影成形 */
-  --lg-fill:linear-gradient(145deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.05) 46%, rgba(255,255,255,.30) 100%), rgba(118,128,150,.07);
-  --lg-bd:rgba(255,255,255,.62);
-  --lg-gloss:rgba(255,255,255,.78);
-  --lg-shadow:0 10px 28px rgba(20,30,60,.13), 0 2px 6px rgba(20,30,60,.06), inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -1px 1px rgba(255,255,255,.40), inset 0 0 0 .5px rgba(0,0,0,.06);
+  --lg-fill:linear-gradient(145deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,.04) 46%, rgba(255,255,255,.16) 100%), rgba(118,128,150,.06);
+  --lg-bd:rgba(255,255,255,.40);
+  --lg-gloss:rgba(255,255,255,.36);
+  --lg-shadow:0 8px 24px rgba(20,30,60,.10), 0 2px 5px rgba(20,30,60,.05), inset 0 1px 1px rgba(255,255,255,.55), inset 0 -1px 1px rgba(255,255,255,.18), inset 0 0 0 .5px rgba(0,0,0,.05);
   --lg-blur:blur(10px) saturate(1.9) brightness(1.04);
-  --lg-blue:linear-gradient(145deg, rgba(150,198,255,.92) 0%, rgba(22,119,255,.58) 100%), rgba(22,119,255,.22);
-  --lg-red:linear-gradient(145deg, rgba(255,128,118,.92) 0%, rgba(255,59,48,.62) 100%), rgba(255,59,48,.22);
-  --lg-green:linear-gradient(145deg, rgba(140,232,164,.92) 0%, rgba(52,199,89,.62) 100%), rgba(52,199,89,.22);
+  --lg-blue:linear-gradient(145deg, rgba(90,160,255,.74) 0%, rgba(22,119,255,.62) 100%), rgba(22,119,255,.20);
+  --lg-red:linear-gradient(145deg, rgba(255,96,86,.76) 0%, rgba(255,59,48,.64) 100%), rgba(255,59,48,.20);
+  --lg-green:linear-gradient(145deg, rgba(92,214,128,.76) 0%, rgba(52,199,89,.64) 100%), rgba(52,199,89,.20);
 }
 html[data-theme="dark"] .phone-app,
 html[data-theme="dark"] .pm-voice-call-view{
@@ -40,14 +40,14 @@ html[data-theme="dark"] .pm-voice-call-view{
   --ph-chip-active:rgba(255,255,255,.14);
   --ph-line:rgba(255,255,255,.14);
   --ph-av-a:#6577a8; --ph-av-b:#434a7d;
-  --lg-fill:linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.02) 46%, rgba(255,255,255,.11) 100%), rgba(255,255,255,.04);
-  --lg-bd:rgba(255,255,255,.24);
-  --lg-gloss:rgba(255,255,255,.26);
-  --lg-shadow:0 12px 30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35), inset 0 1.5px 1px rgba(255,255,255,.32), inset 0 -1px 1px rgba(255,255,255,.08), inset 0 0 0 .5px rgba(255,255,255,.10);
+  --lg-fill:linear-gradient(145deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.02) 46%, rgba(255,255,255,.06) 100%), rgba(255,255,255,.03);
+  --lg-bd:rgba(255,255,255,.14);
+  --lg-gloss:rgba(255,255,255,.12);
+  --lg-shadow:0 12px 30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35), inset 0 1px 1px rgba(255,255,255,.16), inset 0 -1px 1px rgba(255,255,255,.04), inset 0 0 0 .5px rgba(255,255,255,.07);
   --lg-blur:blur(12px) saturate(1.8) brightness(1.08);
-  --lg-blue:linear-gradient(145deg, rgba(120,180,255,.80) 0%, rgba(59,140,255,.50) 100%), rgba(59,140,255,.20);
-  --lg-red:linear-gradient(145deg, rgba(255,110,100,.82) 0%, rgba(255,59,48,.52) 100%), rgba(255,59,48,.20);
-  --lg-green:linear-gradient(145deg, rgba(120,224,150,.80) 0%, rgba(52,199,89,.52) 100%), rgba(52,199,89,.20);
+  --lg-blue:linear-gradient(145deg, rgba(120,180,255,.66) 0%, rgba(59,140,255,.46) 100%), rgba(59,140,255,.20);
+  --lg-red:linear-gradient(145deg, rgba(255,110,100,.68) 0%, rgba(255,59,48,.48) 100%), rgba(255,59,48,.20);
+  --lg-green:linear-gradient(145deg, rgba(120,224,150,.66) 0%, rgba(52,199,89,.48) 100%), rgba(52,199,89,.20);
 }
 @media (prefers-color-scheme: dark){
   html:not([data-theme]) .phone-app,
@@ -64,14 +64,14 @@ html[data-theme="dark"] .pm-voice-call-view{
     --ph-chip-active:rgba(255,255,255,.14);
     --ph-line:rgba(255,255,255,.14);
     --ph-av-a:#6577a8; --ph-av-b:#434a7d;
-    --lg-fill:linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.02) 46%, rgba(255,255,255,.11) 100%), rgba(255,255,255,.04);
-    --lg-bd:rgba(255,255,255,.24);
-    --lg-gloss:rgba(255,255,255,.26);
-    --lg-shadow:0 12px 30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35), inset 0 1.5px 1px rgba(255,255,255,.32), inset 0 -1px 1px rgba(255,255,255,.08), inset 0 0 0 .5px rgba(255,255,255,.10);
+    --lg-fill:linear-gradient(145deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.02) 46%, rgba(255,255,255,.06) 100%), rgba(255,255,255,.03);
+    --lg-bd:rgba(255,255,255,.14);
+    --lg-gloss:rgba(255,255,255,.12);
+    --lg-shadow:0 12px 30px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35), inset 0 1px 1px rgba(255,255,255,.16), inset 0 -1px 1px rgba(255,255,255,.04), inset 0 0 0 .5px rgba(255,255,255,.07);
     --lg-blur:blur(12px) saturate(1.8) brightness(1.08);
-    --lg-blue:linear-gradient(145deg, rgba(120,180,255,.80) 0%, rgba(59,140,255,.50) 100%), rgba(59,140,255,.20);
-    --lg-red:linear-gradient(145deg, rgba(255,110,100,.82) 0%, rgba(255,59,48,.52) 100%), rgba(255,59,48,.20);
-    --lg-green:linear-gradient(145deg, rgba(120,224,150,.80) 0%, rgba(52,199,89,.52) 100%), rgba(52,199,89,.20);
+    --lg-blue:linear-gradient(145deg, rgba(120,180,255,.66) 0%, rgba(59,140,255,.46) 100%), rgba(59,140,255,.20);
+    --lg-red:linear-gradient(145deg, rgba(255,110,100,.68) 0%, rgba(255,59,48,.48) 100%), rgba(255,59,48,.20);
+    --lg-green:linear-gradient(145deg, rgba(120,224,150,.66) 0%, rgba(52,199,89,.48) 100%), rgba(52,199,89,.20);
   }
 }
 
@@ -253,14 +253,16 @@ html[data-theme="dark"] .pm-voice-call-view{
 
 /* 输入框：玻璃底，文字和占位符保持清楚 */
 .pm-voice-call-view .pm-voice-call-textbox textarea{ color:var(--fg); }
-.pm-voice-call-view .pm-voice-call-textbox textarea:focus{ border-color:var(--lg-bd); box-shadow:var(--lg-shadow), 0 0 0 3px rgba(120,130,150,.16); }
+.pm-voice-call-view .pm-voice-call-textbox textarea:focus{ outline:none; border-color:var(--lg-bd); box-shadow:var(--lg-shadow); }
 
 /* 有颜色的按钮：同样是玻璃，只是带一层淡淡的色 */
-.pm-voice-call-view .pm-voice-call-mic.is-listening{ background:var(--lg-blue); color:#fff; border-color:rgba(255,255,255,.38); }
+.pm-voice-call-view .pm-voice-call-mic.is-listening{ background:var(--lg-blue); color:#fff; border-color:rgba(255,255,255,.26); }
 .pm-voice-call-view .pm-voice-call-mic.is-speaking{ box-shadow:var(--lg-shadow), 0 0 0 6px rgba(22,119,255,.22); }
-.pm-voice-call-view .pm-voice-call-end{ background:var(--lg-red); color:#fff; border-color:rgba(255,255,255,.38); box-shadow:var(--lg-shadow), 0 6px 18px rgba(255,59,48,.22); }
-.pm-voice-call-view .pm-voice-call-send{ background:var(--lg-blue); color:#fff; border:1px solid rgba(255,255,255,.38); box-shadow:inset 0 1px 1px rgba(255,255,255,.7), 0 3px 10px rgba(22,119,255,.22); }
-.pm-voice-call-view .pm-voice-call-incoming-actions button{ color:#fff; border-color:rgba(255,255,255,.38); }
+.pm-voice-call-view .pm-voice-call-end{ background:var(--lg-red); color:#fff; border-color:rgba(255,255,255,.18); box-shadow:0 8px 20px rgba(255,59,48,.20), inset 0 1px 1px rgba(255,255,255,.16), inset 0 0 0 .5px rgba(0,0,0,.05); }
+.pm-voice-call-view .pm-voice-call-end::before,
+.pm-voice-call-view .pm-voice-call-mic.is-listening::before{ opacity:.22; }
+.pm-voice-call-view .pm-voice-call-send{ background:var(--lg-blue); color:#fff; border:1px solid rgba(255,255,255,.18); box-shadow:inset 0 1px 1px rgba(255,255,255,.14), 0 3px 10px rgba(22,119,255,.20); }
+.pm-voice-call-view .pm-voice-call-incoming-actions button{ color:#fff; border-color:rgba(255,255,255,.26); }
 .pm-voice-call-view .pm-voice-call-incoming-decline{ background:var(--lg-red); }
 .pm-voice-call-view .pm-voice-call-incoming-accept{ background:var(--lg-green); }
 
