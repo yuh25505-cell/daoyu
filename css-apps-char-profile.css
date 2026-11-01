@@ -7,7 +7,7 @@
 .cp-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;padding:16px 0;border-bottom:1px solid var(--card-bd)}.cp-fields div{min-width:0}.cp-fields span{display:block;margin-bottom:4px}.cp-fields b{font-size:14px;font-weight:500;overflow-wrap:anywhere}.cp-profile-edit{width:100%;display:flex;justify-content:space-between;align-items:center;background:none;padding:14px 0;border-bottom:1px solid var(--card-bd);text-align:left;color:var(--fg-soft);font-size:13px}.cp-profile-edit svg,.cp-moments h2 svg{width:17px;height:17px}
 .cp-card{background:var(--bubble-bg);border-radius:15px;padding:15px;margin:12px -2px}.cp-like-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px}.cp-like-row strong{display:block;font-size:27px}.cp-like-row span{font-size:11px;color:var(--fg-soft)}.cp-like-btn{border-radius:30px;background:var(--fg);color:var(--bg);padding:9px 18px;font-size:14px;display:flex;align-items:center;gap:6px}.cp-like-btn svg{width:17px;height:17px}.cp-like-btn.on{background:var(--fg-soft)}.cp-likers{display:flex;align-items:center;justify-content:space-between;margin-top:18px;color:var(--fg-soft);font-size:12px}.cp-liker-dots{display:flex;gap:7px}.cp-liker-dots i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--track);color:var(--fg-soft);font-style:normal}
 .cp-book-card h2,.cp-moments h2{font-size:20px;margin:5px 0 2px}.cp-book-card p,.cp-moments p{color:var(--fg-faint);font-size:12px;margin:0 0 12px}.cp-import{background:none;border:1px solid var(--card-bd);border-radius:12px;padding:9px 12px;width:100%;text-align:left;font-size:13px}.cp-book-summary{font-size:11px;color:var(--fg-faint);margin:12px 0}.cp-book-list{display:flex;flex-direction:column;gap:8px}.cp-book-row{border-top:1px solid var(--card-bd);padding:12px 0;display:flex;gap:10px;justify-content:space-between}.cp-book-info{min-width:0;display:flex;flex-direction:column;gap:5px}.cp-book-info b{font-size:13px}.cp-book-info small{font-size:10px;color:var(--fg-faint);overflow-wrap:anywhere}.cp-book-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:130px}.cp-book-actions button{font-size:10px;background:var(--bg-pure);border:1px solid var(--card-bd);border-radius:7px;padding:5px 7px}.cp-book-actions button:disabled{opacity:.3}.cp-empty{border-top:1px solid var(--card-bd);padding:20px 0 4px;color:var(--fg-faint);font-size:13px}.cp-rel-card{padding:22px 4px}.cp-rel-card h2{font-size:22px}
-.cp-edit-sheet{position:fixed;inset:0;z-index:2;background:#0006;display:flex;align-items:flex-end}.cp-edit-panel{width:calc(100% - 20px);max-width:500px;margin:0 auto calc(var(--island-sab,0px) + 10px);background:var(--bg-pure);padding:25px 22px 24px;border-radius:22px;max-height:90%;overflow:auto}.cp-edit-panel h2{font-size:21px;margin:8px 0 16px}.cp-edit-panel label{display:block;font-size:11px;color:var(--fg-faint);margin:13px 0}.cp-edit-panel input{display:block;width:100%;box-sizing:border-box;border:0;border-bottom:1px solid var(--card-bd);padding:10px 0;font-size:16px;color:var(--fg);outline:none}.cp-edit-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.cp-edit-actions button{padding:11px 22px;border-radius:22px;background:var(--bubble-bg)}.cp-edit-actions button:last-child{background:var(--fg);color:var(--bg)}
+.cp-edit-sheet{position:fixed;inset:0;z-index:2;background:#0006;display:flex;align-items:center;justify-content:center;padding:calc(var(--island-sat,0px) + 20px) 14px calc(var(--island-sab,0px) + 20px);box-sizing:border-box}.cp-edit-panel{width:100%;max-width:440px;margin:0 auto;animation:cpPopIn .18s ease-out;background:var(--bg-pure);padding:25px 22px 24px;border-radius:22px;max-height:90%;overflow:auto}.cp-edit-panel h2{font-size:21px;margin:8px 0 16px}.cp-edit-panel label{display:block;font-size:11px;color:var(--fg-faint);margin:13px 0}.cp-edit-panel input{display:block;width:100%;box-sizing:border-box;border:0;border-bottom:1px solid var(--card-bd);padding:10px 0;font-size:16px;color:var(--fg);outline:none}.cp-edit-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.cp-edit-actions button{padding:11px 22px;border-radius:22px;background:var(--bubble-bg)}.cp-edit-actions button:last-child{background:var(--fg);color:var(--bg)}
 
 
 /* Dedicated, beginner-friendly World Book injection settings */
@@ -91,19 +91,19 @@
 /* Char 编辑弹窗：人设内容与导入文件 */
 .cp-edit-row{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;font-size:11px;color:var(--fg-faint)}
 .cp-edit-import{height:30px;padding:0 14px;border:1px solid var(--card-bd);border-radius:10px;background:var(--bg-pure);color:var(--fg);font-size:12px;font-weight:600}
-.cp-edit-panel textarea.cp-edit-text{display:block;width:100%;box-sizing:border-box;min-height:150px;border:1px solid var(--card-bd);border-radius:12px;background:var(--bubble-bg);color:var(--fg);font-size:16px;font-family:inherit;line-height:1.6;outline:none;padding:11px 12px;resize:vertical}
+.cp-edit-panel textarea.cp-edit-text{display:block;width:100%;box-sizing:border-box;min-height:200px;border:1px solid var(--card-bd);border-radius:12px;background:var(--bubble-bg);color:var(--fg);font-size:16px;font-family:inherit;line-height:1.6;outline:none;padding:11px 12px;resize:none}
 .cp-edit-panel textarea.cp-edit-text:focus{border-color:var(--fg);background:var(--bg-pure)}
 .cp-wb-add-row{display:flex;gap:10px;margin-top:14px}
 .cp-wb-add-row .cp-wb-add{margin:0;flex:1}
 
-.cp-seg{display:flex;gap:8px;flex-wrap:wrap}
-.cp-seg button{flex:1;min-width:0;min-height:40px;padding:0 10px;border:1px solid var(--card-bd);border-radius:12px;background:var(--bubble-bg);color:var(--fg);font-size:13px;white-space:nowrap}
-.cp-seg button.selected{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.cp-seg{display:flex;flex-wrap:wrap;gap:2px 22px;border-bottom:1px solid var(--card-bd)}
+.cp-seg button{position:relative;flex:none;min-height:40px;padding:0;border:0;border-radius:0;background:transparent;color:var(--fg-faint);font-size:14px;line-height:1.25;white-space:nowrap;transition:color .15s}.cp-seg button:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--fg);transform:scaleX(0);transition:transform .18s}
+.cp-seg button.selected{color:var(--fg);font-weight:650}.cp-seg button.selected:after{transform:scaleX(1)}
 .cp-receive-box[hidden]{display:none}
 .cp-verify-text{min-height:80px}
 
 /* 添加/编辑弹窗：内容自己滑动，取消和保存固定在底部 */
-.cp-edit-panel{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100% - var(--island-sat,0px) - var(--island-sab,0px) - 40px);padding-bottom:18px}
+.cp-edit-panel{display:flex;flex-direction:column;overflow:hidden;max-height:100%;padding-bottom:18px}
 .cp-edit-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .cp-edit-panel h2{margin:6px 0 10px}
 .cp-edit-panel label{margin:8px 0}
@@ -132,3 +132,4 @@
 .char-profile-view.cp-card-only{background:transparent;pointer-events:none}
 .char-profile-view.cp-card-only .cp-shell{visibility:hidden}
 .char-profile-view.cp-card-only .cp-edit-sheet{pointer-events:auto}
+@keyframes cpPopIn{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
