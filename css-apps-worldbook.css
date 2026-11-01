@@ -569,3 +569,7 @@
 .worldbook-app{ --bg:var(--bg-pure); }
 .worldbook-sheet,
 .worldbook-entry-sheet{ background:var(--pop-bg, var(--bg)); }
+
+/* 日间：「全局 / 局部」选中项原来和底色都是白色，看不出选了哪个；夜间同样用这套变量 */
+.worldbook-segment{background:var(--bubble-bg);}
+.worldbook-segment button.is-active{background:var(--bg-pure);color:var(--fg);box-shadow:0 0 0 1px var(--card-bd);}

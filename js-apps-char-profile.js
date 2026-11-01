@@ -7,6 +7,8 @@ var cpNewDraft = null;
 var cpAvatarDraft = undefined;
 var cpAddMode = 'direct';
 var cpAddVia = 'phone';
+var cpGender = 'unspecified';
+var CP_GENDERS = [['unspecified','不设置'],['male','男'],['female','女'],['nonbinary','非二元']];
 function cpEsc(v){ return typeof escapeHTML === 'function' ? escapeHTML(String(v == null ? '' : v)) : String(v || '').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function cpPersona(){ if(charProfileName) return typeof findPersona === 'function' ? findPersona(charProfileName) : null; return cpNewDraft || null; }
 function cpAvatarOf(p){ return (charProfileName&&typeof getSessionCharAvatar==='function'&&getSessionCharAvatar(charProfileName))||p.avatar||''; }
@@ -16,8 +18,8 @@ function cpWarn(msg,title){ if(typeof islandAlert==='function')islandAlert(msg,{
 function cpSvg(name){ return name==='edit' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>' : name==='heart' ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'; }
 function cpEnsure(){
  if(document.getElementById('charProfileView')) return;
- var el=document.createElement('section'); el.id='charProfileView'; el.className='char-profile-view'; el.setAttribute('aria-hidden','true');
- el.innerHTML='<div class="cp-shell"><header class="cp-top"><div class="cp-eyebrow">PERSONAL INFORMATION</div><button class="cp-edit-icon" data-cp="edit" aria-label="编辑资料">'+cpSvg('edit')+'</button><h1><button class="cp-back-title" data-cp="back">主页</button></h1><div class="cp-rel-row"><span>RELATIONSHIP SETTING</span><b>FRIEND</b></div><nav class="cp-tabs"><button data-cp-tab="home" class="active">Homepage</button><button data-cp-tab="relationship">relationship</button></nav></header><main class="cp-content" id="cpContent"></main></div><input id="cpBookFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.worldbook,.yaml,.yml,.docx,.zip,.png" multiple hidden><input id="cpWbEntryFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.worldbook,.yaml,.yml,.docx,.zip,.png" multiple hidden><input id="cpPersonaFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.yaml,.yml,.docx" hidden><input id="cpAvatarFile" type="file" accept="image/*" hidden>';
+ var el=document.createElement('section'); el.id='charProfileView'; el.className='char-profile-view'; el.setAttribute('aria-hidden','true'); el.setAttribute('data-swipe-back','');
+ el.innerHTML='<div class="cp-shell"><header class="cp-top"><div class="cp-eyebrow">PERSONAL INFORMATION</div><button class="cp-edit-icon" data-cp="edit" aria-label="编辑资料">'+cpSvg('edit')+'</button><h1><button class="cp-back-title" data-cp="back" data-swipe-back-close>主页</button></h1><div class="cp-rel-row"><span>RELATIONSHIP SETTING</span><b>FRIEND</b></div><nav class="cp-tabs"><button data-cp-tab="home" class="active">Homepage</button><button data-cp-tab="relationship">relationship</button></nav></header><main class="cp-content" id="cpContent"></main></div><input id="cpBookFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.worldbook,.yaml,.yml,.docx,.zip,.png" multiple hidden><input id="cpWbEntryFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.worldbook,.yaml,.yml,.docx,.zip,.png" multiple hidden><input id="cpPersonaFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.yaml,.yml,.docx" hidden><input id="cpAvatarFile" type="file" accept="image/*" hidden>';
  document.body.appendChild(el);
  el.addEventListener('click',cpClick);
 }
@@ -26,12 +28,17 @@ function cpOpen(name){
  charProfileName=name; charProfileTab='home'; cpEnsure();
  var v=document.getElementById('charProfileView'); v.classList.add('is-open');v.setAttribute('aria-hidden','false'); cpRender();
 }
+function cpOpenCard(name){
+ var p=findPersona(name); if(!p){if(typeof toast==='function')toast('当前角色人设不存在');return;}
+ charProfileName=name; charProfileTab='home'; cpNewDraft=null; cpEnsure();
+ var v=document.getElementById('charProfileView'); v.classList.add('is-open','cp-card-only'); v.setAttribute('aria-hidden','false'); cpRender(); cpEdit();
+}
 function cpOpenNew(){
  cpNewDraft={name:'',desc:'',avatar:null,gender:'unspecified',addMode:'direct',socialId:'',phone:'',wechatId:'',language:'zh-CN',splitPromptEnabled:true,disableSplitPromptForNonChinese:false,autoExpandTranslation:false,createdAt:Date.now()};
  charProfileName='';charProfileTab='home';cpAddMode='direct';cpAddVia='phone';cpEnsure();
  var v=document.getElementById('charProfileView');v.classList.add('is-open');v.setAttribute('aria-hidden','false');cpRender();cpEdit();
 }
-function cpClose(){var v=document.getElementById('charProfileView');if(v){v.classList.remove('is-open');v.setAttribute('aria-hidden','true');v.querySelectorAll('.cp-edit-sheet,.cp-book-settings').forEach(function(x){x.remove();});}cpNewDraft=null;cpBookDraft=null;cpWbDraft=null;cpAvatarDraft=undefined;}
+function cpClose(){var v=document.getElementById('charProfileView');if(v){v.classList.remove('is-open','cp-card-only');v.setAttribute('aria-hidden','true');v.querySelectorAll('.cp-edit-sheet,.cp-book-settings').forEach(function(x){x.remove();});}cpNewDraft=null;cpBookDraft=null;cpWbDraft=null;cpAvatarDraft=undefined;}
 function cpRender(){
  var p=cpPersona(), box=document.getElementById('cpContent'); if(!p||!box)return;
  document.querySelectorAll('.cp-tabs button').forEach(function(b){b.classList.toggle('active',b.dataset.cpTab===charProfileTab);});
@@ -80,6 +87,31 @@ function cpUrlToAvatar(url){
   img.src=url;
  });
 }
+function cpGenderHtml(){
+ return '<div class="cp-edit-row"><span>性别</span></div><div class="cp-seg" data-seg="gender">'+CP_GENDERS.map(function(g){return '<button type="button" class="'+(cpGender===g[0]?'selected':'')+'" data-cp="set-gender" data-gender="'+g[0]+'">'+g[1]+'</button>';}).join('')+'</div>';
+}
+function cpGenAccount(sheet,btn){
+ if(!sheet||!btn||btn.disabled)return;
+ var p=cpPersona();if(!p)return;
+ var f=function(k){return sheet.querySelector('[data-cp-field="'+k+'"]');};
+ var nameEl=f('name')||f('profileName'),descEl=f('desc');
+ var name=(nameEl&&nameEl.value.trim())||p.name||'',desc=descEl?descEl.value.trim():'';
+ if(!personaAccountReady(name,desc))return;
+ var idEl=f('socialId'),wxEl=f('wechatId'),phEl=f('phone');
+ var hasOld=[idEl,wxEl,phEl].some(function(el){return el&&el.value.trim();});
+ var ask=hasOld?islandConfirm('已经填了内容，生成后会把现在的 ID、手机号和微信号都换掉。要继续吗？',{title:'重新生成',confirmText:'继续生成',cancelText:'不换了'}):Promise.resolve(true);
+ ask.then(function(ok){
+  if(!ok)return;
+  var label=btn.textContent;
+  btn.disabled=true;btn.textContent='生成中…';
+  requestPersonaAccount(name,desc,cpGender).then(function(acct){
+   if(!sheet.isConnected)return;
+   if(idEl)idEl.value=acct.socialId;
+   if(phEl)phEl.value=acct.phone;
+   if(wxEl)wxEl.value=acct.wechatId;
+  }).catch(accountGenFailAlert).then(function(){btn.disabled=false;btn.textContent=label;});
+ });
+}
 function cpAddModeHtml(){
  var modes=[['send','发送好友申请'],['receive','TA发送好友申请'],['direct','直接添加']],vias=[['phone','手机号'],['wechat','微信号']];
  return '<div class="cp-edit-row"><span>添加方式</span></div><div class="cp-seg" data-seg="mode">'+modes.map(function(m){return '<button type="button" class="'+(cpAddMode===m[0]?'selected':'')+'" data-cp="set-add-mode" data-mode="'+m[0]+'">'+m[1]+'</button>';}).join('')+'</div><div class="cp-receive-box" '+(cpAddMode==='receive'?'':'hidden')+'><div class="cp-edit-row"><span>来源</span></div><div class="cp-seg" data-seg="via">'+vias.map(function(m){return '<button type="button" class="'+(cpAddVia===m[0]?'selected':'')+'" data-cp="set-add-via" data-via="'+m[0]+'">'+m[1]+'</button>';}).join('')+'</div><div class="cp-edit-row"><span>验证信息</span></div><textarea class="cp-edit-text cp-verify-text" data-cp-verify="1" maxlength="80" placeholder="不填就由主API生成"></textarea></div>';
@@ -88,10 +120,12 @@ function cpEdit(){
  var p=cpPersona();if(!p)return;
  var isNew=!charProfileName&&!!cpNewDraft;
  cpAvatarDraft=undefined;
+ cpGender=p.gender||'unspecified';
  var vals=[['Char Name',isNew?'name':'profileName'],['Social ID','socialId'],['WeChat ID','wechatId'],['Phone Number','phone'],['Birthday','birthday'],['Location','location']];
+ var fieldHtml=function(x){return '<label>'+x[0]+'<input data-cp-field="'+x[1]+'"'+(x[1]==='name'?' maxlength="12"':'')+' value="'+cpEsc((x[1]==='profileName'?(p.profileName||p.name):p[x[1]])||'')+'"></label>';};
  var old=document.querySelector('#charProfileView .cp-edit-sheet');if(old)old.remove();
  var form=document.createElement('div');form.className='cp-edit-sheet';
- form.innerHTML='<div class="cp-edit-panel"><div class="cp-edit-body"><div class="cp-label">PERSONAL INFORMATION</div><h2>'+(isNew?'Add Char':'Edit Profile')+'</h2>'+cpAvatarRowHtml(p)+vals.map(function(x){return '<label>'+x[0]+'<input data-cp-field="'+x[1]+'"'+(x[1]==='name'?' maxlength="12"':'')+' value="'+cpEsc((x[1]==='profileName'?(p.profileName||p.name):p[x[1]])||'')+'"></label>';}).join('')+(isNew?cpAddModeHtml():'')+'<div class="cp-edit-row"><span>Char 人设内容</span><button class="cp-edit-import" type="button" data-cp="import-persona">导入文件</button></div><textarea class="cp-edit-text" data-cp-field="desc" placeholder="写下 TA 的人设">'+cpEsc(p.desc||'')+'</textarea></div><div class="cp-edit-actions"><button data-cp="cancel-edit">取消</button><button data-cp="save-edit">保存</button></div></div>';
+ form.innerHTML='<div class="cp-edit-panel"><div class="cp-edit-body"><div class="cp-label">PERSONAL INFORMATION</div><h2>'+(isNew?'Add Char':'Edit Profile')+'</h2>'+cpAvatarRowHtml(p)+fieldHtml(vals[0])+cpGenderHtml()+'<div class="cp-edit-row"><span>社交账号</span><button class="cp-edit-import" type="button" data-cp="gen-account">用副API生成</button></div>'+vals.slice(1,4).map(fieldHtml).join('')+vals.slice(4).map(fieldHtml).join('')+(isNew?cpAddModeHtml():'')+'<div class="cp-edit-row"><span>Char 人设内容</span><button class="cp-edit-import" type="button" data-cp="import-persona">导入文件</button></div><textarea class="cp-edit-text" data-cp-field="desc" placeholder="写下 TA 的人设">'+cpEsc(p.desc||'')+'</textarea></div><div class="cp-edit-actions"><button data-cp="cancel-edit">取消</button><button data-cp="save-edit">保存</button></div></div>';
  document.getElementById('charProfileView').appendChild(form);
 }
 function cpSaveEdit(sheet,p){
@@ -114,6 +148,7 @@ function cpSaveEdit(sheet,p){
   }
  }
  Object.keys(vals).forEach(function(k){p[k]=vals[k];});
+ p.gender=cpGender;
  var avChanged=cpAvatarDraft!==undefined;
  if(avChanged)p.avatar=cpAvatarDraft||null;
  if(isNew){
@@ -151,6 +186,8 @@ function cpSaveEdit(sheet,p){
  cpAvatarDraft=undefined;
  cpSave(p);sheet.remove();
  if(avChanged){try{renderChats();renderContacts();}catch(_){}}
+ var cardOnly=document.getElementById('charProfileView').classList.contains('cp-card-only');
+ if(cardOnly){cpClose();if(typeof toast==='function')toast('已保存角色卡');return;}
  cpRender();
 }
 function cpClick(e){
@@ -163,7 +200,9 @@ function cpClick(e){
  if(act==='moments'){if(typeof toast==='function')toast('朋友圈功能暂未开放');return;}
  if(act==='back'){cpClose();var tab=document.querySelector('.chat-tab[data-tab="contacts"],[data-tab="contacts"].chat-tab');if(tab)tab.click();return;}
  if(act==='edit'){cpEdit();return;}
- if(act==='cancel-edit'){var s=b.closest('.cp-edit-sheet');if(s)s.remove();if(!charProfileName&&cpNewDraft)cpClose();return;}
+ if(act==='cancel-edit'){var s=b.closest('.cp-edit-sheet');if(s)s.remove();var cv=document.getElementById('charProfileView');if((!charProfileName&&cpNewDraft)||(cv&&cv.classList.contains('cp-card-only')))cpClose();return;}
+ if(act==='set-gender'){cpGender=b.dataset.gender||'unspecified';b.parentNode.querySelectorAll('button').forEach(function(x){x.classList.toggle('selected',x===b);});return;}
+ if(act==='gen-account'){cpGenAccount(b.closest('.cp-edit-sheet'),b);return;}
  if(act==='set-add-mode'||act==='set-add-via'){
   var isMode=act==='set-add-mode';
   if(isMode)cpAddMode=b.dataset.mode;else cpAddVia=b.dataset.via;

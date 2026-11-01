@@ -84,17 +84,50 @@ function parseAccountJson(text){
   return out;
 }
 
-function generatePersonaAccount(){
-  if (!personaAcctGenBtn || personaAcctGenBtn.disabled) return;
-  var name = nameInput.value.trim(), desc = descInput.value.trim();
+/* 检查能不能生成：名字/人设至少填一个，副API要配好。不行就弹提示并返回 false */
+function personaAccountReady(name, desc){
   if (!name && !desc) {
     islandAlert('先填一下名字或人设描述，副API才知道该生成什么样的账号。', { title: '还不能生成' });
-    return;
+    return false;
   }
   if (!isSecondaryApiReady()) {
     islandAlert('还没有配置副API。请先到「设置」里把副API配置好，再回来生成。', { title: '没有副API' });
-    return;
+    return false;
   }
+  return true;
+}
+
+/* 让副API生成 ID（网名）、手机号、微信号。返回 Promise<{socialId, phone, wechatId}> */
+function requestPersonaAccount(name, desc, genderKey){
+  var gender = ({ male: '男', female: '女', nonbinary: '非二元性别' })[genderKey] || '未设置';
+  var prompt = [
+    '请根据下面的角色信息，为这个角色生成一组符合 TA 的身份、年龄、国家和性格的社交账号信息。',
+    '要求：',
+    '1. socialId：社交软件网名，24 个字以内，像真人随手起的，要符合角色性格，不要直接用真名。',
+    '2. phone：手机号。默认用中国大陆 11 位手机号（1 开头，第二位是 3 到 9），要像真实号码，不要 12345678 这种有规律的号码；如果角色设定明确在其他国家，就用那个国家常见的格式，只能有数字、+、-、空格。',
+    '3. wechatId：微信号，6 到 20 位，字母开头，只能有字母、数字、下划线、减号，要符合角色性格。',
+    '只输出一个 JSON 对象，格式：{"socialId":"","phone":"","wechatId":""}，不要输出别的文字。',
+    '',
+    '【角色名】' + (name || '未填写'),
+    '【性别】' + gender,
+    '【人设】' + (desc ? desc.slice(0, 3000) : '未填写')
+  ].join('\n');
+  var secCfg = getSecondaryApiConfig();
+  var cfg = Object.assign({}, secCfg, { maxTokens: Math.max(400, Math.min(1200, Number(secCfg.maxTokens) || 400)), temperature: 0.9 });
+  return callApiOnce([
+    { role: 'system', content: '你是账号信息生成助手，只输出要求的 JSON，不要解释。' },
+    { role: 'user', content: prompt }
+  ], cfg).then(parseAccountJson);
+}
+
+function accountGenFailAlert(err){
+  islandAlert('没有生成成功：' + (err && err.message ? err.message : '未知原因') + '\n\n可以再点一次，或者自己手动填写。', { title: '生成失败' });
+}
+
+function generatePersonaAccount(){
+  if (!personaAcctGenBtn || personaAcctGenBtn.disabled) return;
+  var name = nameInput.value.trim(), desc = descInput.value.trim();
+  if (!personaAccountReady(name, desc)) return;
   var hasOld = personaSocialIdInput.value.trim() || personaPhoneInput.value.trim() || personaWechatInput.value.trim();
   var ask = hasOld
     ? islandConfirm('已经填了内容，生成后会把现在的 ID、手机号和微信号都换掉。要继续吗？', { title: '重新生成', confirmText: '继续生成', cancelText: '不换了' })
@@ -104,32 +137,11 @@ function generatePersonaAccount(){
     var label = personaAcctGenBtn.innerHTML;
     personaAcctGenBtn.disabled = true;
     personaAcctGenBtn.textContent = '生成中…';
-    var gender = ({ male: '男', female: '女', nonbinary: '非二元性别' })[personaGender] || '未设置';
-    var prompt = [
-      '请根据下面的角色信息，为这个角色生成一组符合 TA 的身份、年龄、国家和性格的社交账号信息。',
-      '要求：',
-      '1. socialId：社交软件网名，24 个字以内，像真人随手起的，要符合角色性格，不要直接用真名。',
-      '2. phone：手机号。默认用中国大陆 11 位手机号（1 开头，第二位是 3 到 9），要像真实号码，不要 12345678 这种有规律的号码；如果角色设定明确在其他国家，就用那个国家常见的格式，只能有数字、+、-、空格。',
-      '3. wechatId：微信号，6 到 20 位，字母开头，只能有字母、数字、下划线、减号，要符合角色性格。',
-      '只输出一个 JSON 对象，格式：{"socialId":"","phone":"","wechatId":""}，不要输出别的文字。',
-      '',
-      '【角色名】' + (name || '未填写'),
-      '【性别】' + gender,
-      '【人设】' + (desc ? desc.slice(0, 3000) : '未填写')
-    ].join('\n');
-    var secCfg = getSecondaryApiConfig();
-    var cfg = Object.assign({}, secCfg, { maxTokens: Math.max(400, Math.min(1200, Number(secCfg.maxTokens) || 400)), temperature: 0.9 });
-    callApiOnce([
-      { role: 'system', content: '你是账号信息生成助手，只输出要求的 JSON，不要解释。' },
-      { role: 'user', content: prompt }
-    ], cfg).then(function(text){
-      var acct = parseAccountJson(text);
+    requestPersonaAccount(name, desc, personaGender).then(function(acct){
       personaSocialIdInput.value = acct.socialId;
       personaPhoneInput.value = acct.phone;
       personaWechatInput.value = acct.wechatId;
-    }).catch(function(err){
-      islandAlert('没有生成成功：' + (err && err.message ? err.message : '未知原因') + '\n\n可以再点一次，或者自己手动填写。', { title: '生成失败' });
-    }).then(function(){
+    }).catch(accountGenFailAlert).then(function(){
       personaAcctGenBtn.disabled = false;
       personaAcctGenBtn.innerHTML = label;
     });

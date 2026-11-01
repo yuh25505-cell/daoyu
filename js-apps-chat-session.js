@@ -963,7 +963,9 @@ function bindChatEvents(){
       var roleCardTool = e.target.closest('[data-tool="角色卡"]');
       if (roleCardTool) {
         closePanel();
-        if (currentName) openPersonaSheetForEdit(currentName); else toast('请先进入一个角色聊天');
+        if (!currentName) toast('请先进入一个角色聊天');
+        else if (typeof cpOpenCard === 'function') cpOpenCard(currentName);
+        else openPersonaSheetForEdit(currentName);
         return;
       }
       var memoryTool = e.target.closest('[data-tool="记忆"]');

@@ -21,6 +21,7 @@
 
   /* ---------- 弹窗 / 面板：手势不穿透，系统返回键先关它们 ---------- */
   var MODALS = [
+    { sel:'.island-dialog.is-open', close:function(){ return true; }, raw:true },   /* 确认框：永远在最上层，只拦截，不替用户选择 */
     { sel:'#pmMediaViewModal',      close:function(){ return click('#pmMediaViewModal [data-media-view-close]'); } },
     { sel:'#pmFileViewModal',       close:function(){ return click('#pmFileViewModal [data-file-view-close]'); } },
     { sel:'#pmImageTextModal',      close:function(){ return click('#pmImageTextModal [data-image-text-close]'); } },
@@ -37,7 +38,9 @@
     { sel:'#userSheet',             close:function(){ return call('closeUserSheet'); } },
     { sel:'#friendAddSheet',        close:function(){ return call('closeFriendAddSheet'); } },
     { sel:'.sheet.is-open',         close:function(){ return call('closeSheet'); }, raw:true },
-    { sel:'.island-dialog.is-open', close:function(){ return true; }, raw:true }   /* 确认框：只拦截，不替用户选择 */
+    { sel:'.cp-wb-editor',       close:function(){ return call('cpWbClose'); }, raw:true },
+    { sel:'.cp-book-settings:not(.cp-wb-editor)', close:function(){ return click('.cp-book-settings:not(.cp-wb-editor) [data-cp="close-book-settings"]'); }, raw:true },
+    { sel:'.cp-edit-sheet',      close:function(){ return click('.cp-edit-sheet [data-cp="cancel-edit"]'); }, raw:true }
   ];
 
   function getModal(){
@@ -139,6 +142,7 @@
    * 一、边缘滑动手势
    * ==================================================================== */
   var drag = null;  /* { x0, y0, t0, layer, el, active, w } */
+  var modalSwipe = null;  /* { x0, y0, sign, modal } */
 
   function resetEl(el, restoreTransition){
     if (!el) return;
@@ -151,12 +155,18 @@
 
   document.addEventListener('touchstart', function(e){
     drag = null;
+    modalSwipe = null;
     if (e.touches.length !== 1) return;
     var t = e.touches[0];
     var fromLeft = t.clientX <= EDGE_PX;
     var fromRight = t.clientX >= Math.max(window.innerWidth - EDGE_PX, EDGE_PX + 1);
     if (!fromLeft && !fromRight) return;
-    if (getModal()) return;
+    var topModal = getModal();
+    if (topModal) {
+      /* 弹窗不跟手滑动：从边缘滑出一段距离，松手后等于按系统返回，关掉这层弹窗 */
+      modalSwipe = { x0:t.clientX, y0:t.clientY, sign:fromRight ? -1 : 1, modal:topModal };
+      return;
+    }
     var layer = getTopLayer();
     if (!layer || layer.block || !layer.el) return;
     var sign = fromRight ? -1 : 1;
@@ -194,7 +204,20 @@
     drag = null;
   }
 
-  document.addEventListener('touchend', function(){
+  document.addEventListener('touchend', function(e){
+    if (modalSwipe) {
+      var ms = modalSwipe; modalSwipe = null;
+      var ct = e.changedTouches && e.changedTouches[0];
+      if (ct) {
+        var mdx = (ct.clientX - ms.x0) * ms.sign, mdy = ct.clientY - ms.y0;
+        var still = getModal();
+        if (mdx > 60 && mdx > Math.abs(mdy) * 1.6 && still && still === ms.modal) {
+          try { still.close(); } catch(err) { console.error('[岛屿] 弹窗滑动返回失败：', err); }
+          syncHistory();
+        }
+      }
+      return;
+    }
     if (!drag) return;
     var d = drag; drag = null;
     if (!d.active) { resetEl(d.el); return; }
@@ -217,7 +240,7 @@
     }, 190);
   }, { passive:true });
 
-  document.addEventListener('touchcancel', cancelDrag, { passive:true });
+  document.addEventListener('touchcancel', function(){ modalSwipe = null; cancelDrag(); }, { passive:true });
 
   /* ====================================================================
    * 二、系统返回键 / 返回手势（浏览器历史记录哨兵）
