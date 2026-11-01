@@ -87,3 +87,17 @@
 .cp-wb-empty{padding:26px 0;text-align:center;color:#aaa;font-size:14px}
 .cp-wb-add{width:100%;margin:14px 0 0;min-height:46px;border:1px dashed #cfcfcf;border-radius:14px;background:#fff;color:#111;font-size:14px;font-weight:600}
 .cp-wb-panel .cp-settings-actions{padding-top:14px;flex:none}
+
+/* Char 编辑弹窗：人设内容与导入文件 */
+.cp-edit-row{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;font-size:11px;color:#999}
+.cp-edit-import{height:30px;padding:0 14px;border:1px solid #dedede;border-radius:10px;background:#fff;color:#111;font-size:12px;font-weight:600}
+.cp-edit-panel textarea.cp-edit-text{display:block;width:100%;box-sizing:border-box;min-height:150px;border:1px solid #e4e4e4;border-radius:12px;background:#fafafa;color:#111;font-size:16px;font-family:inherit;line-height:1.6;outline:none;padding:11px 12px;resize:vertical}
+.cp-edit-panel textarea.cp-edit-text:focus{border-color:#111;background:#fff}
+.cp-wb-add-row{display:flex;gap:10px;margin-top:14px}
+.cp-wb-add-row .cp-wb-add{margin:0;flex:1}
+
+.cp-seg{display:flex;gap:8px;flex-wrap:wrap}
+.cp-seg button{flex:1;min-width:0;min-height:40px;padding:0 10px;border:1px solid #e4e4e4;border-radius:12px;background:#fafafa;color:#111;font-size:13px;white-space:nowrap}
+.cp-seg button.selected{background:#111;color:#fff;border-color:#111}
+.cp-receive-box[hidden]{display:none}
+.cp-verify-text{min-height:80px}

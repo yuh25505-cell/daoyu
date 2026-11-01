@@ -390,7 +390,7 @@ function openChatAddMenu(btn){
     if (item) {
       var key = item.dataset.clm;
       closeChatListMenu();
-      if (key === 'persona') openSheet();
+      if (key === 'persona') { if (typeof cpOpenNew === 'function') cpOpenNew(); }
       else if (key === 'group') toast('创建群聊功能开发中');
       return;
     }

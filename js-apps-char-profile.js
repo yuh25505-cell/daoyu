@@ -3,15 +3,19 @@
 var charProfileName = '';
 var charProfileTab = 'home';
 var cpBookDraft = null;
+var cpNewDraft = null;
+var cpAddMode = 'direct';
+var cpAddVia = 'phone';
 function cpEsc(v){ return typeof escapeHTML === 'function' ? escapeHTML(String(v == null ? '' : v)) : String(v || '').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-function cpPersona(){ return charProfileName && typeof findPersona === 'function' ? findPersona(charProfileName) : null; }
+function cpPersona(){ if(charProfileName) return typeof findPersona === 'function' ? findPersona(charProfileName) : null; return cpNewDraft || null; }
+function cpAvatarOf(p){ return (charProfileName&&typeof getSessionCharAvatar==='function'&&getSessionCharAvatar(charProfileName))||p.avatar||''; }
 function cpSave(p){ if (typeof savePersonas === 'function') savePersonas(); }
 function cpBooks(p){ if (!Array.isArray(p.profileWorldbooks)) p.profileWorldbooks=[]; return p.profileWorldbooks; }
 function cpSvg(name){ return name==='edit' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>' : name==='heart' ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'; }
 function cpEnsure(){
  if(document.getElementById('charProfileView')) return;
  var el=document.createElement('section'); el.id='charProfileView'; el.className='char-profile-view'; el.setAttribute('aria-hidden','true');
- el.innerHTML='<div class="cp-shell"><header class="cp-top"><div class="cp-eyebrow">PERSONAL INFORMATION</div><button class="cp-edit-icon" data-cp="edit" aria-label="编辑资料">'+cpSvg('edit')+'</button><h1><button class="cp-back-title" data-cp="back">主页</button></h1><div class="cp-rel-row"><span>RELATIONSHIP SETTING</span><b>FRIEND</b></div><nav class="cp-tabs"><button data-cp-tab="home" class="active">Homepage</button><button data-cp-tab="relationship">relationship</button></nav></header><main class="cp-content" id="cpContent"></main></div><input id="cpBookFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.worldbook,.yaml,.yml,.docx,.zip,.png" multiple hidden>';
+ el.innerHTML='<div class="cp-shell"><header class="cp-top"><div class="cp-eyebrow">PERSONAL INFORMATION</div><button class="cp-edit-icon" data-cp="edit" aria-label="编辑资料">'+cpSvg('edit')+'</button><h1><button class="cp-back-title" data-cp="back">主页</button></h1><div class="cp-rel-row"><span>RELATIONSHIP SETTING</span><b>FRIEND</b></div><nav class="cp-tabs"><button data-cp-tab="home" class="active">Homepage</button><button data-cp-tab="relationship">relationship</button></nav></header><main class="cp-content" id="cpContent"></main></div><input id="cpBookFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.worldbook,.yaml,.yml,.docx,.zip,.png" multiple hidden><input id="cpWbEntryFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.worldbook,.yaml,.yml,.docx,.zip,.png" multiple hidden><input id="cpPersonaFile" type="file" accept=".txt,.md,.markdown,.json,.jsonl,.yaml,.yml,.docx" hidden>';
  document.body.appendChild(el);
  el.addEventListener('click',cpClick);
 }
@@ -20,13 +24,18 @@ function cpOpen(name){
  charProfileName=name; charProfileTab='home'; cpEnsure();
  var v=document.getElementById('charProfileView'); v.classList.add('is-open');v.setAttribute('aria-hidden','false'); cpRender();
 }
-function cpClose(){var v=document.getElementById('charProfileView');if(v){v.classList.remove('is-open');v.setAttribute('aria-hidden','true');}}
+function cpOpenNew(){
+ cpNewDraft={name:'',desc:'',avatar:null,gender:'unspecified',addMode:'direct',socialId:'',phone:'',wechatId:'',language:'zh-CN',splitPromptEnabled:true,disableSplitPromptForNonChinese:false,autoExpandTranslation:false,createdAt:Date.now()};
+ charProfileName='';charProfileTab='home';cpAddMode='direct';cpAddVia='phone';cpEnsure();
+ var v=document.getElementById('charProfileView');v.classList.add('is-open');v.setAttribute('aria-hidden','false');cpRender();cpEdit();
+}
+function cpClose(){var v=document.getElementById('charProfileView');if(v){v.classList.remove('is-open');v.setAttribute('aria-hidden','true');v.querySelectorAll('.cp-edit-sheet,.cp-book-settings').forEach(function(x){x.remove();});}cpNewDraft=null;cpBookDraft=null;cpWbDraft=null;}
 function cpRender(){
  var p=cpPersona(), box=document.getElementById('cpContent'); if(!p||!box)return;
  document.querySelectorAll('.cp-tabs button').forEach(function(b){b.classList.toggle('active',b.dataset.cpTab===charProfileTab);});
  if(charProfileTab==='relationship'){box.innerHTML='<div class="cp-rel-card"><span class="cp-label">RELATIONSHIP</span><h2>FRIEND</h2><p>你与 '+cpEsc(p.profileName||p.name)+' 已成为好友。</p></div>';return;}
  var likes=Number(p.profileLikes)||0, books=cpBooks(p);
- box.innerHTML='<section class="cp-person" data-cp="edit"><div class="cp-avatar">'+(((typeof getSessionCharAvatar==='function'&&getSessionCharAvatar(charProfileName))||p.avatar)?'<img src="'+cpEsc((typeof getSessionCharAvatar==='function'&&getSessionCharAvatar(charProfileName))||p.avatar)+'">':cpEsc((p.name||'C').slice(0,1)))+'</div><div class="cp-person-main"><h2>'+cpEsc(p.profileName||p.name)+'</h2><div class="cp-social">@'+cpEsc(p.socialId||p.name)+'</div><div class="cp-likes">'+cpSvg('heart')+' '+likes.toLocaleString()+' Likes</div></div><button class="cp-arrow" data-cp="edit">'+cpSvg('chev')+'</button></section>'+
+ box.innerHTML='<section class="cp-person" data-cp="edit"><div class="cp-avatar">'+(cpAvatarOf(p)?'<img src="'+cpEsc(cpAvatarOf(p))+'">':cpEsc((p.name||'C').slice(0,1)))+'</div><div class="cp-person-main"><h2>'+cpEsc(p.profileName||p.name)+'</h2><div class="cp-social">@'+cpEsc(p.socialId||p.name)+'</div><div class="cp-likes">'+cpSvg('heart')+' '+likes.toLocaleString()+' Likes</div></div><button class="cp-arrow" data-cp="edit">'+cpSvg('chev')+'</button></section>'+
  '<section class="cp-fields">'+cpField('WECHAT ID',p.wechatId||'—','wechatId')+cpField('PHONE NUMBER',p.phone||'—','phone')+cpField('BIRTHDAY',p.birthday||'—')+cpField('LOCATION',p.location||'—')+'</section>'+
  '<button class="cp-profile-edit" data-cp="edit">PERSONAL PROFILE '+cpSvg('chev')+'</button>'+
  '<section class="cp-card cp-social-card"><div class="cp-label">SOCIAL INTERACTION</div><div class="cp-like-row"><div><strong>'+likes.toLocaleString()+'</strong><span>TOTAL LIKES</span></div><button class="cp-like-btn '+(p.profileLiked?'on':'')+'" data-cp="like">'+cpSvg('heart')+' '+(p.profileLiked?'Liked':'Like')+'</button></div><div class="cp-likers"><button class="cp-likers-open" data-cp="likers">People who liked this Char</button><div class="cp-liker-dots">'+(p.profileLikers||[]).slice(0,3).map(function(x){return '<i>'+cpEsc(x.slice(0,1))+'</i>';}).join('')+'</div></div></section>'+
@@ -57,12 +66,60 @@ function cpOpenBookSettings(book){
  modal.innerHTML='<div class="cp-book-settings-backdrop" data-cp="close-book-settings"></div><section class="cp-book-settings-panel" role="dialog" aria-modal="true" aria-label="世界书注入设置"><div class="cp-modal-grip"></div><div class="cp-modal-head"><div><span class="cp-label">WORLD BOOK SETTINGS</span><h2>注入位置</h2><p>选择这本世界书加入角色设定的方式</p></div><button class="cp-modal-close" data-cp="close-book-settings" aria-label="关闭">×</button></div><div class="cp-mode-options">'+choices.map(function(c){return '<button class="cp-mode-option '+((c.mode==='follow'&&book.followPersona)||(c.mode==='custom'&&!book.followPersona)?'selected':'')+'" data-cp="set-book-mode" data-mode="'+c.mode+'"><span class="cp-option-icon">'+c.icon+'</span><span class="cp-option-copy"><b>'+c.title+'</b><small>'+c.desc+'</small></span><i class="cp-option-check"></i></button>';}).join('')+'</div><div class="cp-position-wrap" '+(book.followPersona?'hidden':'')+'><div class="cp-position-title">选择具体位置</div><div class="cp-position-options">'+positions.map(function(c){return '<button class="cp-position-option '+((book.position||'worldbook_middle')===c.value?'selected':'')+'" data-cp="set-book-position" data-position="'+c.value+'"><span><b>'+c.title+'</b><small>'+c.desc+'</small></span><i class="cp-option-check"></i></button>';}).join('')+'</div></div><div class="cp-book-manage"><div class="cp-manage-heading"><b>世界书管理</b><small>启用状态、排序与删除</small></div><div class="cp-enable-row"><span><b>启用这本世界书</b><small>关闭后将不会注入角色对话</small></span><button class="cp-enable-switch '+(book.enabled===false?'':'on')+'" data-cp="toggle-book-draft" type="button" role="switch" aria-checked="'+(book.enabled!==false)+'"><i></i></button></div><div class="cp-order-row"><span><b>调整排列顺序</b><small>优先级由上至下排列</small></span><div class="cp-order-buttons"><button data-cp="move-book-up" data-id="'+cpEsc(book.id)+'" '+(cpBooks(cpPersona()).findIndex(function(x){return x.id===book.id})===0?'disabled':'')+' aria-label="上移">↑</button><button data-cp="move-book-down" data-id="'+cpEsc(book.id)+'" '+(cpBooks(cpPersona()).findIndex(function(x){return x.id===book.id})===cpBooks(cpPersona()).length-1?'disabled':'')+' aria-label="下移">↓</button></div></div><button class="cp-delete-book" data-cp="delete-book-from-settings" data-id="'+cpEsc(book.id)+'"><span>删除这本世界书</span><small>删除后需要重新导入才能恢复</small></button></div><div class="cp-settings-note">设置仅作用于当前 Char，不会影响其他角色。</div><div class="cp-settings-actions"><button data-cp="close-book-settings">取消</button><button class="primary" data-cp="save-book-settings">保存设置</button></div></section>';
  document.getElementById('charProfileView').appendChild(modal);
 }
+function cpAddModeHtml(){
+ var modes=[['send','发送好友申请'],['receive','TA发送好友申请'],['direct','直接添加']],vias=[['phone','手机号'],['wechat','微信号']];
+ return '<div class="cp-edit-row"><span>添加方式</span></div><div class="cp-seg" data-seg="mode">'+modes.map(function(m){return '<button type="button" class="'+(cpAddMode===m[0]?'selected':'')+'" data-cp="set-add-mode" data-mode="'+m[0]+'">'+m[1]+'</button>';}).join('')+'</div><div class="cp-receive-box" '+(cpAddMode==='receive'?'':'hidden')+'><div class="cp-edit-row"><span>来源</span></div><div class="cp-seg" data-seg="via">'+vias.map(function(m){return '<button type="button" class="'+(cpAddVia===m[0]?'selected':'')+'" data-cp="set-add-via" data-via="'+m[0]+'">'+m[1]+'</button>';}).join('')+'</div><div class="cp-edit-row"><span>验证信息</span></div><textarea class="cp-edit-text cp-verify-text" data-cp-verify="1" maxlength="80" placeholder="不填就由主API生成"></textarea></div>';
+}
 function cpEdit(){
  var p=cpPersona();if(!p)return;
- var vals=[['Char Name','profileName'],['Social ID','socialId'],['WeChat ID','wechatId'],['Phone Number','phone'],['Birthday','birthday'],['Location','location']];
+ var isNew=!charProfileName&&!!cpNewDraft;
+ var vals=[['Char Name',isNew?'name':'profileName'],['Social ID','socialId'],['WeChat ID','wechatId'],['Phone Number','phone'],['Birthday','birthday'],['Location','location']];
+ var old=document.querySelector('#charProfileView .cp-edit-sheet');if(old)old.remove();
  var form=document.createElement('div');form.className='cp-edit-sheet';
- form.innerHTML='<div class="cp-edit-panel"><div class="cp-label">PERSONAL INFORMATION</div><h2>Edit Profile</h2>'+vals.map(function(x){return '<label>'+x[0]+'<input data-cp-field="'+x[1]+'" value="'+cpEsc((x[1]==='profileName'?(p.profileName||p.name):p[x[1]])||'')+'"></label>';}).join('')+'<div class="cp-edit-actions"><button data-cp="cancel-edit">取消</button><button data-cp="save-edit">保存</button></div></div>';
+ form.innerHTML='<div class="cp-edit-panel"><div class="cp-label">PERSONAL INFORMATION</div><h2>'+(isNew?'Add Char':'Edit Profile')+'</h2>'+vals.map(function(x){return '<label>'+x[0]+'<input data-cp-field="'+x[1]+'"'+(x[1]==='name'?' maxlength="12"':'')+' value="'+cpEsc((x[1]==='profileName'?(p.profileName||p.name):p[x[1]])||'')+'"></label>';}).join('')+(isNew?cpAddModeHtml():'')+'<div class="cp-edit-row"><span>Char 人设内容</span><button class="cp-edit-import" type="button" data-cp="import-persona">导入文件</button></div><textarea class="cp-edit-text" data-cp-field="desc" placeholder="写下 TA 的人设">'+cpEsc(p.desc||'')+'</textarea><div class="cp-edit-actions"><button data-cp="cancel-edit">取消</button><button data-cp="save-edit">保存</button></div></div>';
  document.getElementById('charProfileView').appendChild(form);
+}
+function cpSaveEdit(sheet,p){
+ if(!sheet)return;
+ var isNew=!charProfileName&&!!cpNewDraft,vals={};
+ sheet.querySelectorAll('[data-cp-field]').forEach(function(i){vals[i.dataset.cpField]=i.value.trim();});
+ if(isNew){
+  var nm=vals.name||'';
+  if(!nm){if(typeof toast==='function')toast('先给 TA 起个名字');return;}
+  if(typeof findPersona==='function'&&findPersona(nm)){if(typeof toast==='function')toast('已经有叫这个名字的角色了');return;}
+  var ph=vals.phone||'',wx=vals.wechatId||'';
+  if(typeof cleanPhoneText==='function')ph=cleanPhoneText(ph);
+  if(typeof cleanWechatText==='function')wx=cleanWechatText(wx);
+  if(typeof checkAccountFields==='function'&&!checkAccountFields(ph,wx))return;
+  vals.phone=ph;vals.wechatId=wx;
+  if(cpAddMode==='send'&&!ph&&!wx){islandAlert('选了「发送好友申请」，要先填 TA 的手机号或微信号，之后才能搜到 TA。',{title:'还不能创建'});return;}
+  if(cpAddMode==='receive'){
+   if(cpAddVia==='phone'&&!ph){islandAlert('来源选了「手机号」，请先填 TA 的手机号。',{title:'还不能创建'});return;}
+   if(cpAddVia==='wechat'&&!wx){islandAlert('来源选了「微信号」，请先填 TA 的微信号。',{title:'还不能创建'});return;}
+  }
+ }
+ Object.keys(vals).forEach(function(k){p[k]=vals[k];});
+ if(isNew){
+  var mode=cpAddMode,via=cpAddVia,vbox=sheet.querySelector('[data-cp-verify]'),typed=vbox?vbox.value.trim():'';
+  p.addMode=mode;p.createdAt=p.createdAt||Date.now();
+  var finish=function(text){
+   personaVia=via;personaAddMode=mode;
+   finishCreatePersona(p,mode,text);
+   charProfileName=p.name;cpNewDraft=null;
+   sheet.remove();cpRender();
+  };
+  if(mode!=='receive'||typed){finish(mode==='receive'?typed:'');return;}
+  if(!isApiReady()){islandAlert('验证信息没填，主API又还没配置，没法自动生成。请手动填一句，或先到「设置」配置主API。',{title:'还不能创建'});return;}
+  var saveBtn=sheet.querySelector('[data-cp="save-edit"]'),label=saveBtn?saveBtn.textContent:'保存';
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='正在生成验证信息…';}
+  friendGenerateVerifyText(p,via).then(function(text){finish(text);}).catch(function(err){
+   islandAlert('验证信息没有生成成功：'+(err&&err.message?err.message:'未知原因')+'\n\n可以再点一次，或者自己手动填写。',{title:'生成失败'});
+   if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=label;}
+  });
+  return;
+ }
+ p.updatedAt=Date.now();
+ cpSave(p);sheet.remove();cpRender();
 }
 function cpClick(e){
  var p=cpPersona();
@@ -74,8 +131,17 @@ function cpClick(e){
  if(act==='moments'){if(typeof toast==='function')toast('朋友圈功能暂未开放');return;}
  if(act==='back'){cpClose();var tab=document.querySelector('.chat-tab[data-tab="contacts"],[data-tab="contacts"].chat-tab');if(tab)tab.click();return;}
  if(act==='edit'){cpEdit();return;}
- if(act==='cancel-edit'){var s=b.closest('.cp-edit-sheet');if(s)s.remove();return;}
- if(act==='save-edit'){var sheet=b.closest('.cp-edit-sheet');sheet.querySelectorAll('[data-cp-field]').forEach(function(i){p[i.dataset.cpField]=i.value.trim();});cpSave(p);sheet.remove();cpRender();return;}
+ if(act==='cancel-edit'){var s=b.closest('.cp-edit-sheet');if(s)s.remove();if(!charProfileName&&cpNewDraft)cpClose();return;}
+ if(act==='set-add-mode'||act==='set-add-via'){
+  var isMode=act==='set-add-mode';
+  if(isMode)cpAddMode=b.dataset.mode;else cpAddVia=b.dataset.via;
+  b.parentNode.querySelectorAll('button').forEach(function(x){x.classList.toggle('selected',x===b);});
+  var rb=b.closest('.cp-edit-panel').querySelector('.cp-receive-box');if(rb)rb.hidden=cpAddMode!=='receive';
+  return;
+ }
+ if(act==='import-persona'){var pf=document.getElementById('cpPersonaFile');if(pf)pf.click();return;}
+ if(act==='wb-import'){var wf=document.getElementById('cpWbEntryFile');if(wf)wf.click();return;}
+ if(act==='save-edit'){cpSaveEdit(b.closest('.cp-edit-sheet'),p);return;}
  if(act==='likers'){var liked=(p.profileLikers||[]);if(typeof islandAlert==='function')islandAlert(liked.length?liked.join('\n'):'暂无用户点赞',{title:'People who liked this Char'});else alert(liked.length?liked.join('\n'):'暂无用户点赞');return;}
  if(act==='like'){p.profileLiked=!p.profileLiked;p.profileLikes=Math.max(0,(Number(p.profileLikes)||0)+(p.profileLiked?1:-1));if(!Array.isArray(p.profileLikers))p.profileLikers=[];var up=getActiveUserPersona(),who=String(up&&(up.socialId||up.name)||'我');if(p.profileLiked){if(p.profileLikers.indexOf(who)<0)p.profileLikers.push(who);}else{p.profileLikers=p.profileLikers.filter(function(x){return x!==who;});}cpSave(p);cpRender();return;}
  if(act==='import'){document.getElementById('cpBookFile').click();return;}
@@ -255,7 +321,7 @@ function cpWbOpen(book){
   return Object.assign({},en,{id:en&&en.id?en.id:cpNewEntryId(),name:String(en&&en.name||''),content:String(en&&en.content||''),enabled:!(en&&en.enabled===false)});
  })};
  var modal=document.createElement('div');modal.className='cp-book-settings cp-wb-editor';
- modal.innerHTML='<div class="cp-book-settings-backdrop" data-cp="wb-close"></div><section class="cp-book-settings-panel cp-wb-panel" role="dialog" aria-modal="true" aria-label="编辑世界书"><div class="cp-modal-grip"></div><div class="cp-modal-head"><div><h2>编辑世界书</h2></div><button class="cp-modal-close" data-cp="wb-close" aria-label="关闭">×</button></div><div class="cp-wb-body"><input class="cp-wb-input cp-wb-bookname" data-wb="bookName" value="'+cpEsc(cpWbDraft.name)+'" placeholder="世界书名称"><div class="cp-wb-list"></div><button class="cp-wb-add" data-cp="wb-add" type="button">＋ 添加条目</button></div><div class="cp-settings-actions"><button data-cp="wb-close" type="button">取消</button><button class="primary" data-cp="wb-save" type="button">保存</button></div></section>';
+ modal.innerHTML='<div class="cp-book-settings-backdrop" data-cp="wb-close"></div><section class="cp-book-settings-panel cp-wb-panel" role="dialog" aria-modal="true" aria-label="编辑世界书"><div class="cp-modal-grip"></div><div class="cp-modal-head"><div><h2>编辑世界书</h2></div><button class="cp-modal-close" data-cp="wb-close" aria-label="关闭">×</button></div><div class="cp-wb-body"><input class="cp-wb-input cp-wb-bookname" data-wb="bookName" value="'+cpEsc(cpWbDraft.name)+'" placeholder="世界书名称"><div class="cp-wb-list"></div><div class="cp-wb-add-row"><button class="cp-wb-add" data-cp="wb-add" type="button">＋ 添加条目</button><button class="cp-wb-add" data-cp="wb-import" type="button">导入文件</button></div></div><div class="cp-settings-actions"><button data-cp="wb-close" type="button">取消</button><button class="primary" data-cp="wb-save" type="button">保存</button></div></section>';
  document.getElementById('charProfileView').appendChild(modal);
  cpWbRenderList();
 }
@@ -289,3 +355,57 @@ function cpWbSave(){
  cpSave(p);cpWbClose();cpRender();
  if(typeof toast==='function')toast('已保存');
 }
+
+/* ---------- 世界书编辑弹窗：导入文件变成条目 ---------- */
+document.addEventListener('change',async function(e){
+ if(e.target.id!=='cpWbEntryFile')return;
+ var files=Array.from(e.target.files||[]);
+ e.target.value='';
+ if(!files.length||!cpWbDraft)return;
+ var got=[],failed=0;
+ for(var i=0;i<files.length;i++){
+  var file=files[i];
+  try{
+   if(file.size>32*1024*1024){failed++;continue;}
+   var res=await cpImportFile(file);
+   if(!res||!res.entries.length){failed++;continue;}
+   got=got.concat(res.entries);
+  }catch(_){failed++;}
+ }
+ if(!cpWbDraft)return;
+ if(got.length){
+  cpWbSync();
+  got.forEach(function(en){cpWbDraft.entries.push(Object.assign({},en,{id:en&&en.id?en.id:cpNewEntryId(),name:String(en&&en.name||''),content:String(en&&en.content||''),enabled:!(en&&en.enabled===false)}));});
+  cpWbRenderList();
+  var list=document.querySelector('.cp-wb-list');if(list)list.scrollTop=list.scrollHeight;
+  var rows=document.querySelectorAll('.cp-wb-entry'),last=rows[rows.length-1];if(last)last.scrollIntoView({block:'nearest'});
+ }
+ if(typeof toast==='function')toast(got.length?('已导入 '+got.length+' 个条目'+(failed?'，'+failed+' 个文件没读到内容':'')):'没有读到可导入的内容');
+});
+
+/* ---------- Char 人设内容：导入文件 ---------- */
+document.addEventListener('change',async function(e){
+ if(e.target.id!=='cpPersonaFile')return;
+ var file=e.target.files&&e.target.files[0];
+ e.target.value='';
+ if(!file)return;
+ if(file.size>512*1024){if(typeof toast==='function')toast('文件过大，请小于 512KB');return;}
+ var box=document.querySelector('#charProfileView .cp-edit-sheet [data-cp-field="desc"]');
+ if(!box)return;
+ try{
+  var ext=String(file.name||'').toLowerCase().split('.').pop(),text='';
+  if(ext==='docx'){
+   if(typeof extractDocxText!=='function')throw new Error('DOCX');
+   text=await extractDocxText(file);
+  }else text=cpDecodeBytes(new Uint8Array(await file.arrayBuffer()));
+  text=String(text||'').replace(/^\uFEFF/,'').trim();
+  if(!text){if(typeof toast==='function')toast('文件内容为空');return;}
+  box.value=text;
+  var nameBox=document.querySelector('#charProfileView .cp-edit-sheet [data-cp-field="name"]');
+  if(nameBox&&!nameBox.value.trim()){
+   var first=text.split('\n')[0].replace(/^#+\s*/,'').trim();
+   if(first&&first.length<=12)nameBox.value=first;
+  }
+  if(typeof toast==='function')toast('已导入 '+file.name);
+ }catch(_){if(typeof toast==='function')toast('文件读取失败');}
+});
