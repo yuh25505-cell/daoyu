@@ -759,7 +759,6 @@ function openStickerPanel(){
   releaseInputFocus();
   renderStickerPanelInto();
   pmPanel.classList.add('is-open');
-  pmPanelPop();
 }
 
 function sendSticker(url){

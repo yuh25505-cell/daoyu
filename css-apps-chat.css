@@ -1040,19 +1040,15 @@ html[data-theme="dark"] .pm-hold{ background:#292929 !important; color:#f5f5f5 !
 
 .pm-bar.is-voice .pm-hold{ display:flex; }
 
-.pm-panel{ flex:none; overflow:hidden; max-height:0; background:linear-gradient(180deg,#fdfdfd,#f9f9f9); border-top:1px solid transparent; transition:max-height .24s cubic-bezier(.4,0,.2,1); }
+.pm-panel{ flex:none; overflow:hidden; max-height:0; display:flex; flex-direction:column; justify-content:flex-end; background:linear-gradient(180deg,#fdfdfd,#f9f9f9); border-top:1px solid transparent; transition:max-height .22s cubic-bezier(.4,0,.6,1); }
 
-.pm-panel.is-open{ max-height:282px; border-top-color: var(--track); transition:max-height .66s cubic-bezier(.3,1.5,.45,1); }
+.pm-panel.is-open{ max-height:282px; border-top-color: var(--track); transition:max-height .3s cubic-bezier(.2,.8,.2,1); }
 
-.pm-panel-inner{ padding:12px 12px 14px; height:282px; overflow-y:auto; scrollbar-width:none; }
+.pm-panel-inner{ flex:none; padding:12px 12px 14px; height:282px; overflow-y:auto; scrollbar-width:none; }
 
 .pm-panel-inner::-webkit-scrollbar{ display:none; }
 
-.pm-panel.is-popping .tool-grid, .pm-panel.is-popping .sticker-grid-scroll{ animation:pmPanelSpring .55s ease-in-out both; }
-
-@keyframes pmPanelSpring{ 0%{ transform:translateY(72px); opacity:0; } 50%{ transform:translateY(-10px); opacity:1; } 100%{ transform:translateY(0); opacity:1; } }
-
-@media (prefers-reduced-motion: reduce){ .pm-panel, .pm-panel.is-open{ transition:none; } .pm-panel.is-popping .tool-grid, .pm-panel.is-popping .sticker-grid-scroll{ animation:none; } }
+@media (prefers-reduced-motion: reduce){ .pm-panel, .pm-panel.is-open{ transition:none; } }
 
 .pm-panel.is-sticker-panel.is-open{ max-height:432px; }
 
