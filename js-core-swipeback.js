@@ -25,6 +25,7 @@
     { sel:'#pmVoiceCallSettingsModal', close:function(){ return click('#pmVoiceCallSettingsModal [data-vc-set-close]'); } },
     { sel:'#pmMediaViewModal',      close:function(){ return click('#pmMediaViewModal [data-media-view-close]'); } },
     { sel:'#pmFileViewModal',       close:function(){ return click('#pmFileViewModal [data-file-view-close]'); } },
+    { sel:'#pmImageTextEditModal',  close:function(){ return click('#pmImageTextEditModal [data-itedit-close]'); } },
     { sel:'#pmImageTextModal',      close:function(){ return click('#pmImageTextModal [data-image-text-close]'); } },
     { sel:'#pmLocationCustomModal', close:function(){ return click('#pmLocationCustomModal [data-location-custom-close]'); } },
     { sel:'#pmLocationModal',       close:function(){ return click('#pmLocationModal [data-location-close]'); } },

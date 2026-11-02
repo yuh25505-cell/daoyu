@@ -35,6 +35,8 @@ var pmLocationModal = $('pmLocationModal'), pmLocationCustomModal = $('pmLocatio
 var pmTransferModal = $('pmTransferModal'), pmTransferRecipient = $('pmTransferRecipient'), pmTransferAmount = $('pmTransferAmount'), pmTransferNote = $('pmTransferNote'), pmTransferHint = $('pmTransferHint'), pmTransferSend = $('pmTransferSend');
 
 var pmImageTextModal = $('pmImageTextModal'), pmImageTextDescription = $('pmImageTextDescription'), pmMediaViewModal = $('pmMediaViewModal'), pmMediaViewImage = $('pmMediaViewImage'), pmFileViewModal = $('pmFileViewModal'), pmFileViewTitle = $('pmFileViewTitle'), pmFileViewMeta = $('pmFileViewMeta'), pmFileViewContent = $('pmFileViewContent');
+var pmImageTextEditModal = $('pmImageTextEditModal'), pmImageTextEditInput = $('pmImageTextEditInput'), pmImageTextEditSave = $('pmImageTextEditSave'), pmImageTextEditTitle = $('pmImageTextEditTitle');
+var imageTextEditState = { mode:'new', index:-1 };
 
 var pmLocationStatus = $('pmLocationStatus');
 

@@ -71,6 +71,73 @@ function closeTransferModal(){
   pmTransferModal.setAttribute('aria-hidden','true');
 }
 
+function syncImageTextEditSave(){
+  if (!pmImageTextEditSave || !pmImageTextEditInput) return;
+  pmImageTextEditSave.disabled = !String(pmImageTextEditInput.value || '').trim();
+}
+
+function openImageTextEditor(mode, index){
+  if (!pmImageTextEditModal || !pmImageTextEditInput || !currentName) return;
+  var text = '';
+  var isEdit = mode === 'edit';
+  if (isEdit) {
+    var msg = (MESSAGES[currentName] || [])[Number(index)];
+    text = String(msg && (msg.description || msg.imageText || '') || '').trim();
+    if (!msg || msg.type !== 'image' || !text) return;
+  } else {
+    closePanel();
+  }
+  imageTextEditState = { mode: isEdit ? 'edit' : 'new', index: isEdit ? Number(index) : -1 };
+  if (pmImageTextEditTitle) pmImageTextEditTitle.textContent = isEdit ? '编辑文字图' : '文字图';
+  if (pmImageTextEditSave) pmImageTextEditSave.textContent = isEdit ? '保存' : '发送';
+  pmImageTextEditInput.value = text;
+  syncImageTextEditSave();
+  pmImageTextEditModal.classList.add('is-open');
+  pmImageTextEditModal.setAttribute('aria-hidden','false');
+  setTimeout(function(){
+    try { pmImageTextEditInput.focus(); pmImageTextEditInput.setSelectionRange(pmImageTextEditInput.value.length, pmImageTextEditInput.value.length); } catch(e) {}
+  }, 60);
+}
+
+function closeImageTextEditor(){
+  if (!pmImageTextEditModal) return;
+  try { if (pmImageTextEditInput) pmImageTextEditInput.blur(); } catch(e) {}
+  pmImageTextEditModal.classList.remove('is-open');
+  pmImageTextEditModal.setAttribute('aria-hidden','true');
+}
+
+function submitImageTextEditor(){
+  if (!pmImageTextEditInput || !currentName) return false;
+  var text = String(pmImageTextEditInput.value || '').trim();
+  if (!text) { syncImageTextEditSave(); return false; }
+  if (!Array.isArray(MESSAGES[currentName])) MESSAGES[currentName] = [];
+  if (imageTextEditState.mode === 'edit') {
+    var target = MESSAGES[currentName][imageTextEditState.index];
+    if (!target || target.type !== 'image') { closeImageTextEditor(); return false; }
+    var before = String(target.description || target.imageText || '').trim();
+    if (before !== text) {
+      target.description = text;
+      target.imageText = text;
+      target.text = '[图片] ' + text;
+      saveMessages(currentName);
+      renderMessages(false);
+      updateChatPreviewAfterMessageMutation(currentName);
+      renderChats(); saveChats();
+    }
+    closeImageTextEditor();
+    toast('已保存');
+    return true;
+  }
+  var msg = { id: genId('image_'), from:'me', type:'image', description:text, imageText:text, text:'[图片] ' + text, createdAt:Date.now() };
+  MESSAGES[currentName].push(msg);
+  saveMessages(currentName);
+  renderMessages(true); scrollBottom(true);
+  updateChatPreviewForMessage(currentName, msg);
+  renderChats(); saveChats();
+  closeImageTextEditor();
+  return true;
+}
+
 function openImageTextModal(index){
   if (!pmImageTextModal || !currentName) return;
   var recallTitle = document.getElementById('pmImageTextTitle');

@@ -632,6 +632,16 @@ function bindChatEvents(){
     var close = e.target.closest('[data-image-text-close]');
     if (close) { closeImageTextModal(); return; }
   });
+  if (pmImageTextEditModal) pmImageTextEditModal.addEventListener('click', function(e){
+    if (e.target.closest('[data-itedit-close]')) closeImageTextEditor();
+  });
+  if (pmImageTextEditInput) {
+    pmImageTextEditInput.addEventListener('input', syncImageTextEditSave);
+    pmImageTextEditInput.addEventListener('keydown', function(e){
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); submitImageTextEditor(); }
+    });
+  }
+  if (pmImageTextEditSave) pmImageTextEditSave.addEventListener('click', submitImageTextEditor);
   if (pmMediaViewModal) pmMediaViewModal.addEventListener('click', function(e){
     var close = e.target.closest('[data-media-view-close]');
     if (close) { closeMediaViewModal(); return; }
@@ -660,6 +670,7 @@ function bindChatEvents(){
   if (pmTransferSend) pmTransferSend.addEventListener('click', sendTransferMessage);
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
+    if (pmImageTextEditModal && pmImageTextEditModal.classList.contains('is-open')) { closeImageTextEditor(); return; }
     if (pmImageTextModal && pmImageTextModal.classList.contains('is-open')) { closeImageTextModal(); return; }
     if (pmMediaViewModal && pmMediaViewModal.classList.contains('is-open')) { closeMediaViewModal(); return; }
     if (pmFileViewModal && pmFileViewModal.classList.contains('is-open')) closeFileViewModal();
@@ -948,6 +959,8 @@ function bindChatEvents(){
       if (delGroup) { deleteStickerGroup(delGroup.dataset.stickerDeleteGroup); return; }
       var imageTool = e.target.closest('[data-tool="图片"]');
       if (imageTool) { if (pmImageInput) { pmImageInput.value = ''; pmImageInput.click(); } return; }
+      var imageTextTool = e.target.closest('[data-tool="文字图"]');
+      if (imageTextTool) { openImageTextEditor('new'); return; }
       var cameraTool = e.target.closest('[data-tool="拍摄"]');
       if (cameraTool) { if (pmCameraInput) { pmCameraInput.value = ''; pmCameraInput.click(); } return; }
       var fileTool = e.target.closest('[data-tool="文件"]');
