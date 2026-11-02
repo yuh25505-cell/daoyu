@@ -660,6 +660,9 @@ function memoryMessageText(msg){
   if (msg.type === 'file') {
     return timePrefix + who + '：[文件] ' + String(msg.name || msg.text || '未命名文件') + '（' + String(msg.mime || '未知类型') + '，' + formatFileSize(msg.size) + ')' + (msg.content ? '\n文件内容：' + clampFileText(msg.content, 6000) : '\n文件正文未成功读取');
   }
+  if (msg.type === 'image' && !/^(?:data:image\/|https?:\/\/)/i.test(String(msg.url || '')) && String(msg.description || msg.imageText || '').trim()) {
+    return timePrefix + who + '：[文字图] 发送了一张文字图，图片内容描述：' + String(msg.description || msg.imageText || '').trim();
+  }
   if (msg.type === 'image') return msg.visionText
     ? timePrefix + who + '：[图片消息] 发送了一张图片，画面内容（识图结果）：' + String(msg.visionText).slice(0, 200)
     : timePrefix + who + '：[图片消息] 发送了一张图片；总结器当前收到的是图片已发送这一事实，不得凭空猜测图片细节。';
