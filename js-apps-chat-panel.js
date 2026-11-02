@@ -48,10 +48,22 @@ function openPanel(mode){
   if (pmPlusBtn) pmPlusBtn.classList.toggle('is-on', mode === 'tools');
 }
 
+var pmPanelClassTimer = null;
+
 function closePanel(){
   clearStickerSelection();
   panelMode = null;
-  if (pmPanel) { pmPanel.classList.remove('is-open'); pmPanel.classList.remove('is-sticker-panel'); pmPanel.classList.remove('is-sticker-manage'); pmPanel.classList.remove('is-tools-panel'); }
+  if (pmPanel) {
+    pmPanel.classList.remove('is-open');
+    clearTimeout(pmPanelClassTimer);
+    pmPanelClassTimer = setTimeout(function(){
+      if (pmPanel && !pmPanel.classList.contains('is-open')) {
+        pmPanel.classList.remove('is-sticker-panel');
+        pmPanel.classList.remove('is-sticker-manage');
+        pmPanel.classList.remove('is-tools-panel');
+      }
+    }, 340);
+  }
   if (pmEmojiBtn) pmEmojiBtn.classList.remove('is-on');
   if (pmPlusBtn) pmPlusBtn.classList.remove('is-on');
 }

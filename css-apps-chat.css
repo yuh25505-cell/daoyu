@@ -1040,13 +1040,23 @@ html[data-theme="dark"] .pm-hold{ background:#292929 !important; color:#f5f5f5 !
 
 .pm-bar.is-voice .pm-hold{ display:flex; }
 
-.pm-panel{ flex:none; overflow:hidden; max-height:0; background:var(--bg); border-top:1px solid transparent; }
+.pm-panel{ flex:none; overflow:hidden; max-height:0; background:linear-gradient(180deg,#fdfdfd,#f9f9f9); border-top:1px solid transparent; transition:max-height .24s cubic-bezier(.4,0,.2,1); }
 
-.pm-panel.is-open{ max-height:282px; border-top-color: var(--track); }
+.pm-panel.is-open{ max-height:282px; border-top-color: var(--track); transition:max-height .46s cubic-bezier(.32,1.12,.5,1); }
 
 .pm-panel-inner{ padding:12px 12px 14px; height:282px; overflow-y:auto; scrollbar-width:none; }
 
 .pm-panel-inner::-webkit-scrollbar{ display:none; }
+
+.pm-panel.is-open .pm-panel-inner{ animation:pmPanelSpring .52s ease-out both; }
+
+@keyframes pmPanelSpring{ 0%{ transform:translateY(26px); opacity:0; } 50%{ transform:translateY(-2px); opacity:1; } 75%{ transform:translateY(1.5px); } 100%{ transform:translateY(0); opacity:1; } }
+
+@media (prefers-reduced-motion: reduce){ .pm-panel, .pm-panel.is-open{ transition:none; } .pm-panel.is-open .pm-panel-inner{ animation:none; } }
+
+.pm-panel.is-sticker-panel.is-open{ max-height:432px; }
+
+.pm-panel.is-sticker-panel .pm-panel-inner{ height:432px; }
 
 .pm-panel.is-sticker-panel .pm-panel-inner{ display:flex; flex-direction:column; overflow:hidden; }
 
@@ -1073,6 +1083,7 @@ html[data-theme="dark"] .pm-hold{ background:#292929 !important; color:#f5f5f5 !
 .pm-panel.is-tools-panel,
 .pm-panel.is-sticker-panel{ background:linear-gradient(180deg,#fdfdfd,#f9f9f9); border-top-color:transparent; }
 
+html[data-theme="dark"] .pm-panel,
 html[data-theme="dark"] .pm-panel.is-tools-panel,
 html[data-theme="dark"] .pm-panel.is-sticker-panel{ background:linear-gradient(180deg,#0e0e0f,#080808); border-top-color:transparent; }
 
@@ -1081,6 +1092,7 @@ html[data-theme="dark"] .tool-icon{ color:#f5f5f5; background:#1c1c1e; box-shado
 html[data-theme="dark"] .tool-item span.tool-label{ color:rgba(245,245,245,.62); }
 
 @media (prefers-color-scheme: dark){
+  html:not([data-theme]) .pm-panel,
   html:not([data-theme]) .pm-panel.is-tools-panel,
   html:not([data-theme]) .pm-panel.is-sticker-panel{ background:linear-gradient(180deg,#0e0e0f,#080808); border-top-color:transparent; }
   html:not([data-theme]) .tool-icon{ color:#f5f5f5; background:#1c1c1e; box-shadow:0 0 0 .5px rgba(255,255,255,.07); }
