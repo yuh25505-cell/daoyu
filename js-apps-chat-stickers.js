@@ -131,12 +131,14 @@ function normalizeStickerState(){
       if (!st || typeof st !== 'object') return;
       var url = String(st.url || '').trim();
       if (!/^https?:\/\//i.test(url) && !/^data:image\//i.test(url)) return;
-      stickers.push({
+      var entry = {
         id: typeof st.id === 'string' && st.id ? st.id : genId('sticker_'),
         url: url,
         name: String(st.name || '').trim().slice(0, 60),
         createdAt: Number(st.createdAt) || Date.now()
-      });
+      };
+      if (typeof st.thumb === 'string' && /^data:image\//i.test(st.thumb) && st.thumb.length < 150000) entry.thumb = st.thumb;
+      stickers.push(entry);
     });
     cleaned.push({ id:id, name:name, stickers:stickers });
   });
@@ -148,7 +150,13 @@ function normalizeStickerState(){
   return State.stickers;
 }
 
-function saveStickers(){ return IslandDB.set('island.stickers', State.stickers); }
+function saveStickers(){
+  IslandDB.set('island.stickers.active', State.stickers.activeGroupId || '');
+  return IslandDB.set('island.stickers', State.stickers);
+}
+
+/* 只切换分组时，只保存一个很小的记录，不再重写整库的表情包数据，切换才不会卡。 */
+function saveStickerActiveGroup(){ return IslandDB.set('island.stickers.active', State.stickers.activeGroupId || ''); }
 
 function getStickerState(){ return normalizeStickerState(); }
 
@@ -179,7 +187,7 @@ function renderStickerPanel(){
   var grid = group && group.stickers.length ? group.stickers.map(function(item){
     var label = getStickerDisplayName(item);
     var selected = !!stickerSelectedIds[item.id];
-    return '<button type="button" class="sticker-item' + (selected ? ' is-selected' : '') + '" data-sticker-id="' + escapeHTML(item.id) + '" data-sticker-url="' + (/^data:/i.test(item.url) ? '' : escapeHTML(item.url)) + '" aria-label="' + escapeHTML(label) + '"><span class="sticker-select-mark">✓</span><span class="sticker-image-wrap"><img src="' + escapeHTML(item.url) + '" alt="' + escapeHTML(label) + '" loading="lazy"></span><span class="sticker-name">' + escapeHTML(label) + '</span></button>';
+    return '<button type="button" class="sticker-item' + (selected ? ' is-selected' : '') + '" data-sticker-id="' + escapeHTML(item.id) + '" data-sticker-url="' + (/^data:/i.test(item.url) ? '' : escapeHTML(item.url)) + '" aria-label="' + escapeHTML(label) + '"><span class="sticker-select-mark">✓</span><span class="sticker-image-wrap"><img src="' + escapeHTML(stickerPanelImageSrc(item)) + '" alt="' + escapeHTML(label) + '" loading="lazy" decoding="async"></span><span class="sticker-name">' + escapeHTML(label) + '</span></button>';
   }).join('') : '<div class="sticker-empty">这个分组还没有表情包</div>';
   var headClass = 'sticker-panel-head' + (stickerSelectionMode ? ' is-selection-mode' : '');
   return '<div class="' + headClass + '"><div class="sticker-groups">' + tabs + '</div><div class="sticker-head-actions">' + actions + '</div></div>' +
@@ -650,9 +658,95 @@ function deleteStickerGroup(id){
   });
 }
 
+var STICKER_BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+var STICKER_BIG_DATA_LIMIT = 30000;
+var stickerThumbRun = 0;
+var stickerThumbFailed = {};
+var stickerThumbTimer = null;
+
+/* 面板里显示的图：网络图片用原链接；内嵌的大图（动图等）用小缩略图，避免一次塞进几十 MB 数据导致卡顿。 */
+function stickerPanelImageSrc(item){
+  var url = String(item && item.url || '');
+  if (!/^data:/i.test(url)) return url;
+  if (item.thumb) return item.thumb;
+  if (stickerThumbFailed[item.id]) return url;
+  return url.length <= STICKER_BIG_DATA_LIMIT ? url : STICKER_BLANK_IMG;
+}
+
+function makeStickerThumb(url){
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = function(){
+      try {
+        var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        if (!w || !h) { resolve(''); return; }
+        var tries = [[192, 0.8], [128, 0.6], [96, 0.45]];
+        for (var i = 0; i < tries.length; i++) {
+          var scale = Math.min(1, tries[i][0] / Math.max(w, h));
+          var cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(w * scale)); cv.height = Math.max(1, Math.round(h * scale));
+          var cx = cv.getContext('2d');
+          if (!cx) { resolve(''); return; }
+          var out = cv.toDataURL('image/webp', tries[i][1]);
+          if (!/^data:image\/webp/i.test(out)) {
+            /* 部分手机（如 iPhone）不支持 webp，改用 jpeg，透明处垫白色 */
+            cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height);
+            cx.drawImage(img, 0, 0, cv.width, cv.height);
+            out = cv.toDataURL('image/jpeg', tries[i][1]);
+          } else {
+            cx.drawImage(img, 0, 0, cv.width, cv.height);
+            out = cv.toDataURL('image/webp', tries[i][1]);
+          }
+          if (/^data:image\//i.test(out) && out.length < 150000) { resolve(out); return; }
+        }
+        resolve('');
+      } catch (_) { resolve(''); }
+    };
+    img.onerror = function(){ resolve(''); };
+    img.src = url;
+  });
+}
+
+/* 还没有缩略图的内嵌大图，先做当前分组，再做其他分组，一张一张在后台生成，生成后记住，下次切换秒开。
+ * 菜单刚弹出时先不做（等动画结束），菜单关了就暂停；做不出来的图只试一次，不会每次打开都重试。 */
+function queueStickerThumbs(){
+  clearTimeout(stickerThumbTimer);
+  var st0 = getStickerState();
+  var active = activeStickerGroup();
+  var ordered = active ? [active] : [];
+  st0.groups.forEach(function(g){ if (g !== active) ordered.push(g); });
+  var todo = [];
+  ordered.forEach(function(g){
+    g.stickers.forEach(function(item){
+      if (/^data:image\//i.test(item.url) && !item.thumb && !stickerThumbFailed[item.id] && item.url.length > STICKER_BIG_DATA_LIMIT) todo.push({ id:item.id, url:item.url });
+    });
+  });
+  if (!todo.length) return;
+  var run = ++stickerThumbRun, i = 0, made = {}, madeCount = 0;
+  function finish(){
+    if (!madeCount) return;
+    var st = getStickerState();
+    st.groups.forEach(function(g){ g.stickers.forEach(function(it){ if (made[it.id]) it.thumb = made[it.id]; }); });
+    made = {}; madeCount = 0;
+    saveStickers();
+  }
+  function next(){
+    if (run !== stickerThumbRun || i >= todo.length || panelMode !== 'sticker') { finish(); return; }
+    var job = todo[i++];
+    makeStickerThumb(job.url).then(function(thumb){
+      var img = pmPanelInner ? pmPanelInner.querySelector('.sticker-item[data-sticker-id="' + job.id + '"] img') : null;
+      if (thumb) { made[job.id] = thumb; madeCount++; if (img) img.src = thumb; }
+      else { stickerThumbFailed[job.id] = true; if (img) img.src = job.url; }
+      stickerThumbTimer = setTimeout(next, 80);
+    });
+  }
+  stickerThumbTimer = setTimeout(next, 750);
+}
+
 function renderStickerPanelInto(){
   if (pmPanel) pmPanel.classList.remove('is-sticker-manage');
   if (pmPanelInner) pmPanelInner.innerHTML = renderStickerPanel();
+  queueStickerThumbs();
 }
 
 function openStickerPanel(){
@@ -665,6 +759,7 @@ function openStickerPanel(){
   releaseInputFocus();
   renderStickerPanelInto();
   pmPanel.classList.add('is-open');
+  pmPanelPop();
 }
 
 function sendSticker(url){

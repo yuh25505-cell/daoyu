@@ -31,6 +31,17 @@ function buildToolsPanel(){
   html += '</div>'; return html;
 }
 
+var pmPanelPopTimer = null;
+
+function pmPanelPop(){
+  if (!pmPanel) return;
+  pmPanel.classList.remove('is-popping');
+  void pmPanel.offsetWidth;
+  pmPanel.classList.add('is-popping');
+  clearTimeout(pmPanelPopTimer);
+  pmPanelPopTimer = setTimeout(function(){ if (pmPanel) pmPanel.classList.remove('is-popping'); }, 950);
+}
+
 function openPanel(mode){
   releaseInputFocus();
   if (!pmPanel) return;
@@ -44,6 +55,7 @@ function openPanel(mode){
   pmPanel.classList.add('is-tools-panel');
   pmPanelInner.innerHTML = buildToolsPanel();
   pmPanel.classList.add('is-open');
+  pmPanelPop();
   if (pmEmojiBtn) pmEmojiBtn.classList.remove('is-on');
   if (pmPlusBtn) pmPlusBtn.classList.toggle('is-on', mode === 'tools');
 }
