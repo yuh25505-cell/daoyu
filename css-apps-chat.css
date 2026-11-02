@@ -1048,9 +1048,9 @@ html[data-theme="dark"] .pm-hold{ background:#292929 !important; color:#f5f5f5 !
 
 .pm-panel-inner::-webkit-scrollbar{ display:none; }
 
-.pm-panel.is-popping .tool-grid, .pm-panel.is-popping .sticker-grid-scroll{ animation:pmPanelSpring .8s ease both; }
+.pm-panel.is-popping .tool-grid, .pm-panel.is-popping .sticker-grid-scroll{ animation:pmPanelSpring .55s ease-in-out both; }
 
-@keyframes pmPanelSpring{ 0%{ transform:translateY(72px); opacity:0; } 26%{ transform:translateY(-11px); opacity:1; } 44%{ transform:translateY(6px); } 60%{ transform:translateY(-3px); } 76%{ transform:translateY(1.5px); } 100%{ transform:translateY(0); opacity:1; } }
+@keyframes pmPanelSpring{ 0%{ transform:translateY(72px); opacity:0; } 50%{ transform:translateY(-10px); opacity:1; } 100%{ transform:translateY(0); opacity:1; } }
 
 @media (prefers-reduced-motion: reduce){ .pm-panel, .pm-panel.is-open{ transition:none; } .pm-panel.is-popping .tool-grid, .pm-panel.is-popping .sticker-grid-scroll{ animation:none; } }
 
