@@ -152,6 +152,15 @@ function saveStickers(){ return IslandDB.set('island.stickers', State.stickers);
 
 function getStickerState(){ return normalizeStickerState(); }
 
+function stickerUrlById(id){
+  var st = getStickerState();
+  for (var i = 0; i < st.groups.length; i++) {
+    var list = st.groups[i].stickers;
+    for (var j = 0; j < list.length; j++) if (list[j].id === id) return list[j].url;
+  }
+  return '';
+}
+
 function activeStickerGroup(){
   var st = getStickerState();
   for (var i=0;i<st.groups.length;i++) if (st.groups[i].id === st.activeGroupId) return st.groups[i];
@@ -170,7 +179,7 @@ function renderStickerPanel(){
   var grid = group && group.stickers.length ? group.stickers.map(function(item){
     var label = getStickerDisplayName(item);
     var selected = !!stickerSelectedIds[item.id];
-    return '<button type="button" class="sticker-item' + (selected ? ' is-selected' : '') + '" data-sticker-id="' + escapeHTML(item.id) + '" data-sticker-url="' + escapeHTML(item.url) + '" aria-label="' + escapeHTML(label) + '"><span class="sticker-select-mark">✓</span><span class="sticker-image-wrap"><img src="' + escapeHTML(item.url) + '" alt="' + escapeHTML(label) + '" loading="lazy"></span><span class="sticker-name">' + escapeHTML(label) + '</span></button>';
+    return '<button type="button" class="sticker-item' + (selected ? ' is-selected' : '') + '" data-sticker-id="' + escapeHTML(item.id) + '" data-sticker-url="' + (/^data:/i.test(item.url) ? '' : escapeHTML(item.url)) + '" aria-label="' + escapeHTML(label) + '"><span class="sticker-select-mark">✓</span><span class="sticker-image-wrap"><img src="' + escapeHTML(item.url) + '" alt="' + escapeHTML(label) + '" loading="lazy"></span><span class="sticker-name">' + escapeHTML(label) + '</span></button>';
   }).join('') : '<div class="sticker-empty">这个分组还没有表情包</div>';
   var headClass = 'sticker-panel-head' + (stickerSelectionMode ? ' is-selection-mode' : '');
   return '<div class="' + headClass + '"><div class="sticker-groups">' + tabs + '</div><div class="sticker-head-actions">' + actions + '</div></div>' +
@@ -184,7 +193,7 @@ function renderStickerImportPanel(){
     '<div class="sticker-form"><label>导入到<select id="stickerImportGroup">' + options + '</select></label>' +
     '<label>表情包链接<textarea id="stickerImportUrls" rows="5" placeholder="每行一个：表情包描述/名称：表情包链接\n开心：https://example.com/happy.webp\n震惊：https://example.com/shocked.png"></textarea></label>' +
     '<div class="sticker-import-note">也支持只填链接；会自动读取名称。可一次导入多行。</div>' +
-    '<div class="sticker-import-actions"><button type="button" class="sticker-primary-btn" data-sticker-action="import">导入链接</button><button type="button" class="sticker-mini-btn" data-sticker-action="choose-file">导入文件</button><input id="stickerFileInput" type="file" hidden multiple accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div></div>';
+    '<div class="sticker-import-actions"><button type="button" class="sticker-primary-btn" data-sticker-action="import">导入链接</button><button type="button" class="sticker-mini-btn" data-sticker-action="choose-file">导入文件</button><input id="stickerFileInput" type="file" hidden multiple accept=".txt,.docx,.json,.jsonl,application/json,text/json,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div></div>';
 }
 
 function renderStickerGroupsPanel(){
@@ -236,10 +245,13 @@ function addStickerItems(items, groupId){
 function importStickerUrls(){
   var urlsEl = $('stickerImportUrls'), groupEl = $('stickerImportGroup');
   if (!urlsEl || !groupEl) return;
-  var parsed = parseStickerImportText(urlsEl.value);
+  var parsed = [];
+  var skipped = 0;
+  if (looksLikeStickerJson(urlsEl.value)) { var jr = parseStickerJsonText(urlsEl.value); parsed = jr.items; skipped = jr.skipped || 0; }
+  if (!parsed.length) parsed = parseStickerImportText(urlsEl.value);
   if (!parsed.length) { toast('请输入“名称：图片链接”，或直接输入图片链接'); return; }
-  var out = addStickerItems(parsed, groupEl.value);
-  saveStickers().then(function(){ renderStickerPanelInto(); toast(out.added ? '已导入 ' + out.added + ' 个表情包' : '这些表情包已经存在'); });
+  var out = addStickerItemsSmart(parsed, groupEl.value);
+  saveStickers().then(function(){ renderStickerPanelInto(); stickerImportToast(out, skipped); });
 }
 
 function stickerUrl(value){
@@ -297,6 +309,252 @@ function parseStickerImportText(text){
 }
 
 
+/* ===== JSON 表情包导入：兼容多种常见写法 =====
+ * 支持：[{name,url}]、{"名称":"链接"}、{stickers:[…]}、{groups:[{name,stickers:[…]}]}（本软件自己的格式）、
+ * 链接数组、字段名 url/src/image/link/emoji_url 等、中文字段名、多层嵌套。 */
+var STICKER_JSON_URL_KEYS = ['url','src','image','img','imageurl','imgurl','imagedata','originalurl','link','href','uri','file','path','emojiurl','stickerurl','pic','picture','photo','gif','链接','图片','图片链接','地址','网址','表情链接'];
+var STICKER_JSON_NAME_KEYS = ['name','title','desc','description','label','text','keyword','keywords','tag','tags','alt','caption','meaning','emotion','mood','word','emojiname','stickername','名称','名字','标题','描述','说明','表情','含义','关键词'];
+var STICKER_JSON_GROUP_NAME_KEYS = ['name','title','groupname','packname','名称','名字','标题','分组名'];
+var STICKER_JSON_ITEM_GROUP_KEYS = ['group','groupname','category','pack','packname','分组','分类','分组名'];
+var STICKER_JSON_WRAPPER_KEYS = ['stickers','sticker','emojis','emoji','items','list','data','images','pictures','memes','packs','pack','groups','group','categories','category','sets','expressions','emoticons','results','files','stickerlist','emojilist','表情包','表情','列表','分组','贴纸','数据'];
+
+function stickerJsonKeyNorm(k){ return String(k).toLowerCase().replace(/[\s_\-]/g, ''); }
+
+function stickerJsonUrl(v){
+  if (typeof v !== 'string') return '';
+  var u = v.trim();
+  if (/^\/\/[^\s\/]/.test(u)) u = 'https:' + u;
+  if (/^https?:\/\/\S+$/i.test(u) || /^data:image\/[a-z0-9.+-]+;base64,/i.test(u)) return u;
+  return '';
+}
+
+function stickerJsonPick(obj, keys, wantUrl){
+  var norm = {};
+  Object.keys(obj).forEach(function(k){ norm[stickerJsonKeyNorm(k)] = k; });
+  for (var i = 0; i < keys.length; i++) {
+    var real = norm[keys[i]];
+    if (real === undefined) continue;
+    var v = obj[real];
+    if (Array.isArray(v)) v = v.filter(function(x){ return typeof x === 'string'; })[0];
+    if (wantUrl) {
+      var u = stickerJsonUrl(v);
+      if (u) return u;
+    } else if (typeof v === 'string' || typeof v === 'number') {
+      var s = String(v).replace(/\s+/g, ' ').trim();
+      if (s && !stickerJsonUrl(s)) return s;
+    }
+  }
+  return '';
+}
+
+var STICKER_JSON_MEANING_KEYS = ['meaning','description','desc','含义','描述','说明','label','caption','alt','keyword','keywords','text'];
+var STICKER_JSON_GENERIC_GROUPS = {custom:1,batch_url:1,'default':1,personal:1,uncategorized:1,other:1,others:1,none:1,'null':1,undefined:1,'未分类':1,'其他':1,'自定义':1};
+
+function stickerJsonAutoName(name){
+  var n = String(name || '').trim();
+  if (!n) return true;
+  if (/^(?:表情包|表情|图片|微信图片|image|img|pic|photo|emoji|sticker|mmexport|screenshot)[\s_\-]*\d{5,}$/i.test(n)) return true;
+  if (/^[A-Za-z0-9_\-. ]*\d{5,}[A-Za-z0-9_\-. ]*$/.test(n)) return true;
+  return false;
+}
+
+function stickerJsonItemName(node, nameHint){
+  var strong = stickerJsonPick(node, ['name','title','名称','名字','标题'], false);
+  if (strong && !stickerJsonAutoName(strong)) return strong;
+  var meaning = stickerJsonPick(node, STICKER_JSON_MEANING_KEYS, false);
+  if (meaning) return meaning;
+  return nameHint || strong || stickerJsonPick(node, STICKER_JSON_NAME_KEYS, false) || '';
+}
+
+function stickerJsonItemGroup(node){
+  var g = stickerJsonPick(node, STICKER_JSON_ITEM_GROUP_KEYS, false);
+  if (!g || STICKER_JSON_GENERIC_GROUPS[g.toLowerCase()]) return '';
+  return g;
+}
+
+function stickerJsonHasNonUrlValue(obj){
+  var norm = {};
+  Object.keys(obj).forEach(function(k){ norm[stickerJsonKeyNorm(k)] = k; });
+  for (var i = 0; i < STICKER_JSON_URL_KEYS.length; i++) {
+    var real = norm[STICKER_JSON_URL_KEYS[i]];
+    if (real !== undefined && typeof obj[real] === 'string' && obj[real].trim() && !stickerJsonUrl(obj[real])) return true;
+  }
+  return false;
+}
+
+function parseStickerJsonValue(root){
+  var out = [];
+  var skipped = 0;
+  var urlSet = {}, nameSet = {}, wrapSet = {};
+  STICKER_JSON_URL_KEYS.forEach(function(k){ urlSet[k] = true; });
+  STICKER_JSON_NAME_KEYS.forEach(function(k){ nameSet[k] = true; });
+  STICKER_JSON_WRAPPER_KEYS.forEach(function(k){ wrapSet[k] = true; });
+
+  function fillGroup(from, name){
+    if (!name) return;
+    for (var i = from; i < out.length; i++) if (!out[i].group) out[i].group = name;
+  }
+  function isLeafObj(v){
+    return v && typeof v === 'object' && !Array.isArray(v) && !!stickerJsonPick(v, STICKER_JSON_URL_KEYS, true);
+  }
+
+  function walk(node, ctx, depth){
+    if (node == null || depth > 10) return;
+    if (typeof node === 'string') {
+      var su = stickerJsonUrl(node);
+      if (su) out.push({ url:su, name:ctx.nameHint || '', group:ctx.group || '' });
+      else if (ctx.nameHint && node.trim()) skipped++;
+      return;
+    }
+    if (Array.isArray(node)) {
+      var c2 = { group:ctx.group || '', nameHint:'' };
+      node.forEach(function(el){ walk(el, c2, depth + 1); });
+      return;
+    }
+    if (typeof node !== 'object') return;
+
+    var before = out.length;
+    var ownUrl = stickerJsonPick(node, STICKER_JSON_URL_KEYS, true);
+    var keys = Object.keys(node);
+
+    keys.forEach(function(k){
+      var v = node[k];
+      if (v == null || typeof v !== 'object') return;
+      var nk = stickerJsonKeyNorm(k);
+      if (urlSet[nk] || nameSet[nk]) return;
+      var mark = out.length;
+      if (wrapSet[nk]) {
+        walk(v, { group:ctx.group || '', nameHint:'' }, depth + 1);
+      } else if (!ownUrl) {
+        if (Array.isArray(v)) {
+          walk(v, { group:'', nameHint:'' }, depth + 1);
+          fillGroup(mark, k);
+        } else if (isLeafObj(v)) {
+          walk(v, { group:ctx.group || '', nameHint:k }, depth + 1);
+        } else {
+          walk(v, { group:'', nameHint:'' }, depth + 1);
+          fillGroup(mark, k);
+        }
+      }
+    });
+
+    if (out.length > before) {
+      fillGroup(before, stickerJsonPick(node, STICKER_JSON_GROUP_NAME_KEYS, false) || ctx.group || '');
+      return;
+    }
+
+    if (ownUrl) {
+      out.push({
+        url: ownUrl,
+        name: stickerJsonItemName(node, ctx.nameHint),
+        group: stickerJsonItemGroup(node) || ctx.group || ''
+      });
+      return;
+    }
+    if (stickerJsonHasNonUrlValue(node)) { skipped++; return; }
+
+    keys.forEach(function(k){
+      var v = node[k];
+      if (typeof v !== 'string') return;
+      var u = stickerJsonUrl(v);
+      var nk = stickerJsonKeyNorm(k);
+      if (u && !urlSet[nk]) out.push({ url:u, name:String(k).trim(), group:ctx.group || '' });
+      else if (!u && !nameSet[nk] && /\.(png|jpe?g|gif|webp|bmp|svg|avif)(\?.*)?$/i.test(v.trim())) skipped++;
+    });
+  }
+
+  walk(root, { group:'', nameHint:'' }, 0);
+  return { items: out, skipped: skipped };
+}
+
+function parseStickerJsonText(text){
+  var src = String(text == null ? '' : text).replace(/^\uFEFF/, '').trim();
+  if (!src) return { items:[], skipped:0 };
+  var data;
+  var ok = false;
+  try { data = JSON.parse(src); ok = true; } catch (_) {}
+  if (!ok) {
+    try { data = JSON.parse(src.replace(/,\s*([}\]])/g, '$1')); ok = true; } catch (_) {}
+  }
+  if (!ok) {
+    var rows = [];
+    src.split(/\r?\n/).forEach(function(line){
+      var t = line.trim();
+      if (!t) return;
+      try { rows.push(JSON.parse(t.replace(/,$/, ''))); } catch (_) {}
+    });
+    if (rows.length) { data = rows; ok = true; }
+  }
+  if (!ok) {
+    var plain = parseStickerImportText(src);
+    if (!plain.length) {
+      var urls = src.match(/https?:\/\/[^\s"'<>,\\]+/gi) || [];
+      plain = urls.map(function(u){ return { url:u, name:'' }; });
+    }
+    return { items:plain, skipped:0 };
+  }
+  var res = parseStickerJsonValue(data);
+  var seen = {};
+  res.items = res.items.filter(function(it){
+    var key = (it.group || '') + '|' + it.url;
+    if (seen[key]) return false;
+    seen[key] = true;
+    it.name = String(it.name || '').slice(0, 60);
+    it.group = String(it.group || '').trim().slice(0, 30);
+    return true;
+  });
+  return res;
+}
+
+function looksLikeStickerJson(text){
+  var t = String(text == null ? '' : text).replace(/^\uFEFF/, '').trim();
+  return /^[\[{]/.test(t) && /[\]}]$/.test(t);
+}
+
+function decodeStickerTextBuffer(buf){
+  var bytes = new Uint8Array(buf);
+  var text = new TextDecoder('utf-8').decode(bytes).replace(/^\uFEFF/, '');
+  if ((text.match(/\uFFFD/g) || []).length >= 2) {
+    try { text = new TextDecoder('gb18030').decode(bytes).replace(/^\uFEFF/, ''); } catch (_) {}
+  }
+  return text;
+}
+
+/* 把解析出的表情包放进分组：JSON 里带有 2 个及以上不同分组名时，按分组名建立/合并分组；否则全部放进所选分组。 */
+function addStickerItemsSmart(items, selectedGroupId){
+  var names = {}, count = 0;
+  (items || []).forEach(function(it){
+    var g = String(it.group || '').trim();
+    if (g && !names[g]) { names[g] = true; count++; }
+  });
+  if (count < 2) return addStickerItems(items, selectedGroupId);
+  var st = getStickerState();
+  var buckets = {}, order = [], loose = [];
+  items.forEach(function(it){
+    var g = String(it.group || '').trim().slice(0, 30);
+    if (!g) { loose.push(it); return; }
+    if (!buckets[g]) { buckets[g] = []; order.push(g); }
+    buckets[g].push(it);
+  });
+  var added = 0, first = null;
+  order.forEach(function(g){
+    var group = st.groups.filter(function(x){ return x.name === g; })[0];
+    if (!group) { group = { id:genId('stkgrp_'), name:g, stickers:[] }; st.groups.push(group); }
+    var r = addStickerItems(buckets[g], group.id);
+    added += r.added;
+    if (!first) first = group.id;
+  });
+  if (loose.length) added += addStickerItems(loose, selectedGroupId).added;
+  if (first) st.activeGroupId = first;
+  return { state:st, group:activeStickerGroup(), added:added, groups:order.length };
+}
+
+function stickerImportToast(out, skipped){
+  var msg = out.added ? '已导入 ' + out.added + ' 个表情包' + (out.groups ? '（' + out.groups + ' 个分组）' : '') : '没有找到可导入的新表情包';
+  if (skipped) msg += '，' + skipped + ' 个不是网络链接已跳过';
+  toast(msg);
+}
+
 function parseDocxText(arrayBuffer){
   if (!window.JSZip || !arrayBuffer) return Promise.resolve('');
   return window.JSZip.loadAsync(arrayBuffer).then(function(zip){
@@ -315,6 +573,8 @@ function parseDocxText(arrayBuffer){
   }).catch(function(){ return ''; });
 }
 
+var stickerImportSkipped = 0;
+
 function parseStickerFile(file){
   var name = String(file && file.name || '');
   var lower = name.toLowerCase();
@@ -328,14 +588,19 @@ function parseStickerFile(file){
       return items;
     }).catch(function(){ return []; });
   }
+  if (lower.endsWith('.json') || lower.endsWith('.jsonl') || file.type === 'application/json' || file.type === 'text/json') {
+    return file.arrayBuffer().then(function(buf){
+      var res = parseStickerJsonText(decodeStickerTextBuffer(buf));
+      stickerImportSkipped += res.skipped || 0;
+      return res.items;
+    }).catch(function(){ return []; });
+  }
   if (lower.endsWith('.txt') || file.type === 'text/plain') {
     return file.arrayBuffer().then(function(buf){
-      var bytes = new Uint8Array(buf);
-      var utf8 = new TextDecoder('utf-8').decode(bytes).replace(/^\uFEFF/, '');
-      // 部分手机导出的 TXT 仍可能是 GB18030/GBK；若 UTF-8 出现明显替换字符则自动回退。
-      var text = utf8;
-      if ((utf8.match(/\uFFFD/g) || []).length >= 2) {
-        try { text = new TextDecoder('gb18030').decode(bytes).replace(/^\uFEFF/, ''); } catch (_) {}
+      var text = decodeStickerTextBuffer(buf);
+      if (looksLikeStickerJson(text)) {
+        var res = parseStickerJsonText(text);
+        if (res.items.length) { stickerImportSkipped += res.skipped || 0; return res.items; }
       }
       return parseStickerImportText(text);
     }).catch(function(){ return []; });
@@ -347,11 +612,16 @@ function importStickerFiles(files){
   var groupEl = $('stickerImportGroup');
   if (!groupEl || !files || !files.length) return;
   var list = Array.prototype.slice.call(files);
+  var fileInput = $('stickerFileInput');
+  if (fileInput) fileInput.value = '';
+  stickerImportSkipped = 0;
   Promise.all(list.map(parseStickerFile)).then(function(results){
     var items = [];
     results.forEach(function(result){ if (Array.isArray(result)) items = items.concat(result); });
-    var out = addStickerItems(items, groupEl.value);
-    saveStickers().then(function(){ renderStickerPanelInto(); toast(out.added ? '已导入 ' + out.added + ' 个表情包' : 'TXT / DOCX 中没有找到可导入的表情包'); });
+    var skipped = stickerImportSkipped;
+    if (!items.length) { toast(skipped ? skipped + ' 个不是网络链接，无法导入' : '文件中没有找到可导入的表情包'); return; }
+    var out = addStickerItemsSmart(items, groupEl.value);
+    saveStickers().then(function(){ renderStickerPanelInto(); stickerImportToast(out, skipped); });
   });
 }
 
