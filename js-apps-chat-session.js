@@ -917,7 +917,7 @@ function bindChatEvents(){
         if (stickerIgnoreNextClick) { stickerIgnoreNextClick = false; return; }
         var stickerId = sticker.dataset.stickerId || '';
         if (stickerSelectionMode) { toggleStickerSelection(stickerId); return; }
-        sendSticker(sticker.dataset.stickerUrl); return;
+        sendSticker(sticker.dataset.stickerUrl || stickerUrlById(stickerId)); return;
       }
       var group = e.target.closest('[data-sticker-group]');
       if (group) { clearStickerSelection(); var st = getStickerState(); st.activeGroupId = group.dataset.stickerGroup; saveStickers().then(function(){ renderStickerPanelInto(); }); return; }
