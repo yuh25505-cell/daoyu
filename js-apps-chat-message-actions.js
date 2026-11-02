@@ -343,6 +343,17 @@ function quoteMessage(index){
   focusPMInputForQuote();
 }
 
+/* 文字图卡片「重新编辑」：把描述放进输入框，方便改完再发；输入框里已有内容时接在后面，不会覆盖。 */
+function reeditImageTextMessage(index){
+  var list = MESSAGES[currentName] || [], msg = list[Number(index)];
+  var text = String(msg && (msg.description || msg.imageText || '') || '').trim();
+  if (!msg || !text || !pmInput) return;
+  var current = String(pmInput.value || '');
+  pmInput.value = current.trim() ? current.replace(/\s+$/, '') + '\n' + text : text;
+  try { pmInput.dispatchEvent(new Event('input', { bubbles:true })); } catch(e) {}
+  focusPMInputForQuote();
+}
+
 function toggleMessageFavorite(index){
   var list = MESSAGES[currentName] || [], msg = list[Number(index)];
   if (!msg) return;

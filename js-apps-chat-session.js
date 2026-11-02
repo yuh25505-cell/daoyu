@@ -1031,9 +1031,32 @@ function bindChatEvents(){
         openMediaViewModal(Number(mediaView.dataset.mediaViewIndex));
         return;
       }
+      var imageTextAct = e.target.closest('[data-image-text-action]');
+      if (imageTextAct && pmScroll.contains(imageTextAct) && !messageSelectionMode) {
+        var imageTextOwner = imageTextAct.closest('[data-image-text-index]');
+        e.preventDefault();
+        e.stopPropagation();
+        if (messageLongPressState.triggered) { messageLongPressState.triggered = false; return; }
+        if (imageTextOwner) {
+          var imageTextIdx = Number(imageTextOwner.dataset.imageTextIndex);
+          var imageTextKind = imageTextAct.dataset.imageTextAction;
+          if (imageTextKind === 'copy') copyMessageText(imageTextIdx);
+          else if (imageTextKind === 'reedit') reeditImageTextMessage(imageTextIdx);
+          else if (imageTextKind === 'favorite') {
+            toggleMessageFavorite(imageTextIdx);
+            var imageTextMsg = (MESSAGES[currentName] || [])[imageTextIdx];
+            var imageTextOn = !!(imageTextMsg && imageTextMsg.favorite);
+            imageTextAct.classList.toggle('is-active', imageTextOn);
+            imageTextAct.setAttribute('aria-label', imageTextOn ? '取消收藏' : '收藏');
+            imageTextAct.innerHTML = imageTextFavInnerHTML(imageTextOn);
+          }
+        }
+        return;
+      }
       var imageTextCard = e.target.closest('[data-image-text-index]');
       if (imageTextCard && pmScroll.contains(imageTextCard)) {
         e.preventDefault();
+        if (messageLongPressState.triggered) { messageLongPressState.triggered = false; return; }
         openImageTextModal(Number(imageTextCard.dataset.imageTextIndex));
         return;
       }
@@ -1188,6 +1211,11 @@ function bindChatEvents(){
       if (mediaView && !messageSelectionMode && pmScroll.contains(mediaView)) {
         e.preventDefault();
         openMediaViewModal(Number(mediaView.dataset.mediaViewIndex));
+        return;
+      }
+      if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-image-text-index') && !messageSelectionMode && pmScroll.contains(e.target)) {
+        e.preventDefault();
+        openImageTextModal(Number(e.target.dataset.imageTextIndex));
         return;
       }
       var card = e.target.closest('.chat-bubble--chat-record');

@@ -175,7 +175,7 @@ function bubbleHTML(msg, entering, index){
     var imageViewAttr = msg.from === 'me' ? ' data-media-view-index="' + index + '" role="button" tabindex="0" aria-label="查看图片"' : '';
     body = '<div class="pm-image-bubble chat-bubble chat-bubble--image' + (msg.from === 'me' ? ' is-media-viewable' : '') + '"' + imageViewAttr + '><img src="' + escapeHTML(cachedImageSrc(msg.url)) + '" alt="图片" loading="lazy" decoding="async"></div>';
   } else if (msg && msg.type === 'image' && String(msg.description || msg.imageText || '').trim()) {
-    body = '<button type="button" class="pm-image-text-bubble chat-bubble chat-bubble--image" data-image-text-index="' + index + '" aria-label="查看文字图描述"><span class="pm-image-text-content">文字图</span></button>';
+    body = imageTextCardHTML(index, msg);
   } else if (msg && msg.type === 'sticker' && /^(?:https?:\/\/|data:image\/)/i.test(String(msg.url || ''))) {
     var stickerViewAttr = msg.from === 'me' ? ' data-media-view-index="' + index + '" role="button" tabindex="0" aria-label="查看表情包"' : '';
     body = '<div class="pm-sticker-bubble chat-bubble chat-bubble--sticker' + (msg.from === 'me' ? ' is-media-viewable' : '') + '"' + stickerViewAttr + '><img src="' + escapeHTML(cachedImageSrc(msg.url)) + '" alt="表情包" loading="lazy" decoding="async"></div>';
@@ -234,6 +234,27 @@ function bubbleHTML(msg, entering, index){
   return '<div class="pm-row chat-message chat-message--sent' + (msg && msg.type === 'voice' ? ' chat-message--voice' : '') + voiceRowClass + stickerRowClass + imageRowClass + locationRowClass + fileRowClass + selectionClass + (selected ? ' is-message-selected' : '') + enterClass + '" data-message-index="' + index + '">' + selectionCheck + body + userAvatarHTML() + '</div>';
 }
 
+
+/* 文字图卡片：上面图标+标题，中间描述（最多 3 行，超出截断），下面 复制 / 收藏 / 重新编辑。点卡片本身查看完整描述。 */
+function imageTextFavInnerHTML(active){
+  return '<svg aria-hidden="true" viewBox="0 0 24 24" fill="' + (active ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"><path d="m12 3.6 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 16.62 6.9 19.3l.97-5.68L3.75 9.6l5.7-.83L12 3.6z"></path></svg><span>收藏</span>';
+}
+
+function imageTextCardHTML(index, msg){
+  var description = String(msg && (msg.description || msg.imageText || '') || '').trim();
+  return '<div class="pm-image-text-bubble pm-image-text-card chat-bubble chat-bubble--image chat-bubble--image-text" data-image-text-index="' + index + '" role="button" tabindex="0" aria-label="查看文字图描述">' +
+    '<div class="pm-itc-head">' +
+      '<span class="pm-itc-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3.5" width="18" height="17" rx="4.6" fill="none" stroke="currentColor" stroke-width="2.1"></rect><circle cx="15.6" cy="9" r="1.9" fill="currentColor"></circle><path fill="currentColor" d="M3.6 18.1c0 1.35 1.05 2.4 2.4 2.4h12c1.35 0 2.4-1.05 2.4-2.4v-1.5l-4.1-3.5-2.6 2.5-4.7-5-5.4 5.8z"></path></svg></span>' +
+      '<span class="pm-itc-title pm-image-text-content">文字图</span>' +
+    '</div>' +
+    '<div class="pm-itc-body"><div class="pm-itc-text">' + escapeHTML(description) + '</div></div>' +
+    '<div class="pm-itc-foot">' +
+      '<button type="button" class="pm-itc-act" data-image-text-action="copy" aria-label="复制"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"><rect x="8" y="8" width="11" height="11" rx="2.4"></rect><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-6A2.5 2.5 0 0 0 5 6.5v6A2.5 2.5 0 0 0 7.5 15H8"></path></svg><span>复制</span></button>' +
+      '<button type="button" class="pm-itc-act pm-itc-fav' + (msg && msg.favorite ? ' is-active' : '') + '" data-image-text-action="favorite" aria-label="' + (msg && msg.favorite ? '取消收藏' : '收藏') + '">' + imageTextFavInnerHTML(!!(msg && msg.favorite)) + '</button>' +
+      '<button type="button" class="pm-itc-act" data-image-text-action="reedit" aria-label="重新编辑"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"><path d="M4.5 16.6 15.9 5.2a2.1 2.1 0 0 1 3 3L7.5 19.6l-3.9.9.9-3.9z"></path><path d="m14.4 6.7 3 3"></path><path d="M12 20.5h8"></path></svg><span>重新编辑</span></button>' +
+    '</div>' +
+  '</div>';
+}
 
 function renderMessageActionMenu(index, anchorEl){
   if (!pmMessageActionPopover || !pmScroll || !anchorEl) return;
