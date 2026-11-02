@@ -3,25 +3,30 @@
 'use strict';
 
 function toolIcon(path){
-  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>';
+  return '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">' + path + '</svg>';
+}
+
+function toolStroke(path, w){
+  return '<g fill="none" stroke="currentColor" stroke-width="' + (w || 2.2) + '" stroke-linecap="round" stroke-linejoin="round">' + path + '</g>';
 }
 
 function buildToolsPanel(){
+  var brainHalf = '<path d="M12 5.2c-.6-1.4-2-2.2-3.5-2-1.6.2-2.7 1.5-2.6 3-1.5.4-2.5 1.8-2.3 3.3.1 1 .6 1.8 1.3 2.3-.5.8-.6 1.8-.2 2.7.4 1 1.3 1.6 2.3 1.8.2 1.6 1.6 2.8 3.2 2.7 1.1 0 2-.6 2.5-1.5"/><path d="M8.6 9.4c1 0 1.8.7 1.8 1.7"/><path d="M7.9 14c1.1 0 2-.6 2.4-1.6"/>';
   var tools = [
-    { name:'图片', icon: toolIcon('<rect x="3.5" y="4.5" width="17" height="15" rx="4"/><circle cx="9" cy="10" r="1.7"/><path d="M4.5 17.2l4.2-4a2 2 0 0 1 2.7 0l3.2 3"/><path d="M14 15.5l1.4-1.3a2 2 0 0 1 2.7 0l2.4 2.3"/>') },
-    { name:'拍摄', icon: toolIcon('<path d="M3.5 8.5a2.5 2.5 0 0 1 2.5-2.5h1.6l1.2-2h6.4l1.2 2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5z"/><circle cx="12" cy="12.5" r="3.4"/>') },
-    { name:'语音通话', icon: toolIcon('<path d="M7.2 3.8 9.4 8l-2 2.2a12 12 0 0 0 6.4 6.4l2.2-2 4.2 2.2-1 3.2c-.3.9-1.2 1.4-2.1 1.2C10.4 19.7 4.3 13.6 2.8 6.9c-.2-.9.3-1.8 1.2-2.1z"/>') },
-    { name:'位置', icon: toolIcon('<path d="M12 21s6.5-5.4 6.5-10.4a6.5 6.5 0 1 0-13 0C5.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.4" r="2.4"/>') },
-    { name:'文件', icon: toolIcon('<path d="M13.5 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M13.5 3.5V9H19"/>') },
-    { name:'转账', icon: toolIcon('<path d="M5 8h9.5"/><path d="M14.5 8l-3-3"/><path d="M19 16H9.5"/><path d="M9.5 16l3 3"/>') },
-    { name:'语言', icon: toolIcon('<circle cx="12" cy="12" r="8.5"/><path d="M3.8 9.2h16.4M3.8 14.8h16.4M12 3.5c2.2 2.3 3.4 5.1 3.4 8.5S14.2 18.2 12 20.5c-2.2-2.3-3.4-5.1-3.4-8.5S9.8 5.8 12 3.5z"/>') },
-    { name:'角色卡', icon: toolIcon('<circle cx="12" cy="8.5" r="3.4"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/>') },
-    { name:'记忆', icon: toolIcon('<path d="M12 6.2C10.4 4.9 8.3 4.4 5.5 4.4v13.4c2.8 0 4.9.5 6.5 1.8 1.6-1.3 3.7-1.8 6.5-1.8V4.4c-2.8 0-4.9.5-6.5 1.8z"/><path d="M12 6.2v13.4"/>') },
+    { name:'图片', icon: toolIcon('<path fill-rule="evenodd" d="M5.2 4h13.6A2.7 2.7 0 0 1 21.5 6.7v10.6a2.7 2.7 0 0 1-2.7 2.7H5.2a2.7 2.7 0 0 1-2.7-2.7V6.7A2.7 2.7 0 0 1 5.2 4zM4.4 17.6h15.2v-.5l-3.9-5.6a.8.8 0 0 0-1.3 0l-1.7 2.4-2.6-3.9a.8.8 0 0 0-1.3 0z"/>') },
+    { name:'拍摄', icon: toolIcon('<path fill-rule="evenodd" d="M9.2 4h5.6l1.2 2h3A2.5 2.5 0 0 1 21.5 8.5v9a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 17.5v-9A2.5 2.5 0 0 1 5 6h3zM12 9.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z"/><circle cx="12" cy="13" r="2.1"/>') },
+    { name:'语音通话', icon: toolIcon('<path d="M5.6 7.6c-.9.3-1.3 1.2-1.1 2.1 1.1 4.6 4.9 8.4 9.5 9.5.9.2 1.8-.2 2.1-1.1l.5-1.6c.2-.6 0-1.2-.5-1.5l-2.3-1.4a1.3 1.3 0 0 0-1.6.2l-.7.7a8 8 0 0 1-3-3l.7-.7c.4-.4.5-1 .2-1.6L8.1 8.3c-.3-.5-.9-.7-1.5-.5z"/><path d="M13.6 4.2h3.8a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1h-3.8a1 1 0 0 1-1-1V5.2a1 1 0 0 1 1-1z"/><path d="M19.2 6.2l2.3-1.2v4.8l-2.3-1.2z"/>') },
+    { name:'位置', icon: toolIcon('<path fill-rule="evenodd" d="M12 22s7-6.1 7-12.1a7 7 0 1 0-14 0C5 15.900 12 22 12 22zm0-9.6a2.6 2.6 0 1 0 0-5.200 2.600 2.600 0 0 0 0 5.200z"/>') },
+    { name:'文件', icon: toolIcon('<path d="M3 8.6V6.5A1.500 1.500 0 0 1 4.500 5h4.700l2 2.200h8.300A1.500 1.500 0 0 1 21 8.700V9H3z"/><path d="M3 10.300h18v7.200a2.500 2.500 0 0 1-2.500 2.500h-13A2.500 2.500 0 0 1 3 17.500z"/>') },
+    { name:'转账', icon: toolIcon(toolStroke('<path d="M4 8.500h15.500"/><path d="M15.800 4.800l3.700 3.700-3.700 3.700"/><path d="M20 15.500H4.500"/><path d="M8.200 11.800l-3.700 3.700 3.700 3.700"/>', 2)) },
+    { name:'语言', icon: toolIcon('<rect x="8.800" y="2.800" width="6.400" height="11.600" rx="3.200"/>' + toolStroke('<path d="M5.200 11.200a6.800 6.800 0 0 0 13.600 0"/><path d="M12 18v3"/><path d="M8.500 21h7"/>', 2)) },
+    { name:'角色卡', icon: toolIcon('<path fill-rule="evenodd" d="M5.500 5h13A3 3 0 0 1 21.500 8v8a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM8.200 8.700a1.900 1.900 0 1 0 0 3.800 1.900 1.900 0 0 0 0-3.800zM4.900 16.200h6.600a3.300 3.300 0 0 0-6.600 0zM13 9.400a.8.800 0 0 0 0 1.600h5a.8.800 0 0 0 0-1.600zM13 13a.8.800 0 0 0 0 1.600h5A.8.800 0 0 0 18 13z"/>') },
+    { name:'记忆', icon: toolIcon(toolStroke(brainHalf + '<g transform="translate(24 0) scale(-1 1)">' + brainHalf + '</g><path d="M12 5.200v14.600"/>', 1.7)) },
   ];
   var html = '<div class="tool-grid">';
   tools.forEach(function(t){
     html += '<button class="tool-item" type="button" data-tool="' + t.name + '">' +
-      '<span class="tool-icon">' + t.icon + '</span><span>' + t.name + '</span></button>';
+      '<span class="tool-icon">' + t.icon + '</span><span class="tool-label">' + t.name + '</span></button>';
   });
   html += '</div>'; return html;
 }
@@ -36,6 +41,7 @@ function openPanel(mode){
   }
   panelMode = mode;
   pmPanel.classList.remove('is-sticker-panel');
+  pmPanel.classList.add('is-tools-panel');
   pmPanelInner.innerHTML = buildToolsPanel();
   pmPanel.classList.add('is-open');
   if (pmEmojiBtn) pmEmojiBtn.classList.remove('is-on');
@@ -45,7 +51,7 @@ function openPanel(mode){
 function closePanel(){
   clearStickerSelection();
   panelMode = null;
-  if (pmPanel) { pmPanel.classList.remove('is-open'); pmPanel.classList.remove('is-sticker-panel'); pmPanel.classList.remove('is-sticker-manage'); }
+  if (pmPanel) { pmPanel.classList.remove('is-open'); pmPanel.classList.remove('is-sticker-panel'); pmPanel.classList.remove('is-sticker-manage'); pmPanel.classList.remove('is-tools-panel'); }
   if (pmEmojiBtn) pmEmojiBtn.classList.remove('is-on');
   if (pmPlusBtn) pmPlusBtn.classList.remove('is-on');
 }

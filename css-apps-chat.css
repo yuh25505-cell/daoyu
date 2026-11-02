@@ -1060,15 +1060,29 @@ html[data-theme="dark"] .pm-hold{ background:#292929 !important; color:#f5f5f5 !
 
 .emoji-grid button{ aspect-ratio:1/1; display:grid; place-items:center; font-size:calc(24px * var(--island-font-size-scale)); border-radius:12px; }
 
-.tool-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:11px 8px; }
+.tool-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px 8px; }
 
-.tool-item{ display:flex; flex-direction:column; align-items:center; gap:5px; }
+.tool-item{ display:flex; flex-direction:column; align-items:center; gap:6px; }
 
-.tool-icon{ width:46px; height:46px; border-radius:15px; display:grid; place-items:center; color: var(--icon-fg); background: linear-gradient(160deg, var(--icon-bg-a), var(--icon-bg-b)); border:1px solid var(--icon-bd); box-shadow: var(--icon-shadow); }
+.tool-icon{ width:54px; height:54px; border-radius:18px; display:grid; place-items:center; color:#161616; background:#ffffff; border:0; box-shadow:0 2px 10px rgba(0,0,0,.06), 0 0 0 .5px rgba(0,0,0,.03); }
 
-.tool-icon svg{ width:22px; height:22px; display:block; }
+.tool-icon svg{ width:30px; height:30px; display:block; }
 
-.tool-item span{ font-size:calc(11px * var(--island-font-size-scale)); color: var(--fg-soft); }
+.tool-item span.tool-label{ font-size:calc(12px * var(--island-font-size-scale)); font-weight:var(--island-fw-600); color:#6e6e6e; }
+
+.pm-panel.is-tools-panel{ background:linear-gradient(180deg,#f6f6f6,#f1f1f1); }
+
+html[data-theme="dark"] .pm-panel.is-tools-panel{ background:linear-gradient(180deg,#0e0e0f,#080808); }
+
+html[data-theme="dark"] .tool-icon{ color:#f5f5f5; background:#1c1c1e; box-shadow:0 0 0 .5px rgba(255,255,255,.07); }
+
+html[data-theme="dark"] .tool-item span.tool-label{ color:rgba(245,245,245,.62); }
+
+@media (prefers-color-scheme: dark){
+  html:not([data-theme]) .pm-panel.is-tools-panel{ background:linear-gradient(180deg,#0e0e0f,#080808); }
+  html:not([data-theme]) .tool-icon{ color:#f5f5f5; background:#1c1c1e; box-shadow:0 0 0 .5px rgba(255,255,255,.07); }
+  html:not([data-theme]) .tool-item span.tool-label{ color:rgba(245,245,245,.62); }
+}
 
 /* 我的角色页面 */
 .up-view{ position:absolute; inset:0; z-index:11; background:var(--bg); display:none; }
@@ -1728,9 +1742,6 @@ html:not([data-theme]) .pm-forward-record-item.is-them{ background:#2A2A2C; colo
 .pm-input-wrap.has-text .pm-ai-inside{
   display:none !important;
 }
-
-/* Keep small utility tiles flat and shadow-free without changing user avatars. */
-.tool-icon{ border-radius:5px; box-shadow:none; background:var(--icon-bg-a); border-color:var(--icon-bd); }
 
 /* Private-chat URL images: light keeps source image, dark inverts it into the Island palette. */
 .pm-bar img{ filter:none; transition:filter .18s ease; }

@@ -390,6 +390,7 @@ function openStickerPanel(){
   panelMode = 'sticker';
   if (!pmPanel) return;
   pmPanel.classList.add('is-sticker-panel');
+  pmPanel.classList.remove('is-tools-panel');
   pmPanel.classList.remove('is-sticker-manage');
   releaseInputFocus();
   renderStickerPanelInto();
