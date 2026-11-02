@@ -920,7 +920,7 @@ function bindChatEvents(){
         sendSticker(sticker.dataset.stickerUrl || stickerUrlById(stickerId)); return;
       }
       var group = e.target.closest('[data-sticker-group]');
-      if (group) { clearStickerSelection(); var st = getStickerState(); st.activeGroupId = group.dataset.stickerGroup; saveStickers().then(function(){ renderStickerPanelInto(); }); return; }
+      if (group) { clearStickerSelection(); var st = getStickerState(); st.activeGroupId = group.dataset.stickerGroup; renderStickerPanelInto(); saveStickerActiveGroup(); return; }
       var manage = e.target.closest('[data-sticker-manage]');
       if (manage) {
         var action = manage.dataset.stickerManage;

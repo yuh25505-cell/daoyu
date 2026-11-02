@@ -666,7 +666,7 @@ function loadState(){
   var baseKeys = [
     'island.settings', 'island.chats', 'island.contacts', 'island.moments',
     'island.phoneCalls', 'island.memory', 'island.personas', 'island.worldbooks',
-    'island.stickers', 'island.userPersonas', 'island.friendRequests'
+    'island.stickers', 'island.userPersonas', 'island.friendRequests', 'island.stickers.active'
   ];
   return Promise.all(baseKeys.map(function(key){
     return IslandDB.get(key).then(function(value){ return { key:key, value:value }; });
@@ -740,6 +740,7 @@ function loadState(){
     State.stickers = data['island.stickers'] && typeof data['island.stickers'] === 'object' && !Array.isArray(data['island.stickers'])
       ? data['island.stickers'] : { activeGroupId:'', groups:[] };
     if (!data['island.stickers'] || typeof data['island.stickers'] !== 'object' || Array.isArray(data['island.stickers'])) missing['island.stickers'] = true;
+    if (typeof data['island.stickers.active'] === 'string' && data['island.stickers.active']) State.stickers.activeGroupId = data['island.stickers.active'];
     normalizeStickerState();
 
     if (Array.isArray(data['island.userPersonas']) && data['island.userPersonas'].length) {
