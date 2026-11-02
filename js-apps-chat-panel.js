@@ -31,6 +31,11 @@ function buildToolsPanel(){
   html += '</div>'; return html;
 }
 
+function setPmHasPanel(on){
+  var shell = pmPanel && pmPanel.parentElement;
+  if (shell) shell.classList.toggle('has-panel', !!on);
+}
+
 function openPanel(mode){
   releaseInputFocus();
   if (!pmPanel) return;
@@ -44,6 +49,7 @@ function openPanel(mode){
   pmPanel.classList.add('is-tools-panel');
   pmPanelInner.innerHTML = buildToolsPanel();
   pmPanel.classList.add('is-open');
+  setPmHasPanel(true);
   if (pmEmojiBtn) pmEmojiBtn.classList.remove('is-on');
   if (pmPlusBtn) pmPlusBtn.classList.toggle('is-on', mode === 'tools');
 }
@@ -55,6 +61,7 @@ function closePanel(){
   panelMode = null;
   if (pmPanel) {
     pmPanel.classList.remove('is-open');
+    setPmHasPanel(false);
     clearTimeout(pmPanelClassTimer);
     pmPanelClassTimer = setTimeout(function(){
       if (pmPanel && !pmPanel.classList.contains('is-open')) {

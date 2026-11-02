@@ -759,6 +759,7 @@ function openStickerPanel(){
   releaseInputFocus();
   renderStickerPanelInto();
   pmPanel.classList.add('is-open');
+  setPmHasPanel(true);
 }
 
 function sendSticker(url){
